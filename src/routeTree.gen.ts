@@ -10,33 +10,61 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfessionalsRouteImport } from './routes/professionals'
+import { Route as ProjectRouteImport } from './routes/project'
+import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfessionalsRoute = ProfessionalsRouteImport.update({
+  id: '/professionals',
+  path: '/professionals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectRoute = ProjectRouteImport.update({
+  id: '/project',
+  path: '/project',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessionalsIndexRoute = ProfessionalsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProfessionalsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/professionals': typeof ProfessionalsRouteWithChildren
+  '/project': typeof ProjectRoute
+  '/professionals/': typeof ProfessionalsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/project': typeof ProjectRoute
+  '/professionals': typeof ProfessionalsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/professionals': typeof ProfessionalsRouteWithChildren
+  '/project': typeof ProjectRoute
+  '/professionals/': typeof ProfessionalsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/professionals' | '/project' | '/professionals/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/project' | '/professionals'
+  id: '__root__' | '/' | '/professionals' | '/project' | '/professionals/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
+  ProjectRoute: typeof ProjectRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +76,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/professionals': {
+      id: '/professionals'
+      path: '/professionals'
+      fullPath: '/professionals'
+      preLoaderRoute: typeof ProfessionalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/project': {
+      id: '/project'
+      path: '/project'
+      fullPath: '/project'
+      preLoaderRoute: typeof ProjectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professionals/': {
+      id: '/professionals/'
+      path: '/'
+      fullPath: '/professionals/'
+      preLoaderRoute: typeof ProfessionalsIndexRouteImport
+      parentRoute: typeof ProfessionalsRoute
+    }
   }
 }
 
+interface ProfessionalsRouteChildren {
+  ProfessionalsIndexRoute: typeof ProfessionalsIndexRoute
+}
+
+const ProfessionalsRouteChildren: ProfessionalsRouteChildren = {
+  ProfessionalsIndexRoute: ProfessionalsIndexRoute,
+}
+
+const ProfessionalsRouteWithChildren = ProfessionalsRoute._addFileChildren(
+  ProfessionalsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProfessionalsRoute: ProfessionalsRouteWithChildren,
+  ProjectRoute: ProjectRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
