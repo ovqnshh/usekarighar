@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
+import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,16 +35,23 @@ const ProfessionalsIndexRoute = ProfessionalsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfessionalsRoute,
 } as any)
+const ProfessionalsIdRoute = ProfessionalsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ProfessionalsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals/': typeof ProfessionalsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/project': typeof ProjectRoute
+  '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals': typeof ProfessionalsIndexRoute
 }
 export interface FileRoutesById {
@@ -51,14 +59,26 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals/': typeof ProfessionalsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/professionals' | '/project' | '/professionals/'
+  fullPaths:
+    | '/'
+    | '/professionals'
+    | '/project'
+    | '/professionals/$id'
+    | '/professionals/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/project' | '/professionals'
-  id: '__root__' | '/' | '/professionals' | '/project' | '/professionals/'
+  to: '/' | '/project' | '/professionals/$id' | '/professionals'
+  id:
+    | '__root__'
+    | '/'
+    | '/professionals'
+    | '/project'
+    | '/professionals/$id'
+    | '/professionals/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,14 +117,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfessionalsIndexRouteImport
       parentRoute: typeof ProfessionalsRoute
     }
+    '/professionals/$id': {
+      id: '/professionals/$id'
+      path: '/$id'
+      fullPath: '/professionals/$id'
+      preLoaderRoute: typeof ProfessionalsIdRouteImport
+      parentRoute: typeof ProfessionalsRoute
+    }
   }
 }
 
 interface ProfessionalsRouteChildren {
+  ProfessionalsIdRoute: typeof ProfessionalsIdRoute
   ProfessionalsIndexRoute: typeof ProfessionalsIndexRoute
 }
 
 const ProfessionalsRouteChildren: ProfessionalsRouteChildren = {
+  ProfessionalsIdRoute: ProfessionalsIdRoute,
   ProfessionalsIndexRoute: ProfessionalsIndexRoute,
 }
 
