@@ -13,9 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 type SearchParams = { intent?: "build" | "renovate" | "fix" };
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): SearchParams => ({
-    intent: search.intent === "build" || search.intent === "renovate" || search.intent === "fix" ? search.intent : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): SearchParams => {
+    const value = search["intent"];
+    return value === "build" || value === "renovate" || value === "fix" ? { intent: value } : {};
+  },
   head: () => ({ meta: [
     { title: "Karighar — Tell us what your home needs" },
     { name: "description", content: "Turn any home idea or repair into a clear brief and meet trusted professionals near you." },
@@ -117,10 +118,10 @@ function Index() {
             <div className="mb-8 max-w-xl"><p className="text-sm font-semibold text-primary">Start with your goal</p><h2 className="mt-2 font-display text-4xl font-semibold">What would you like to do?</h2></div>
             <div className="grid gap-5 md:grid-cols-3">
               {intentions.map((item) => (
-                <button key={item.key} onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); askRef.current?.focus(); window.scrollTo({ top: 160, behavior: "smooth" }); }} className="group overflow-hidden rounded-lg border border-border bg-card text-left transition hover:-translate-y-1 hover:shadow-xl">
+                <Button key={item.key} variant="ghost" onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); askRef.current?.focus(); window.scrollTo({ top: 160, behavior: "smooth" }); }} className="group block h-auto overflow-hidden rounded-lg border border-border bg-card p-0 text-left whitespace-normal transition hover:-translate-y-1 hover:bg-card hover:shadow-xl">
                   <img src={item.image} width={1200} height={912} loading="lazy" alt="" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
                   <div className="p-5"><div className="flex items-center gap-2 text-primary"><item.icon className="size-5" /><span className="text-sm font-semibold">{item.title}</span></div><p className="mt-3 text-xl font-semibold">{item.copy}</p><p className="mt-3 text-sm text-muted-foreground">For example: {item.example}</p></div>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
