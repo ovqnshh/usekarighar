@@ -14,13 +14,286 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      gigs: {
+        Row: {
+          addons: Json
+          availability: string
+          created_at: string
+          description: string
+          duration: string
+          id: string
+          included: string[]
+          materials: string
+          name: string
+          not_included: string[]
+          photos: string[]
+          professional_id: string
+          service_area: string
+          starting_price: number
+          warranty: string
+        }
+        Insert: {
+          addons?: Json
+          availability?: string
+          created_at?: string
+          description?: string
+          duration?: string
+          id?: string
+          included?: string[]
+          materials?: string
+          name: string
+          not_included?: string[]
+          photos?: string[]
+          professional_id: string
+          service_area?: string
+          starting_price?: number
+          warranty?: string
+        }
+        Update: {
+          addons?: Json
+          availability?: string
+          created_at?: string
+          description?: string
+          duration?: string
+          id?: string
+          included?: string[]
+          materials?: string
+          name?: string
+          not_included?: string[]
+          photos?: string[]
+          professional_id?: string
+          service_area?: string
+          starting_price?: number
+          warranty?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gigs_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professionals: {
+        Row: {
+          bio: string
+          business: string
+          city: string
+          created_at: string
+          experience: string
+          id: string
+          name: string
+          projects_count: number
+          rating: number
+          reviews: number
+          slug: string
+          trade: string
+          user_id: string | null
+        }
+        Insert: {
+          bio?: string
+          business: string
+          city?: string
+          created_at?: string
+          experience?: string
+          id?: string
+          name: string
+          projects_count?: number
+          rating?: number
+          reviews?: number
+          slug: string
+          trade?: string
+          user_id?: string | null
+        }
+        Update: {
+          bio?: string
+          business?: string
+          city?: string
+          created_at?: string
+          experience?: string
+          id?: string
+          name?: string
+          projects_count?: number
+          rating?: number
+          reviews?: number
+          slug?: string
+          trade?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          budget: string
+          created_at: string
+          customer_id: string
+          gig_id: string | null
+          id: string
+          intent: string
+          location: string
+          price: number | null
+          professional_id: string | null
+          source: string
+          status: string
+          summary: string
+          timing: string
+          title: string
+        }
+        Insert: {
+          budget?: string
+          created_at?: string
+          customer_id?: string
+          gig_id?: string | null
+          id?: string
+          intent?: string
+          location?: string
+          price?: number | null
+          professional_id?: string | null
+          source?: string
+          status?: string
+          summary?: string
+          timing?: string
+          title: string
+        }
+        Update: {
+          budget?: string
+          created_at?: string
+          customer_id?: string
+          gig_id?: string | null
+          id?: string
+          intent?: string
+          location?: string
+          price?: number | null
+          professional_id?: string | null
+          source?: string
+          status?: string
+          summary?: string
+          timing?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          duration: string
+          id: string
+          labour: number
+          materials: string
+          materials_cost: number
+          other: number
+          platform_fee: number
+          professional_id: string
+          project_id: string
+          scope: string
+          status: string
+          submitted_at: string | null
+          tax: number
+          total: number | null
+          transport: number
+          warranty: string
+          workers: number
+        }
+        Insert: {
+          created_at?: string
+          duration?: string
+          id?: string
+          labour?: number
+          materials?: string
+          materials_cost?: number
+          other?: number
+          platform_fee?: number
+          professional_id: string
+          project_id: string
+          scope?: string
+          status?: string
+          submitted_at?: string | null
+          tax?: number
+          total?: number | null
+          transport?: number
+          warranty?: string
+          workers?: number
+        }
+        Update: {
+          created_at?: string
+          duration?: string
+          id?: string
+          labour?: number
+          materials?: string
+          materials_cost?: number
+          other?: number
+          platform_fee?: number
+          professional_id?: string
+          project_id?: string
+          scope?: string
+          status?: string
+          submitted_at?: string | null
+          tax?: number
+          total?: number | null
+          transport?: number
+          warranty?: string
+          workers?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_quote: { Args: { _quote_id: string }; Returns: undefined }
+      owns_professional: { Args: { _pid: string }; Returns: boolean }
+      owns_project: { Args: { _id: string }; Returns: boolean }
+      pro_on_project: { Args: { _id: string }; Returns: boolean }
+      submit_quote: {
+        Args: {
+          _duration: string
+          _labour: number
+          _materials: string
+          _materials_cost: number
+          _other: number
+          _platform_fee: number
+          _quote_id: string
+          _scope: string
+          _tax: number
+          _transport: number
+          _warranty: string
+          _workers: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
