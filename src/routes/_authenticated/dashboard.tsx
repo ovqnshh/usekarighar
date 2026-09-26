@@ -39,7 +39,7 @@ function SetupStorefront({ userId }: { userId: string }) {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from("professionals").insert({ ...f, user_id: userId, slug: slugify(f.business || f.name) });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["my-pro"] });
   }
   return (
@@ -83,7 +83,7 @@ function Gigs({ pro }: { pro: ProRow }) {
   async function remove(g: GigRow) {
     if (!confirm(`Delete “${g.name}”?`)) return;
     const { error } = await supabase.from("gigs").delete().eq("id", g.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     if (g.photos.length) await supabase.storage.from("gig-photos").remove(g.photos);
     qc.invalidateQueries({ queryKey: ["gigs", pro.id] });
   }
@@ -151,7 +151,7 @@ function GigForm({ pro, gig, onDone }: { pro: ProRow; gig: GigRow | null; onDone
       duration: f.duration, materials: f.materials, service_area: f.service_area, availability: f.availability, warranty: f.warranty, addons, photos, professional_id: pro.id };
     const { error } = gig ? await supabase.from("gigs").update(row).eq("id", gig.id) : await supabase.from("gigs").insert(row);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Gig saved"); onDone();
   }
 
@@ -201,7 +201,7 @@ function QuoteRequestCard({ row, proId }: { row: QuoteWithProject; proId: string
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.rpc("submit_quote", { _quote_id: row.id, _labour: n("labour"), _materials_cost: n("materials_cost"), _transport: n("transport"), _other: n("other"), _platform_fee: n("platform_fee"), _tax: n("tax"), _duration: f.duration, _workers: n("workers") || 1, _materials: f.materials, _warranty: f.warranty, _scope: f.scope });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Quote sent"); setOpen(false); qc.invalidateQueries({ queryKey: ["pro-quotes", proId] });
   }
   const editable = row.status === "requested" || row.status === "submitted";
