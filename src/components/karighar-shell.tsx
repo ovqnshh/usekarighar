@@ -22,23 +22,23 @@ export function SiteHeader() {
   ] as const;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:px-10">
         <Brand />
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
-          {links.map((link) => (
-            <Link key={link.label} to={link.to} search={link.search} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+        <nav className="hidden items-center rounded-full border border-border bg-background p-1.5 shadow-float transition-shadow hover:shadow-lg md:flex" aria-label="Main navigation">
+          {links.map((link, i) => (
+            <Link key={link.label} to={link.to} search={link.search} className={`px-5 py-1.5 text-sm font-semibold text-foreground ${i > 0 ? "border-l border-border" : ""}`}>
               {link.label}
             </Link>
           ))}
-          <Link to="/project" className={pathname === "/project" ? "text-sm font-semibold text-primary" : "text-sm font-medium text-muted-foreground hover:text-foreground"}>
+          <Link to="/project" className={`border-l border-border px-5 py-1.5 text-sm ${pathname === "/project" ? "font-semibold text-primary" : "text-muted-foreground"}`}>
             My project
           </Link>
+          <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground"><Search className="size-4" /></span>
         </nav>
-        <div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" size="icon" aria-label="Search"><Search /></Button>
-          <Button variant="outline" className="rounded-full"><UserRound /> Sign in</Button>
-          <Button className="rounded-full"><BriefcaseBusiness /> Join as a professional</Button>
+        <div className="hidden items-center gap-1 md:flex">
+          <Button variant="ghost" className="rounded-full font-semibold"><BriefcaseBusiness /> Become a pro</Button>
+          <Button variant="outline" className="h-11 rounded-full px-3 shadow-sm hover:shadow-float"><Menu /><span className="grid size-7 place-items-center rounded-full bg-muted-foreground text-background"><UserRound className="size-4" /></span></Button>
         </div>
         <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu" onClick={() => setOpen((value) => !value)}><Menu /></Button>
       </div>
