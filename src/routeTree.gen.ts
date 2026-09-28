@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
+import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
+import { Route as ShortlistRouteImport } from './routes/shortlist'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
@@ -43,6 +45,16 @@ const ProjectRoute = ProjectRouteImport.update({
   path: '/project',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RenovationPlannerRoute = RenovationPlannerRouteImport.update({
+  id: '/renovation-planner',
+  path: '/renovation-planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShortlistRoute = ShortlistRouteImport.update({
+  id: '/shortlist',
+  path: '/shortlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -69,6 +81,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/renovation-planner': typeof RenovationPlannerRoute
+  '/shortlist': typeof ShortlistRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals/': typeof ProfessionalsIndexRoute
@@ -78,6 +92,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/project': typeof ProjectRoute
+  '/renovation-planner': typeof RenovationPlannerRoute
+  '/shortlist': typeof ShortlistRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals': typeof ProfessionalsIndexRoute
@@ -90,6 +106,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/renovation-planner': typeof RenovationPlannerRoute
+  '/shortlist': typeof ShortlistRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/professionals/': typeof ProfessionalsIndexRoute
@@ -102,6 +120,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/professionals'
     | '/project'
+    | '/renovation-planner'
+    | '/shortlist'
     | '/dashboard'
     | '/professionals/$id'
     | '/professionals/'
@@ -111,6 +131,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/project'
+    | '/renovation-planner'
+    | '/shortlist'
     | '/dashboard'
     | '/professionals/$id'
     | '/professionals'
@@ -122,6 +144,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/professionals'
     | '/project'
+    | '/renovation-planner'
+    | '/shortlist'
     | '/_authenticated/dashboard'
     | '/professionals/$id'
     | '/professionals/'
@@ -134,6 +158,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
+  RenovationPlannerRoute: typeof RenovationPlannerRoute
+  ShortlistRoute: typeof ShortlistRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -171,6 +197,20 @@ declare module '@tanstack/react-router' {
       path: '/project'
       fullPath: '/project'
       preLoaderRoute: typeof ProjectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renovation-planner': {
+      id: '/renovation-planner'
+      path: '/renovation-planner'
+      fullPath: '/renovation-planner'
+      preLoaderRoute: typeof RenovationPlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shortlist': {
+      id: '/shortlist'
+      path: '/shortlist'
+      fullPath: '/shortlist'
+      preLoaderRoute: typeof ShortlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -237,6 +277,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
+  RenovationPlannerRoute: RenovationPlannerRoute,
+  ShortlistRoute: ShortlistRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
