@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { PageShell, TrustBadge } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
 import { professionals } from "@/lib/karighar-data";
+import { useShortlist } from "@/hooks/use-shortlist";
 
 export const Route = createFileRoute("/professionals/")({
   head: () => ({ meta: [
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/professionals/")({
 function ProfessionalsPage() {
   const [sort, setSort] = useState("recommended");
   const [available, setAvailable] = useState(false);
+  const { toggle, isSaved } = useShortlist();
   const matched = useMemo(() => {
     const list = [...professionals];
     if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
@@ -49,7 +51,13 @@ function ProfessionalsPage() {
                   <div className="relative overflow-hidden rounded-2xl">
                     <img src={professional.image} width={1024} height={1024} loading="lazy" alt={professional.name} className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" />
                     <span className="absolute left-3 top-3 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold shadow-float">{professional.availability}</span>
-                    <Heart className="absolute right-3 top-3 size-6 fill-foreground/40 text-background" />
+                    <button 
+                      onClick={(e) => { e.preventDefault(); toggle(professional.id); }} 
+                      className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-background/80 hover:bg-background"
+                      aria-label={isSaved(professional.id) ? "Remove from shortlist" : "Add to shortlist"}
+                    >
+                      <Heart className={`size-5 transition-colors ${isSaved(professional.id) ? "fill-primary text-primary" : "text-foreground"}`} />
+                    </button>
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-3">
                     <div className="min-w-0"><h2 className="truncate font-semibold">{professional.name} · {professional.business}</h2><p className="text-sm text-muted-foreground">{professional.trade}</p><p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" /> {professional.city}</p></div>

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
@@ -33,6 +34,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BecomeAProRoute = BecomeAProRouteImport.update({
+  id: '/become-a-pro',
+  path: '/become-a-pro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfessionalsRoute = ProfessionalsRouteImport.update({
@@ -79,6 +85,7 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/become-a-pro': typeof BecomeAProRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/become-a-pro': typeof BecomeAProRoute
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/shortlist': typeof ShortlistRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/become-a-pro': typeof BecomeAProRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/become-a-pro'
     | '/professionals'
     | '/project'
     | '/renovation-planner'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/become-a-pro'
     | '/project'
     | '/renovation-planner'
     | '/shortlist'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/become-a-pro'
     | '/professionals'
     | '/project'
     | '/renovation-planner'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BecomeAProRoute: typeof BecomeAProRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
   RenovationPlannerRoute: typeof RenovationPlannerRoute
@@ -183,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/become-a-pro': {
+      id: '/become-a-pro'
+      path: '/become-a-pro'
+      fullPath: '/become-a-pro'
+      preLoaderRoute: typeof BecomeAProRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/professionals': {
@@ -275,6 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  BecomeAProRoute: BecomeAProRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
   RenovationPlannerRoute: RenovationPlannerRoute,
