@@ -62,22 +62,23 @@ function Index() {
   return (
     <PageShell>
       <main>
-        <section className="relative min-h-[650px] overflow-hidden md:min-h-[720px]">
-          <img src={heroImage} width={1536} height={1024} alt="A craftsperson completing custom cabinetry in a Mumbai home" className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-transparent" />
-          <div className="relative mx-auto flex min-h-[650px] max-w-7xl items-center px-5 py-16 md:min-h-[720px] lg:px-8">
-            <div className="w-full max-w-3xl text-primary-foreground">
-              <p className="mb-5 text-sm font-semibold uppercase tracking-[0.14em]">Your project starts with a conversation</p>
-              <h1 className="font-display text-5xl font-semibold leading-[1.02] md:text-7xl">Tell Karighar what you want done.</h1>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-primary-foreground/85 md:text-xl">We’ll help you figure out how to get it done.</p>
-              <div className="mt-9 rounded-lg bg-background p-2 shadow-2xl shadow-foreground/20">
-                <div className="flex items-end gap-2">
-                  <Textarea ref={askRef} value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); understand(); } }} placeholder="Try “I need someone tomorrow to fix my water tank in Andheri…”" aria-label="Describe your project" className="min-h-20 resize-none border-0 bg-transparent px-4 py-4 text-base text-foreground shadow-none focus-visible:ring-0" />
-                  <Button onClick={understand} disabled={!request.trim()} size="lg" className="mb-1 size-13 shrink-0 rounded-md p-0" aria-label="Ask Karighar"><ArrowRight className="size-5" /></Button>
+        <section className="px-5 pt-8 lg:px-10">
+          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl">
+            <img src={heroImage} width={1536} height={1024} alt="A craftsperson completing custom cabinetry in a Mumbai home" className="absolute inset-0 size-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-foreground/10" />
+            <div className="relative flex min-h-[560px] flex-col items-center justify-end px-5 pb-12 text-center md:min-h-[620px] md:pb-16">
+              <h1 className="max-w-4xl text-5xl font-bold leading-[1.02] text-primary-foreground md:text-7xl">Tell Karighar what you want done.</h1>
+              <p className="mt-4 max-w-xl text-lg text-primary-foreground/85 md:text-xl">We’ll help you figure out how to get it done.</p>
+              <div className="mt-8 w-full max-w-3xl rounded-full bg-background p-2 pl-6 text-left shadow-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-xs font-bold text-foreground"><Sparkles className="size-3.5 text-primary" /> Ask Karighar</p>
+                    <Textarea ref={askRef} rows={1} value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); understand(); } }} placeholder="Fix my water tank in Andheri tomorrow, ~₹2,000" aria-label="Describe your project" className="min-h-0 resize-none border-0 bg-transparent p-0 text-base text-foreground shadow-none focus-visible:ring-0 md:text-base" />
+                  </div>
+                  <Button onClick={understand} disabled={!request.trim()} size="lg" className="h-14 shrink-0 rounded-full px-6 text-base" aria-label="Ask Karighar"><Search className="size-5" /><span className="hidden sm:inline">Ask</span></Button>
                 </div>
-                <div className="flex items-center gap-2 border-t border-border px-4 py-2 text-xs text-muted-foreground"><Sparkles className="size-3.5 text-primary" /> Describe it naturally — no trade names needed</div>
               </div>
-              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-primary-foreground/90"><span className="flex items-center gap-2"><Check className="size-4" /> Clear estimates</span><span className="flex items-center gap-2"><Check className="size-4" /> Verified professionals</span><span className="flex items-center gap-2"><Check className="size-4" /> No booking fee</span></div>
+              <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-primary-foreground/90"><span className="flex items-center gap-2"><Check className="size-4" /> Clear estimates</span><span className="flex items-center gap-2"><Check className="size-4" /> Verified professionals</span><span className="flex items-center gap-2"><Check className="size-4" /> No booking fee</span></div>
             </div>
           </div>
         </section>
@@ -118,9 +119,9 @@ function Index() {
             <div className="mb-8 max-w-xl"><p className="text-sm font-semibold text-primary">Start with your goal</p><h2 className="mt-2 font-display text-4xl font-semibold">What would you like to do?</h2></div>
             <div className="grid gap-5 md:grid-cols-3">
               {intentions.map((item) => (
-                <Button key={item.key} variant="ghost" onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); askRef.current?.focus(); window.scrollTo({ top: 160, behavior: "smooth" }); }} className="group block h-auto overflow-hidden rounded-lg border border-border bg-card p-0 text-left whitespace-normal transition hover:-translate-y-1 hover:bg-card hover:shadow-xl">
-                  <img src={item.image} width={1200} height={912} loading="lazy" alt="" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                  <div className="p-5"><div className="flex items-center gap-2 text-primary"><item.icon className="size-5" /><span className="text-sm font-semibold">{item.title}</span></div><p className="mt-3 text-xl font-semibold">{item.copy}</p><p className="mt-3 text-sm text-muted-foreground">For example: {item.example}</p></div>
+                <Button key={item.key} variant="ghost" onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); askRef.current?.focus(); window.scrollTo({ top: 160, behavior: "smooth" }); }} className="group block h-auto p-0 text-left whitespace-normal hover:bg-transparent">
+                  <div className="overflow-hidden rounded-2xl"><img src={item.image} width={1200} height={912} loading="lazy" alt="" className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
+                  <div className="pt-3"><div className="flex items-center gap-2"><item.icon className="size-4 text-primary" /><span className="font-semibold">{item.title}</span></div><p className="mt-1 text-muted-foreground">{item.copy}</p><p className="mt-1 text-sm"><span className="font-semibold">e.g.</span> {item.example}</p></div>
                 </Button>
               ))}
             </div>

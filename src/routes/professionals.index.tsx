@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ChevronDown, MapPin, SlidersHorizontal, Star } from "lucide-react";
+import { ArrowLeft, ChevronDown, Heart, MapPin, SlidersHorizontal, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageShell, TrustBadge } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
@@ -43,17 +43,21 @@ function ProfessionalsPage() {
               <Button variant={available ? "secondary" : "outline"} onClick={() => setAvailable((value) => !value)}>Available soon</Button>
               <label className="relative ml-auto"><span className="sr-only">Sort professionals</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="h-9 appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-sm font-medium"><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="price">Lowest starting price</option></select><ChevronDown className="pointer-events-none absolute right-3 top-2.5 size-4 text-muted-foreground" /></label>
             </div>
-            <div className="mt-7 grid gap-6">
+            <div className="mt-7 grid gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
               {matched.map((professional) => (
-                <article key={professional.id} className="grid overflow-hidden rounded-lg border border-border bg-card md:grid-cols-[230px_1fr]">
-                  <img src={professional.image} width={1024} height={1024} loading="lazy" alt={professional.name} className="aspect-[4/3] size-full object-cover md:aspect-auto" />
-                  <div className="p-5 md:p-6">
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row"><div><p className="text-sm font-medium text-primary">{professional.trade}</p><h2 className="mt-1 text-2xl font-semibold">{professional.name}</h2><p className="text-sm text-muted-foreground">{professional.business}</p></div><div className="sm:text-right"><p className="flex items-center gap-1 font-semibold sm:justify-end"><Star className="size-4 fill-primary text-primary" /> {professional.rating} <span className="font-normal text-muted-foreground">({professional.reviews})</span></p><p className="mt-1 text-sm text-muted-foreground">{professional.projects} projects</p></div></div>
-                    <div className="mt-4 flex flex-wrap gap-2">{professional.badges.map((badge) => <TrustBadge key={badge}>{badge}</TrustBadge>)}</div>
-                    <div className="mt-5 grid grid-cols-3 gap-2">{professional.portfolio.map((image, index) => <img key={image} src={image} width={1200} height={912} loading="lazy" alt={`${professional.name} project ${index + 1}`} className="aspect-[16/10] w-full rounded-md object-cover" />)}</div>
-                    <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" /> {professional.city}</p><p className="mt-2 text-sm font-semibold text-success">{professional.availability}</p></div><div className="flex items-center gap-4"><p className="text-sm text-muted-foreground">Starts at <strong className="text-lg text-foreground">₹{professional.price}</strong></p><Button asChild><Link to="/professionals/$id" params={{ id: professional.id }}>View profile</Link></Button></div></div>
+                <Link key={professional.id} to="/professionals/$id" params={{ id: professional.id }} className="group block">
+                  <div className="relative overflow-hidden rounded-2xl">
+                    <img src={professional.image} width={1024} height={1024} loading="lazy" alt={professional.name} className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <span className="absolute left-3 top-3 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold shadow-float">{professional.availability}</span>
+                    <Heart className="absolute right-3 top-3 size-6 fill-foreground/40 text-background" />
                   </div>
-                </article>
+                  <div className="mt-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0"><h2 className="truncate font-semibold">{professional.name} · {professional.business}</h2><p className="text-sm text-muted-foreground">{professional.trade}</p><p className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5" /> {professional.city}</p></div>
+                    <p className="flex shrink-0 items-center gap-1 text-sm"><Star className="size-3.5 fill-foreground" /> {professional.rating}</p>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">{professional.badges.slice(0, 2).map((badge) => <TrustBadge key={badge}>{badge}</TrustBadge>)}</div>
+                  <p className="mt-2 text-sm"><strong>₹{professional.price}</strong> <span className="text-muted-foreground">starting · {professional.projects} projects</span></p>
+                </Link>
               ))}
             </div>
           </section>
