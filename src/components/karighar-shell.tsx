@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function Brand() {
@@ -24,10 +24,22 @@ export function SiteHeader() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  const { data: proData } = useQuery({
+    queryKey: ["professional-status", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.from("professionals").select("id").eq("user_id", user.id).single();
+      if (error && error.code !== "PGRST116") console.error(error);
+      return data;
+    },
+    enabled: !!user,
+  });
+  const isPro = !!proData;
+  
   const links = [
-    { label: "Build", to: "/", search: { intent: "build" } },
-    { label: "Renovate", to: "/", search: { intent: "renovate" } },
-    { label: "Fix", to: "/", search: { intent: "fix" } },
+    { label: "Build", to: "/build" },
+    { label: "Renovate", to: "/renovate" },
+    { label: "Fix", to: "/fix" },
   ] as const;
 
   async function handleLogout() {
@@ -44,24 +56,17 @@ export function SiteHeader() {
         <Brand />
         <nav className="hidden items-center rounded-full border border-border bg-background p-1.5 shadow-float transition-shadow hover:shadow-lg md:flex" aria-label="Main navigation">
           {links.map((link, i) => (
-            <Link key={link.label} to={link.to} search={link.search} className={`px-5 py-1.5 text-sm font-semibold text-foreground ${i > 0 ? "border-l border-border" : ""}`}>
+            <Link key={link.label} to={link.to} className={`px-5 py-1.5 text-sm ${pathname === link.to ? "font-semibold text-primary" : "font-semibold text-foreground"} ${i > 0 ? "border-l border-border" : ""}`}>
               {link.label}
             </Link>
           ))}
-          <Link to="/renovation-planner" className={`border-l border-border px-5 py-1.5 text-sm ${pathname === "/renovation-planner" ? "font-semibold text-primary" : "text-foreground"}`}>
-            Planner
-          </Link>
-          <Link to="/shortlist" className={`border-l border-border px-5 py-1.5 text-sm ${pathname === "/shortlist" ? "font-semibold text-primary" : "text-foreground"}`}>
-            Shortlist
-          </Link>
-          <Link to="/project" className={`border-l border-border px-5 py-1.5 text-sm ${pathname === "/project" ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-            My project
-          </Link>
-          <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground"><Search className="size-4" /></span>
+          <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground ml-1"><Search className="size-4" /></span>
         </nav>
         <div className="hidden items-center gap-1 md:flex">
           <Button variant="ghost" className="rounded-full font-semibold" asChild>
-            <Link to="/become-a-pro"><BriefcaseBusiness className="mr-2 size-4" /> Become a pro</Link>
+            <Link to={isPro ? "/dashboard" : "/become-a-pro"}>
+              <BriefcaseBusiness className="mr-2 size-4" /> {isPro ? "Switch to professional" : "Become a pro"}
+            </Link>
           </Button>
           
           <DropdownMenu>
@@ -79,7 +84,13 @@ export function SiteHeader() {
                   <div className="px-2 py-1.5 text-sm font-medium opacity-70 truncate">{user.email}</div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                    <Link to="/project"><LayoutDashboard className="mr-2 size-4" /> My Dashboard</Link>
+                    <Link to="/shortlist">Shortlist</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link to="/renovation-planner">AI Planner</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link to="/my-projects"><LayoutDashboard className="mr-2 size-4" /> My Dashboard</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="rounded-lg cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
                     <LogOut className="mr-2 size-4" /> Log out
@@ -99,17 +110,19 @@ export function SiteHeader() {
       {open ? (
         <nav className="border-t border-border bg-background px-5 py-4 md:hidden" aria-label="Mobile navigation">
           <div className="grid gap-1">
-            {links.map((link) => <Link key={link.label} to={link.to} search={link.search} onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">{link.label}</Link>)}
-            <Link to="/renovation-planner" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">Planner</Link>
-            <Link to="/shortlist" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">Shortlist</Link>
+            {links.map((link) => <Link key={link.label} to={link.to} onClick={() => setOpen(false)} className={`rounded-md px-3 py-3 text-sm font-medium hover:bg-muted ${pathname === link.to ? "text-primary" : ""}`}>{link.label}</Link>)}
             
             <div className="my-2 border-t border-border" />
             
-            <Link to="/become-a-pro" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted text-primary"><BriefcaseBusiness className="inline mr-2 size-4" />Become a pro</Link>
+            <Link to={isPro ? "/dashboard" : "/become-a-pro"} onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted text-primary">
+              <BriefcaseBusiness className="inline mr-2 size-4" />{isPro ? "Switch to professional" : "Become a pro"}
+            </Link>
             
             {user ? (
               <>
-                <Link to="/project" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted"><LayoutDashboard className="inline mr-2 size-4" />My Dashboard</Link>
+                <Link to="/shortlist" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">Shortlist</Link>
+                <Link to="/renovation-planner" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">AI Planner</Link>
+                <Link to="/my-projects" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted"><LayoutDashboard className="inline mr-2 size-4" />My Dashboard</Link>
                 <button onClick={() => { handleLogout(); setOpen(false); }} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted text-left text-destructive"><LogOut className="inline mr-2 size-4" />Log out</button>
               </>
             ) : (
@@ -122,8 +135,16 @@ export function SiteHeader() {
   );
 }
 
+import { SiteFooter } from './site-footer';
+
 export function PageShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-background text-foreground"><SiteHeader />{children}</div>;
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <SiteHeader />
+      <div className="flex-1">{children}</div>
+      <SiteFooter />
+    </div>
+  );
 }
 
 export function TrustBadge({ children }: { children: ReactNode }) {

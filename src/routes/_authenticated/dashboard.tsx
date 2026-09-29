@@ -62,7 +62,7 @@ function ProDashboard({ pro }: { pro: ProRow }) {
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-sm font-semibold text-primary">{pro.trade || "Professional"}</p><h1 className="mt-1 font-display text-4xl font-semibold">{pro.business}</h1></div>
-        <Button asChild variant="outline"><Link to="/professionals/$id" params={{ id: pro.slug }}>View my storefront</Link></Button>
+        <Button asChild variant="outline"><Link to="/professionals/$id" params={{ id: pro.slug || pro.id }}>View my storefront</Link></Button>
       </div>
       <Tabs defaultValue="quotes" className="mt-8">
         <TabsList><TabsTrigger value="quotes">Quote requests</TabsTrigger><TabsTrigger value="gigs">Gigs</TabsTrigger><TabsTrigger value="bookings">Bookings</TabsTrigger></TabsList>

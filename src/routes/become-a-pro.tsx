@@ -60,7 +60,7 @@ function BecomeAProPage() {
       toast.error(error.message);
     } else {
       toast.success("Welcome to Karighar! Your storefront is live.");
-      navigate({ to: "/project" });
+      navigate({ to: "/dashboard" });
     }
   };
 
