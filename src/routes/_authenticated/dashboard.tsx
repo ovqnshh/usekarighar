@@ -65,10 +65,11 @@ function ProDashboard({ pro }: { pro: ProRow }) {
         <Button asChild variant="outline"><Link to="/professionals/$id" params={{ id: pro.slug || pro.id }}>View my storefront</Link></Button>
       </div>
       <Tabs defaultValue="quotes" className="mt-8">
-        <TabsList><TabsTrigger value="quotes">Quote requests</TabsTrigger><TabsTrigger value="gigs">Gigs</TabsTrigger><TabsTrigger value="bookings">Bookings</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="quotes">Quote requests</TabsTrigger><TabsTrigger value="gigs">Gigs</TabsTrigger><TabsTrigger value="bookings">Bookings</TabsTrigger><TabsTrigger value="portfolio">Portfolio & Profile</TabsTrigger></TabsList>
         <TabsContent value="quotes" className="pt-5"><QuoteRequests pro={pro} /></TabsContent>
         <TabsContent value="gigs" className="pt-5"><Gigs pro={pro} /></TabsContent>
         <TabsContent value="bookings" className="pt-5"><Bookings pro={pro} /></TabsContent>
+        <TabsContent value="portfolio" className="pt-5"><PortfolioEditor pro={pro} /></TabsContent>
       </Tabs>
     </>
   );
@@ -236,3 +237,91 @@ function Bookings({ pro }: { pro: ProRow }) {
   if (!q.data?.length) return <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">No confirmed bookings yet.</p>;
   return <div className="grid gap-3">{q.data.map((p) => <Link key={p.id} to="/projects/$id" params={{ id: p.id }} className="flex justify-between rounded-lg border border-border bg-card p-5 hover:bg-muted/50"><span className="font-semibold">{p.title}</span><span className="text-sm text-muted-foreground">{inr(p.price)} · {p.status}</span></Link>)}</div>;
 }
+
+/* ---------------- Portfolio & Profile ---------------- */
+
+function PortfolioEditor({ pro }: { pro: any }) {
+  const qc = useQueryClient();
+  const [bio, setBio] = useState(pro.bio || '');
+  const [youtube, setYoutube] = useState(pro.youtube_link || '');
+  const [website, setWebsite] = useState(pro.website_link || '');
+  const [uploading, setUploading] = useState(false);
+
+  const images = useQuery({
+    queryKey: ['portfolio', pro.id],
+    queryFn: async () => (await supabase.from('portfolio_images').select('*').eq('professional_id', pro.id).order('created_at', { ascending: false })).data ?? []
+  });
+
+  const saveProfile = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('professionals').update({ bio, youtube_link: youtube, website_link: website }).eq('id', pro.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success('Profile updated!'); qc.invalidateQueries({ queryKey: ['my-pro'] }); }
+  });
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(e.target.files)) {
+        const ext = file.name.split('.').pop();
+        const fileName = `${pro.id}/${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('portfolios').upload(fileName, file);
+        if (uploadError) throw uploadError;
+        
+        const { data: publicUrlData } = supabase.storage.from('portfolios').getPublicUrl(fileName);
+        const { error: dbError } = await supabase.from('portfolio_images').insert({ professional_id: pro.id, image_url: publicUrlData.publicUrl });
+        if (dbError) throw dbError;
+      }
+      qc.invalidateQueries({ queryKey: ['portfolio'] });
+      toast.success('Images uploaded successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function deleteImage(id: string) {
+    if (!confirm('Delete this image?')) return;
+    await supabase.from('portfolio_images').delete().eq('id', id);
+    qc.invalidateQueries({ queryKey: ['portfolio'] });
+  }
+
+  return (
+    <div className="space-y-10">
+      <section className="space-y-4 max-w-2xl">
+        <h2 className="text-xl font-semibold">About & Links</h2>
+        <div className="space-y-2"><Label>Bio / About you</Label><Textarea value={bio} onChange={e => setBio(e.target.value)} rows={4} placeholder="Tell customers about your experience..." /></div>
+        <div className="space-y-2"><Label>YouTube Video Link</Label><Input value={youtube} onChange={e => setYoutube(e.target.value)} placeholder="https://youtube.com/watch?v=..." /></div>
+        <div className="space-y-2"><Label>Website or Portfolio Link</Label><Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://..." /></div>
+        <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>{saveProfile.isPending ? 'Saving...' : 'Save Profile'}</Button>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Photo Gallery</h2>
+          <div className="relative">
+            <Button disabled={uploading}>{uploading ? 'Uploading...' : 'Upload Photos'}</Button>
+            <input type="file" multiple accept="image/*" onChange={handleUpload} disabled={uploading} className="absolute inset-0 opacity-0 cursor-pointer" />
+          </div>
+        </div>
+        
+        {images.isLoading ? <div className="h-40 bg-muted animate-pulse rounded-xl" /> : images.data?.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-xl text-muted-foreground">No photos yet. Upload some past work!</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {images.data?.map((img: any) => (
+              <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden bg-muted">
+                <img src={img.image_url} alt="Portfolio" className="w-full h-full object-cover" />
+                <button onClick={() => deleteImage(img.id)} className="absolute top-2 right-2 bg-destructive/90 text-destructive-foreground p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+

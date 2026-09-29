@@ -118,6 +118,16 @@ function ProfilePage() {
     },
   });
 
+  const { data: portfolioImages = [] } = useQuery({
+    queryKey: ['portfolio', pro?.id],
+    queryFn: async () => {
+      if (!pro) return [];
+      const { data } = await supabase.from('portfolio_images').select('*').eq('professional_id', pro.id).order('created_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!pro,
+  });
+
   if (isLoading) {
     return <PageShell><main className="mx-auto max-w-7xl px-5 py-20"><div className="h-96 rounded-2xl bg-muted animate-pulse" /></main></PageShell>;
   }
@@ -133,6 +143,9 @@ function ProfilePage() {
       <main>
         {/* Hero */}
         <section className="relative h-72 overflow-hidden bg-gradient-to-br from-primary/20 to-muted md:h-96">
+          {portfolioImages.length > 0 ? (
+            <img src={portfolioImages[0].image_url} alt="" className="absolute inset-0 size-full object-cover blur-sm opacity-50 mix-blend-overlay" />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 via-transparent to-transparent" />
           <Link to="/professionals" className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full bg-background/95 px-4 py-2 text-sm font-semibold shadow">
             <ArrowLeft className="size-4" /> Results
@@ -167,11 +180,32 @@ function ProfilePage() {
               </div>
 
               {/* Bio */}
-              {pro.bio && (
+              {(pro.bio || pro.youtube_link || pro.website_link) && (
                 <div className="py-8">
                   <h2 className="font-display text-2xl font-semibold">About {pro.name}</h2>
-                  <p className="mt-4 leading-7 text-muted-foreground">{pro.bio}</p>
+                  {pro.bio && <p className="mt-4 leading-7 text-muted-foreground whitespace-pre-wrap">{pro.bio}</p>}
+                  
+                  {(pro.website_link || pro.youtube_link) && (
+                    <div className="mt-4 flex flex-wrap gap-4">
+                      {pro.website_link && <a href={pro.website_link.startsWith('http') ? pro.website_link : `https://${pro.website_link}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-primary hover:underline">Visit Website</a>}
+                      {pro.youtube_link && <a href={pro.youtube_link.startsWith('http') ? pro.youtube_link : `https://${pro.youtube_link}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-red-600 hover:underline">Watch YouTube Video</a>}
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Portfolio Images */}
+              {portfolioImages.length > 0 && (
+                <section className="border-t border-border py-8">
+                  <h2 className="font-display text-2xl font-semibold">Past Projects</h2>
+                  <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {portfolioImages.map((img: any) => (
+                      <a key={img.id} href={img.image_url} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
+                        <img src={img.image_url} alt="Project work" className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                </section>
               )}
 
               {/* Gigs */}
