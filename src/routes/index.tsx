@@ -106,7 +106,42 @@ function Index() {
                   </div>
                   <div className="hidden min-w-0 flex-1 px-4 md:block relative">
                     <p className="flex items-center gap-1.5 text-xs font-bold text-foreground"><MapPin className="size-3.5 text-primary" /> Where</p>
-                    <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Enter street or area" className="h-auto px-0 py-1 border-0 bg-transparent text-base shadow-none focus-visible:ring-0 placeholder:text-muted-foreground" />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="w-full text-left h-auto px-0 py-1 border-0 bg-transparent text-base shadow-none focus-visible:ring-0 text-foreground truncate outline-none">
+                          {location || <span className="text-muted-foreground">Search destinations</span>}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0 rounded-2xl overflow-hidden mt-4" align="start">
+                        <div className="p-2 bg-muted/50 border-b border-border">
+                           <Input 
+                             autoFocus
+                             value={location} 
+                             onChange={(e) => setLocation(e.target.value)} 
+                             placeholder="Search by neighborhood..." 
+                             className="h-10 border-0 bg-background rounded-xl focus-visible:ring-0 shadow-none text-base" 
+                           />
+                        </div>
+                        <div className="p-2 max-h-72 overflow-y-auto no-scrollbar">
+                          <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Suggested regions</p>
+                          {['Andheri West', 'Bandra', 'Juhu', 'Colaba', 'Navi Mumbai', 'Powai'].map(loc => (
+                            <button
+                              key={loc}
+                              onClick={() => setLocation(loc)}
+                              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-muted rounded-xl transition-colors"
+                            >
+                              <div className="flex size-10 items-center justify-center bg-muted-foreground/10 rounded-lg shrink-0">
+                                <MapPin className="size-5 text-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm">{loc}</p>
+                                <p className="text-xs text-muted-foreground">Mumbai, Maharashtra</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="pl-2">
                     <Button onClick={understand} disabled={!request.trim()} size="lg" className="h-14 shrink-0 rounded-full px-6 text-base" aria-label="Ask Karighar"><Search className="size-5" /><span className="hidden sm:inline ml-2">Search</span></Button>
