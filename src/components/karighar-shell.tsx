@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthModal } from "./auth-modal";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export function Brand() {
   return (
@@ -21,6 +22,7 @@ export function SiteHeader() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const links = [
     { label: "Build", to: "/", search: { intent: "build" } },
@@ -29,8 +31,11 @@ export function SiteHeader() {
   ] as const;
 
   async function handleLogout() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/" });
+    toast.success("Signed out", { description: "See you again soon." });
+    navigate({ to: "/", replace: true });
   }
 
   return (
@@ -82,12 +87,8 @@ export function SiteHeader() {
                 </>
               ) : (
                 <>
-                  <AuthModal>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="font-semibold cursor-pointer rounded-lg">Sign up</DropdownMenuItem>
-                  </AuthModal>
-                  <AuthModal>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer rounded-lg">Log in</DropdownMenuItem>
-                  </AuthModal>
+                  <DropdownMenuItem asChild className="font-semibold cursor-pointer rounded-lg"><Link to="/auth">Sign up</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg"><Link to="/auth">Log in</Link></DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
@@ -112,11 +113,7 @@ export function SiteHeader() {
                 <button onClick={() => { handleLogout(); setOpen(false); }} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted text-left text-destructive"><LogOut className="inline mr-2 size-4" />Log out</button>
               </>
             ) : (
-              <>
-                <AuthModal>
-                  <button className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted text-left w-full">Sign up / Log in</button>
-                </AuthModal>
-              </>
+              <Link to="/auth" onClick={() => setOpen(false)} className="rounded-md px-3 py-3 text-sm font-medium hover:bg-muted">Sign up / Log in</Link>
             )}
           </div>
         </nav>

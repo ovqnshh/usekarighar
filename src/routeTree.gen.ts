@@ -16,6 +16,7 @@ import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
@@ -56,6 +57,11 @@ const RenovationPlannerRoute = RenovationPlannerRouteImport.update({
   path: '/renovation-planner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShortlistRoute = ShortlistRouteImport.update({
   id: '/shortlist',
   path: '/shortlist',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/become-a-pro': typeof BecomeAProRoute
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/professionals'
     | '/project'
     | '/renovation-planner'
+    | '/reset-password'
     | '/shortlist'
     | '/dashboard'
     | '/professionals/$id'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/become-a-pro'
     | '/project'
     | '/renovation-planner'
+    | '/reset-password'
     | '/shortlist'
     | '/dashboard'
     | '/professionals/$id'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/professionals'
     | '/project'
     | '/renovation-planner'
+    | '/reset-password'
     | '/shortlist'
     | '/_authenticated/dashboard'
     | '/professionals/$id'
@@ -172,6 +184,7 @@ export interface RootRouteChildren {
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
   RenovationPlannerRoute: typeof RenovationPlannerRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
 }
 
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/renovation-planner'
       fullPath: '/renovation-planner'
       preLoaderRoute: typeof RenovationPlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shortlist': {
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
   RenovationPlannerRoute: RenovationPlannerRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
 }
 export const routeTree = rootRouteImport
