@@ -44,7 +44,7 @@ export const suggestRenovationPlan = createServerFn({ method: "POST" })
           {
             role: "user",
             content: [
-              { type: "text", text: `Customer notes: ${data.notes || "none"}` },
+              { type: "text" as const, text: `Customer notes: ${data.notes || "none"}` },
               ...data.images.map(image_url => ({ type: "image" as const, image: image_url }))
             ],
           },
