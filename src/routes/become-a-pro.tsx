@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BriefcaseBusiness, CheckCircle2, ChevronLeft, MapPin, Wrench } from "lucide-react";
-import { AuthModal } from "@/components/auth-modal";
 
 export const Route = createFileRoute("/become-a-pro")({
   component: BecomeAProPage,
@@ -75,9 +74,9 @@ function BecomeAProPage() {
             Join our marketplace and start getting high-quality projects. Sign up to set up your professional storefront.
           </p>
           <div className="mt-8">
-            <AuthModal>
-              <Button size="lg" className="h-14 px-8 text-lg rounded-full">Sign up or Log in</Button>
-            </AuthModal>
+            <Button size="lg" className="h-14 px-8 text-lg rounded-full" asChild>
+              <Link to="/auth" search={{ redirect: "/become-a-pro" }}>Sign up or Log in</Link>
+            </Button>
           </div>
         </main>
       </PageShell>
