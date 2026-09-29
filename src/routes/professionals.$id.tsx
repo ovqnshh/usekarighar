@@ -29,11 +29,14 @@ function ProfilePage() {
   const { data: pro, isLoading, error: proError } = useQuery<any>({
     queryKey: ['professional', slug],
     queryFn: async () => {
+      // Check if slug is a valid UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+      
       // Fetch professional and gigs
       const { data, error } = await supabase
         .from('professionals')
         .select('*, gigs(*)')
-        .or(`slug.eq.${slug},id.eq.${slug}`)
+        .or(isUuid ? `id.eq.${slug},slug.eq.${slug}` : `slug.eq.${slug}`)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
