@@ -224,67 +224,49 @@ function ProfessionalsPage() {
                 <p className="text-sm mt-2">Try a different trade or search term</p>
               </div>
             ) : (
-              <div className="mt-5 grid gap-4">
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filtered.map((pro) => (
                   <article
                     key={pro.id}
-                    className="relative flex gap-5 rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+                    className="group relative flex flex-col gap-3"
                   >
-                    {/* Avatar */}
-                    <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-                      {pro.name?.charAt(0) ?? '?'}
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-lg">{pro.name}</h3>
-                          <p className="text-sm text-muted-foreground">{pro.business}</p>
-                        </div>
-                        <button
-                          onClick={() => saveMutation.mutate(pro.id)}
-                          className="shrink-0 rounded-full p-2 hover:bg-muted transition-colors"
-                          aria-label={savedIds.includes(pro.id) ? 'Remove from saved' : 'Save Karighar'}
-                        >
-                          <Heart
-                            className={`size-5 transition-colors ${
-                              savedIds.includes(pro.id)
-                                ? 'fill-destructive text-destructive'
-                                : 'text-muted-foreground'
-                            }`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap gap-3 text-sm">
-                        <span className="flex items-center gap-1">
-                          <Star className="size-3.5 fill-primary text-primary" />
-                          {pro.rating} ({pro.reviews} reviews)
-                        </span>
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <MapPin className="size-3.5" /> {pro.city}
-                        </span>
-                        <span className="text-muted-foreground">{pro.experience}</span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-primary">{pro.trade}</p>
-                      {pro.bio && (
-                        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{pro.bio}</p>
-                      )}
-                    </div>
-
-                    {/* CTA */}
-                    <div className="hidden sm:flex flex-col items-end justify-between shrink-0">
-                      <Link
-                        to="/professionals/$id"
-                        params={{ id: pro.slug || pro.id }}
-                        className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                    <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }} className="absolute inset-0 z-10">
+                      <span className="sr-only">View profile</span>
+                    </Link>
+                    
+                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
+                      {/* Placeholder cover image */}
+                      <img 
+                        src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
+                        alt={pro.business} 
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                      />
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveMutation.mutate(pro.id); }}
+                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2 hover:bg-background/80 bg-background/50 backdrop-blur-sm transition-colors"
+                        aria-label={savedIds.includes(pro.id) ? 'Remove from saved' : 'Save Karighar'}
                       >
-                        View profile
-                      </Link>
-                      <p className="text-xs text-muted-foreground mt-auto">
-                        {pro.projects_count} projects done
-                      </p>
+                        <Heart
+                          className={`size-5 transition-colors ${
+                            savedIds.includes(pro.id)
+                              ? 'fill-destructive text-destructive'
+                              : 'text-foreground'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <div className="flex justify-between items-start gap-2">
+                        <h3 className="font-semibold text-base truncate">{pro.business}</h3>
+                        <span className="flex items-center gap-1 text-sm shrink-0">
+                          <Star className="size-3.5 fill-foreground text-foreground" />
+                          {pro.rating}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{pro.city}</p>
+                      <p className="text-sm text-muted-foreground truncate">{pro.trade}</p>
+                      <p className="mt-1 text-sm font-medium"><span className="font-semibold text-foreground">{pro.projects_count} projects</span> completed</p>
                     </div>
                   </article>
                 ))}

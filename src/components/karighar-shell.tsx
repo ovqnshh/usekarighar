@@ -53,8 +53,10 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:px-10">
-        <Brand />
-        <nav className="hidden items-center rounded-full border border-border bg-background p-1.5 shadow-float transition-shadow hover:shadow-lg md:flex" aria-label="Main navigation">
+        <div className="flex flex-1 justify-start">
+          <Brand />
+        </div>
+        <nav className="hidden items-center rounded-full border border-border bg-background p-1.5 shadow-float transition-shadow hover:shadow-lg md:flex shrink-0" aria-label="Main navigation">
           {links.map((link, i) => (
             <Link key={link.label} to={link.to} className={`px-5 py-1.5 text-sm ${pathname === link.to ? "font-semibold text-primary" : "font-semibold text-foreground"} ${i > 0 ? "border-l border-border" : ""}`}>
               {link.label}
@@ -62,7 +64,7 @@ export function SiteHeader() {
           ))}
           <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground ml-1"><Search className="size-4" /></span>
         </nav>
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden flex-1 items-center justify-end gap-1 md:flex">
           <Button variant="ghost" className="rounded-full font-semibold" asChild>
             <Link to={isPro ? "/dashboard" : "/become-a-pro"}>
               <BriefcaseBusiness className="mr-2 size-4" /> {isPro ? "Switch to professional" : "Become a pro"}
