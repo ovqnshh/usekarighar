@@ -16,7 +16,7 @@ export const ANIMATION_EASING = {
 } as const;
 
 // Common transitions
-export const transitions: Record<string, Transition> = {
+export const transitions = {
   default: {
     duration: ANIMATION_DURATIONS.normal,
     ease: ANIMATION_EASING.easeOut,
@@ -33,7 +33,7 @@ export const transitions: Record<string, Transition> = {
     duration: ANIMATION_DURATIONS.slow,
     ease: ANIMATION_EASING.bouncy,
   },
-};
+} satisfies Record<string, Transition>;
 
 // Common variants for reusable animations
 export const fadeInVariants: Variants = {
