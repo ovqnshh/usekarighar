@@ -151,7 +151,7 @@ function Index() {
                   <p className="mb-5 text-xs leading-5 text-muted-foreground">Durations and costs are early estimates, not guarantees. Your chosen professional will confirm them after reviewing the project.</p>
                   <Button className="h-12 w-full text-base" onClick={() => {
                     sessionStorage.setItem('karighar-brief', JSON.stringify(brief));
-                    navigate({ to: '/professionals' });
+                    navigate({ to: '/professionals', search: { category: brief.intent } });
                   }}><Search /> Find Professionals</Button>
                 </div>
               )}

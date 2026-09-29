@@ -11,6 +11,9 @@ import { useAuth } from '@/lib/karighar-api';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/professionals/')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    category: typeof search.category === 'string' ? search.category : '',
+  }),
   head: () => ({ meta: [
     { title: 'Matched professionals — Karighar' },
     { name: 'description', content: 'Compare trusted home professionals matched to your Karighar project brief.' },
@@ -37,6 +40,14 @@ function ProfessionalsPage() {
   const [trade, setTrade] = useState('All');
   const [sort, setSort] = useState('recommended');
 
+  const { category } = Route.useSearch();
+
+  const CATEGORY_TRADES: Record<string, string[]> = {
+    build: ['Carpentry & woodwork', 'Renovation & interiors', 'Carpenter / Builder'],
+    renovate: ['Renovation & interiors', 'Painting & finishing', 'Renovation contractor'],
+    fix: ['Plumbing & water systems', 'Electrical & lighting', 'Handyman / Plumber'],
+  };
+
   // Load brief from sessionStorage if available
   const brief = (() => {
     try {
@@ -48,10 +59,15 @@ function ProfessionalsPage() {
   })();
 
   const { data: professionals = [], isLoading } = useQuery({
-    queryKey: ['professionals', trade, sort],
+    queryKey: ['professionals', trade, sort, category],
     queryFn: async () => {
       let q = supabase.from('professionals').select('*, gigs(id, name, starting_price)');
-      if (trade !== 'All') q = q.eq('trade', trade);
+      if (trade !== 'All') {
+        q = q.eq('trade', trade);
+      } else if (category && CATEGORY_TRADES[category]) {
+        q = q.in('trade', CATEGORY_TRADES[category]);
+      }
+      
       if (sort === 'rating') q = q.order('rating', { ascending: false });
       else if (sort === 'price') q = q.order('rating', { ascending: true }); // approximate by rating asc
       else q = q.order('rating', { ascending: false });

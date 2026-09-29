@@ -37,10 +37,10 @@ export function SiteHeader() {
   const isPro = !!proData;
   
   const links = [
-    { label: "Build", to: "/build" },
-    { label: "Renovate", to: "/renovate" },
-    { label: "Fix", to: "/fix" },
-  ] as const;
+    { label: "Build", to: "/professionals", search: { category: "build" } },
+    { label: "Renovate", to: "/professionals", search: { category: "renovate" } },
+    { label: "Fix", to: "/professionals", search: { category: "fix" } },
+  ];
 
   async function handleLogout() {
     await queryClient.cancelQueries();
@@ -58,7 +58,7 @@ export function SiteHeader() {
         </div>
         <nav className="hidden items-center rounded-full border border-border bg-background p-1.5 shadow-float transition-shadow hover:shadow-lg md:flex shrink-0" aria-label="Main navigation">
           {links.map((link, i) => (
-            <Link key={link.label} to={link.to} className={`px-5 py-1.5 text-sm ${pathname === link.to ? "font-semibold text-primary" : "font-semibold text-foreground"} ${i > 0 ? "border-l border-border" : ""}`}>
+            <Link key={link.label} to={link.to} search={link.search} className={`px-5 py-1.5 text-sm ${(pathname === link.to && window.location.search.includes(link.search.category)) ? "font-semibold text-primary" : "font-semibold text-foreground"} ${i > 0 ? "border-l border-border" : ""}`}>
               {link.label}
             </Link>
           ))}

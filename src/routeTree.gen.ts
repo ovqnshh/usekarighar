@@ -13,13 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
-import { Route as BuildRouteImport } from './routes/build'
-import { Route as FixRouteImport } from './routes/fix'
 import { Route as MyProjectsRouteImport } from './routes/my-projects'
 import { Route as ProDashboardRouteImport } from './routes/pro-dashboard'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
-import { Route as RenovateRouteImport } from './routes/renovate'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
@@ -47,16 +44,6 @@ const BecomeAProRoute = BecomeAProRouteImport.update({
   path: '/become-a-pro',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BuildRoute = BuildRouteImport.update({
-  id: '/build',
-  path: '/build',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FixRoute = FixRouteImport.update({
-  id: '/fix',
-  path: '/fix',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MyProjectsRoute = MyProjectsRouteImport.update({
   id: '/my-projects',
   path: '/my-projects',
@@ -75,11 +62,6 @@ const ProfessionalsRoute = ProfessionalsRouteImport.update({
 const ProjectRoute = ProjectRouteImport.update({
   id: '/project',
   path: '/project',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RenovateRoute = RenovateRouteImport.update({
-  id: '/renovate',
-  path: '/renovate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RenovationPlannerRoute = RenovationPlannerRouteImport.update({
@@ -122,13 +104,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
-  '/build': typeof BuildRoute
-  '/fix': typeof FixRoute
   '/my-projects': typeof MyProjectsRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
-  '/renovate': typeof RenovateRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
@@ -141,12 +120,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
-  '/build': typeof BuildRoute
-  '/fix': typeof FixRoute
   '/my-projects': typeof MyProjectsRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/project': typeof ProjectRoute
-  '/renovate': typeof RenovateRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
@@ -161,13 +137,10 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
-  '/build': typeof BuildRoute
-  '/fix': typeof FixRoute
   '/my-projects': typeof MyProjectsRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
-  '/renovate': typeof RenovateRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
@@ -182,13 +155,10 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/become-a-pro'
-    | '/build'
-    | '/fix'
     | '/my-projects'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
-    | '/renovate'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
@@ -201,12 +171,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/become-a-pro'
-    | '/build'
-    | '/fix'
     | '/my-projects'
     | '/pro-dashboard'
     | '/project'
-    | '/renovate'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
@@ -220,13 +187,10 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/become-a-pro'
-    | '/build'
-    | '/fix'
     | '/my-projects'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
-    | '/renovate'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
@@ -241,13 +205,10 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BecomeAProRoute: typeof BecomeAProRoute
-  BuildRoute: typeof BuildRoute
-  FixRoute: typeof FixRoute
   MyProjectsRoute: typeof MyProjectsRoute
   ProDashboardRoute: typeof ProDashboardRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
-  RenovateRoute: typeof RenovateRoute
   RenovationPlannerRoute: typeof RenovationPlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
@@ -283,20 +244,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BecomeAProRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/build': {
-      id: '/build'
-      path: '/build'
-      fullPath: '/build'
-      preLoaderRoute: typeof BuildRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fix': {
-      id: '/fix'
-      path: '/fix'
-      fullPath: '/fix'
-      preLoaderRoute: typeof FixRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/my-projects': {
       id: '/my-projects'
       path: '/my-projects'
@@ -323,13 +270,6 @@ declare module '@tanstack/react-router' {
       path: '/project'
       fullPath: '/project'
       preLoaderRoute: typeof ProjectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/renovate': {
-      id: '/renovate'
-      path: '/renovate'
-      fullPath: '/renovate'
-      preLoaderRoute: typeof RenovateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/renovation-planner': {
@@ -416,13 +356,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BecomeAProRoute: BecomeAProRoute,
-  BuildRoute: BuildRoute,
-  FixRoute: FixRoute,
   MyProjectsRoute: MyProjectsRoute,
   ProDashboardRoute: ProDashboardRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
-  RenovateRoute: RenovateRoute,
   RenovationPlannerRoute: RenovationPlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
