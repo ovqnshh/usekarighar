@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Search, Star, SlidersHorizontal, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PageShell } from '@/components/karighar-shell';
+import { SiteHeader } from '@/components/karighar-shell';
+import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -198,9 +199,10 @@ function ProfessionalsPage() {
   };
 
   return (
-    <PageShell>
+    <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
+      <SiteHeader />
       {/* Filters Bar */}
-      <div className="sticky top-20 z-30 bg-background border-b border-border shadow-sm pt-4">
+      <div className="shrink-0 z-30 bg-background border-b border-border shadow-sm pt-4">
         <div className="flex items-center gap-6 px-5 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
           {TRADES.map((t) => {
             const Icon = t.icon;
@@ -245,7 +247,7 @@ function ProfessionalsPage() {
         </div>
       </div>
 
-      <main className="flex h-[calc(100vh-140px)] w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="flex flex-1 min-h-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Karighars List */}
         <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
           <div className="mb-6 flex items-center justify-between">
@@ -384,6 +386,6 @@ function ProfessionalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageShell>
+    </div>
   );
 }
