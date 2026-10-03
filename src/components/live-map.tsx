@@ -4,13 +4,17 @@ import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/integrations/supabase/client';
 import L from 'leaflet';
 
-// Fix for default marker icons in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+let iconFixed = false;
+function fixIcon() {
+  if (iconFixed || typeof window === 'undefined') return;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+  iconFixed = true;
+}
 
 function MapUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
@@ -22,8 +26,12 @@ function MapUpdater({ center }: { center: [number, number] }) {
 
 export function LiveMap({ professionalId, fallbackLat = 19.0760, fallbackLng = 72.8777 }: { professionalId: string, fallbackLat?: number, fallbackLng?: number }) {
   const [position, setPosition] = useState<[number, number]>([fallbackLat, fallbackLng]);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    fixIcon();
+
     // 1. Fetch initial location
     const fetchLocation = async () => {
       const { data } = await supabase
@@ -60,6 +68,10 @@ export function LiveMap({ professionalId, fallbackLat = 19.0760, fallbackLng = 7
       supabase.removeChannel(subscription);
     };
   }, [professionalId]);
+
+  if (!isMounted) {
+    return <div className="h-[300px] w-full rounded-2xl bg-muted animate-pulse border border-border shadow-sm"></div>;
+  }
 
   return (
     <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-border shadow-sm">
