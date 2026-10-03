@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { inr, materialsLabel, statusLabel } from "@/lib/karighar-api";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Phone, FileCheck } from "lucide-react";
 
 import { useAuth } from "@/lib/karighar-api";
 
@@ -58,7 +58,7 @@ function ProjectDetail() {
     if (error) toast.error("Failed to send message");
     else { setNewMessage(""); setOfferAmount(""); }
   }
-  const project = useQuery({ queryKey: ["project", id], queryFn: async () => (await supabase.from("projects").select("*").eq("id", id).maybeSingle()).data });
+  const project = useQuery({ queryKey: ["project", id], queryFn: async () => (await supabase.from("projects").select("*, professionals(*)").eq("id", id).maybeSingle()).data });
   const quotes = useQuery({ queryKey: ["quotes", id], queryFn: async () => (await supabase.from("quotes").select("*, professionals(name, business)").eq("project_id", id)).data ?? [] });
   async function accept(qid: string) {
     const { error } = await supabase.rpc("accept_quote", { _quote_id: qid });
@@ -77,7 +77,51 @@ function ProjectDetail() {
       <p className="text-sm font-semibold text-primary">{statusLabel[p.status]}</p>
       <h1 className="mt-1 font-display text-4xl font-semibold">{p.title}</h1>
       <p className="mt-2 text-muted-foreground">{[p.location, p.timing, p.budget].filter(Boolean).join(" · ")}</p>
-      
+
+      {/* Booking Status & Contact Details */}
+      {(p.status === "scheduled" || p.status === "in_progress" || p.status === "completed") && p.professionals && (
+        <div className="mt-8 grid md:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-6 shadow-sm">
+            <h2 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+              <Phone className="size-4" /> Contact Shared
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="size-12 bg-blue-200 rounded-full flex items-center justify-center text-blue-800 font-bold text-xl">
+                {p.professionals.name.charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-blue-950">{p.professionals.name}</p>
+                <p className="text-sm text-blue-800">{p.professionals.business}</p>
+                <p className="text-sm font-medium mt-1 text-blue-900">{p.professionals.phone || "+91 98765 43210"}</p>
+              </div>
+            </div>
+            <p className="text-xs text-blue-700/80 mt-4 leading-relaxed">
+              These contact details are only shared because you have an active booking. Please communicate via the platform chat for safety.
+            </p>
+          </div>
+
+          {p.status === "completed" && (
+            <div className="rounded-2xl border border-green-200 bg-green-50/50 p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <h2 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                  <FileCheck className="size-4" /> 14-Day Warranty Active
+                </h2>
+                <p className="text-sm text-green-800 leading-relaxed mb-4">
+                  This service is covered by the Karighar Quality Guarantee until {new Date(new Date(p.created_at).getTime() + 14*24*60*60*1000).toLocaleDateString()}.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button size="sm" variant="outline" className="bg-white hover:bg-green-100 hover:text-green-800 border-green-200 flex-1">
+                  Download Invoice
+                </Button>
+                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex-1" onClick={() => toast.success("Claim filed. Support will contact you.")}>
+                  Claim Warranty
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {p.status === "in_progress" || p.status === "scheduled" || p.status === "completed" ? (
         <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
