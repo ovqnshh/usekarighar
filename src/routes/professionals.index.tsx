@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { Heart, Search, Star, SlidersHorizontal } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Heart, Search, Star, SlidersHorizontal, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
@@ -7,16 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/karighar-api';
 
 export const Route = createFileRoute('/professionals/')({
   validateSearch: (search: Record<string, unknown>) => ({
-    category: typeof search.category === 'string' ? search.category : '',
+    category: typeof search['category'] === 'string' ? search['category'] : undefined,
+    location: typeof search['location'] === 'string' ? search['location'] : undefined,
+    minPrice: typeof search['minPrice'] === 'number' ? search['minPrice'] : (typeof search['minPrice'] === 'string' && !isNaN(parseInt(search['minPrice'])) ? parseInt(search['minPrice']) : undefined),
+    maxPrice: typeof search['maxPrice'] === 'number' ? search['maxPrice'] : (typeof search['maxPrice'] === 'string' && !isNaN(parseInt(search['maxPrice'])) ? parseInt(search['maxPrice']) : undefined),
+    rating: typeof search['rating'] === 'number' ? search['rating'] : (typeof search['rating'] === 'string' && !isNaN(parseFloat(search['rating'])) ? parseFloat(search['rating']) : undefined),
+    sort: typeof search['sort'] === 'string' ? search['sort'] : undefined,
   }),
   head: () => ({ meta: [
-    { title: 'Matched professionals — Karighar' },
+    { title: 'Matched Karighars — Karighar' },
   ]}),
   component: ProfessionalsPage,
 });
@@ -39,48 +45,88 @@ const TRADES = [
   { label: 'General labour / helper', icon: Users },
 ];
 
-const QUICK_FILTERS = [
-  'Top rated',
-  'Available today',
-  'Karighar favourite',
-  'Verified licenses',
-  'Budget friendly',
-  'Premium',
-];
+const CATEGORY_TRADES: Record<string, string[]> = {
+  build: ['Carpentry & custom furniture', 'Masonry & plastering', 'False ceiling & POP work'],
+  renovate: ['Painting & wall finishing', 'Tiling & flooring', 'Waterproofing'],
+  fix: ['Plumbing repair & installation', 'Electrical repair & installation', 'AC & appliance repair/installation'],
+};
 
 function ProfessionalsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { category } = Route.useSearch();
-  const [trade, setTrade] = useState(category && !['build', 'renovate', 'fix'].includes(category) ? category : 'All');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [tier, setTier] = useState('Any type');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [exp, setExp] = useState(0);
-  useEffect(() => {
-    if (category && !['build', 'renovate', 'fix'].includes(category)) {
-      setTrade(category);
-    }
-  }, [category]);
+  const navigate = useNavigate({ from: '/professionals/' });
+  const search = Route.useSearch();
+  const { category, location, minPrice, maxPrice, rating, sort } = search;
   
-  const CATEGORY_TRADES: Record<string, string[]> = {
-    build: ['Carpentry & custom furniture', 'Masonry & plastering', 'False ceiling & POP work'],
-    renovate: ['Painting & wall finishing', 'Tiling & flooring', 'Waterproofing'],
-    fix: ['Plumbing repair & installation', 'Electrical repair & installation', 'AC & appliance repair/installation'],
-  };
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [minPriceState, setMinPriceState] = useState(minPrice?.toString() || '');
+  const [maxPriceState, setMaxPriceState] = useState(maxPrice?.toString() || '');
+  const [ratingState, setRatingState] = useState(rating || 0);
+  const [locationState, setLocationState] = useState(location || '');
+  
+  useEffect(() => {
+    setMinPriceState(minPrice?.toString() || '');
+    setMaxPriceState(maxPrice?.toString() || '');
+    setRatingState(rating || 0);
+    setLocationState(location || '');
+  }, [minPrice, maxPrice, rating, location]);
 
   const { data: professionals = [], isLoading } = useQuery({
-    queryKey: ['professionals', trade, category],
+    queryKey: ['professionals', category, location, minPrice, maxPrice, rating, sort],
     queryFn: async () => {
-      let q = supabase.from('professionals').select('*, gigs(id, name, starting_price)');
-      if (trade !== 'All') {
-        q = q.eq('trade', trade);
-      } else if (category && CATEGORY_TRADES[category]) {
-        q = q.in('trade', CATEGORY_TRADES[category]);
+      let q = supabase.from('professionals').select('*, reviews(*), gigs(*)');
+      
+      if (category && category !== 'All') {
+        if (CATEGORY_TRADES[category]) {
+          q = q.in('trade', CATEGORY_TRADES[category]);
+        } else {
+          q = q.eq('trade', category);
+        }
       }
-      q = q.order('rating', { ascending: false });
-      return (await q).data ?? [];
+      
+      if (location) {
+        q = q.ilike('city', `%${location}%`);
+      }
+      
+      if (rating) {
+        q = q.gte('rating', rating);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+      
+      let filtered = (data || []).map((pro: any) => {
+        const computedRating = pro.reviews && pro.reviews.length > 0 
+          ? pro.reviews.reduce((acc: number, rev: any) => acc + (rev.rating || 0), 0) / pro.reviews.length
+          : pro.rating || 0;
+          
+        const lowestGigPrice = pro.gigs && pro.gigs.length > 0
+          ? Math.min(...pro.gigs.map((g: any) => g.starting_price || 0))
+          : Infinity;
+          
+        return {
+          ...pro,
+          computedRating,
+          lowestGigPrice
+        };
+      });
+      
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        filtered = filtered.filter((pro: any) => {
+          if (pro.lowestGigPrice === Infinity) return false;
+          if (minPrice !== undefined && pro.lowestGigPrice < minPrice) return false;
+          if (maxPrice !== undefined && pro.lowestGigPrice > maxPrice) return false;
+          return true;
+        });
+      }
+      
+      if (sort === 'price') {
+        filtered.sort((a: any, b: any) => a.lowestGigPrice - b.lowestGigPrice);
+      } else {
+        filtered.sort((a: any, b: any) => b.computedRating - a.computedRating);
+      }
+
+      return filtered;
     },
   });
 
@@ -97,7 +143,7 @@ function ProfessionalsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (proId: string) => {
-      if (!user) { alert('Please log in to save'); return; }
+      if (!user) { toast('Please log in to save'); return; }
       const db = supabase as any;
       if (savedIds.includes(proId)) {
         await db.from('saved_karighars').delete().eq('user_id', user.id).eq('professional_id', proId);
@@ -108,6 +154,48 @@ function ProfessionalsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['saved-karighars', user?.id] }),
   });
 
+  const applyFilters = () => {
+    navigate({
+      search: (prev: any) => ({
+        ...prev,
+        minPrice: minPriceState ? parseInt(minPriceState, 10) : undefined,
+        maxPrice: maxPriceState ? parseInt(maxPriceState, 10) : undefined,
+        rating: ratingState > 0 ? ratingState : undefined,
+        location: locationState ? locationState : undefined,
+      })
+    });
+    setFilterOpen(false);
+  };
+  
+  const clearFilters = () => {
+    setMinPriceState('');
+    setMaxPriceState('');
+    setRatingState(0);
+    setLocationState('');
+    navigate({
+      search: (prev: any) => ({
+        ...prev,
+        minPrice: undefined,
+        maxPrice: undefined,
+        rating: undefined,
+        location: undefined,
+      })
+    });
+  };
+
+  const getEmptyMessage = () => {
+    let msg = "No Karighars found";
+    const catDisplay = (category && category !== 'All' && !CATEGORY_TRADES[category]) ? category : 'Karighars';
+    if (category && location) {
+      msg = `No ${catDisplay} found in ${location}`;
+    } else if (category && category !== 'All') {
+      msg = `No ${catDisplay} found`;
+    } else if (location) {
+      msg = `No Karighars found in ${location}`;
+    }
+    return msg;
+  };
+
   return (
     <PageShell>
       {/* Filters Bar */}
@@ -115,11 +203,11 @@ function ProfessionalsPage() {
         <div className="flex items-center gap-6 px-5 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
           {TRADES.map((t) => {
             const Icon = t.icon;
-            const isActive = trade === t.label;
+            const isActive = (!category && t.label === 'All') || category === t.label;
             return (
               <button
                 key={t.label}
-                onClick={() => setTrade(t.label)}
+                onClick={() => navigate({ search: (prev: any) => ({ ...prev, category: t.label === 'All' ? undefined : t.label }) })}
                 className={`group flex shrink-0 flex-col items-center gap-2 border-b-2 transition-all duration-300 pb-2 hover:border-foreground/30 ${
                   isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'
                 }`}
@@ -134,193 +222,161 @@ function ProfessionalsPage() {
         </div>
         
         {/* Quick Filters */}
-        <div className="flex items-center gap-3 px-5 py-3 border-t border-border overflow-x-auto no-scrollbar">
-          <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold" onClick={() => setFilterOpen(true)}>
-            <SlidersHorizontal className="size-4" /> Filters
-          </Button>
-          <div className="w-px h-6 bg-border shrink-0 mx-2" />
-          {QUICK_FILTERS.map((f) => (
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold" onClick={() => setFilterOpen(true)}>
+              <SlidersHorizontal className="size-4" /> Filters
+            </Button>
+            <div className="w-px h-6 bg-border shrink-0 mx-2" />
             <button
-              key={f}
-              onClick={() => toast(`Filtered by: ${f}`)}
-              className="shrink-0 rounded-full border border-border px-4 py-2 text-sm transition-colors whitespace-nowrap hover:border-foreground"
+              onClick={() => navigate({ search: (prev: any) => ({ ...prev, sort: sort === 'price' ? 'rating' : 'price' }) })}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors whitespace-nowrap ${sort === 'price' ? 'border-foreground bg-foreground text-background' : 'border-border hover:border-foreground'}`}
             >
-              {f}
+              Sort by lowest price
             </button>
-          ))}
+            <button
+              onClick={() => navigate({ search: (prev: any) => ({ ...prev, sort: 'rating' }) })}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors whitespace-nowrap ${sort === 'rating' || !sort ? 'border-foreground bg-foreground text-background' : 'border-border hover:border-foreground'}`}
+            >
+              Top rated
+            </button>
+          </div>
         </div>
       </div>
 
       <main className="flex h-[calc(100vh-140px)] w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Listings List */}
+        {/* Karighars List */}
         <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-xl font-semibold">Over {professionals.length}+ professionals</h1>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />)}
             </div>
           ) : professionals.length === 0 ? (
             <div className="mt-16 text-center text-muted-foreground">
-              <p className="text-lg font-semibold">No Karighars found</p>
+              <p className="text-lg font-semibold">{getEmptyMessage()}</p>
               <p className="text-sm mt-2">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {professionals.map((pro) => (
-                <article key={pro.id} className="group relative flex flex-col gap-3">
-                  <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }} className="absolute inset-0 z-10">
-                    <span className="sr-only">View profile</span>
-                  </Link>
-                  
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
-                    <img 
-                      src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
-                      alt={pro.business} 
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                    />
-                    <div className="absolute top-3 left-3 bg-background/95 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm z-20">
-                      Karighar favourite
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+                {professionals.map((pro: any) => (
+                  <article key={pro.id} className="group relative flex flex-col gap-3">
+                    <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }} className="absolute inset-0 z-10">
+                      <span className="sr-only">View profile</span>
+                    </Link>
+                    
+                    <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-xl bg-muted">
+                      <img 
+                        src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
+                        alt={pro.business} 
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                      />
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveMutation.mutate(pro.id); }}
+                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2 hover:bg-background/80 bg-background/50 backdrop-blur-sm transition-colors"
+                      >
+                        <Heart className={`size-5 transition-colors ${savedIds.includes(pro.id) ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveMutation.mutate(pro.id); }}
-                      className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2 hover:bg-background/80 bg-background/50 backdrop-blur-sm transition-colors"
-                    >
-                      <Heart className={`size-5 transition-colors ${savedIds.includes(pro.id) ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
-                    </button>
-                  </div>
 
-                  <div className="flex flex-col">
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-semibold text-base truncate">{pro.business}</h3>
-                      <span className="flex items-center gap-1 text-sm shrink-0">
-                        <Star className="size-3.5 fill-foreground text-foreground" />
-                        {pro.rating}
-                      </span>
+                    <div className="flex flex-col">
+                      <div className="flex justify-between items-start gap-2">
+                        <h3 className="font-semibold text-base truncate">{pro.business}</h3>
+                        <span className="flex items-center gap-1 text-sm shrink-0">
+                          <Star className="size-3.5 fill-foreground text-foreground" />
+                          {pro.computedRating ? pro.computedRating.toFixed(1) : 'New'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{pro.city || 'Mumbai'}</p>
+                      <p className="text-sm text-muted-foreground truncate">{pro.trade}</p>
+                      <p className="mt-1 text-sm font-medium border-b border-transparent group-hover:border-foreground max-w-fit transition-colors">
+                        <span className="font-semibold text-foreground">₹{pro.lowestGigPrice !== Infinity ? pro.lowestGigPrice.toLocaleString('en-IN') : 'TBD'}</span> starting price
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{pro.city || 'Mumbai'}</p>
-                    <p className="text-sm text-muted-foreground truncate">{pro.trade}</p>
-                    <p className="mt-1 text-sm font-medium border-b border-transparent group-hover:border-foreground max-w-fit transition-colors">
-                      <span className="font-semibold text-foreground">₹{(pro.rating * 100).toFixed(0)}</span> starting price
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sticky Map */}
-        <div className="hidden lg:block w-[45%] xl:w-[40%] sticky top-0 h-full border-l border-border bg-[#e5e3df] relative overflow-hidden">
-          {/* FAKE MAP UI PLACEHOLDER (Google Maps Style) */}
-          <div className="absolute inset-0 opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/cartographer.png')]" />
-          
-          <img src="https://static-maps.yandex.ru/1.x/?lang=en-US&ll=72.8777,19.0760&z=11&l=map&size=600,600" className="w-full h-full object-cover opacity-80" alt="Map" />
-          
-          {/* Render fake markers based on professionals */}
-          <div className="absolute inset-0 p-10 flex flex-wrap gap-10 items-center justify-center content-center overflow-hidden">
-            {professionals.slice(0, 8).map((pro, idx) => (
-              <div key={pro.id} className="relative z-10 bg-background hover:bg-foreground hover:text-background transition-colors text-foreground font-bold px-3 py-1.5 rounded-full shadow-lg text-sm cursor-pointer scale-100 hover:scale-110 hover:z-20 border border-border shadow-black/10 transition-all">
-                ₹{(pro.rating * 100).toFixed(0)}
+                  </article>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-            <Button variant="secondary" className="rounded-full shadow-lg gap-2 font-semibold">
-              <Search className="size-4" /> Search as I move the map
-            </Button>
-          </div>
+              
+              <div className="mt-12 mb-8 mx-auto max-w-2xl text-center p-8 rounded-2xl bg-muted/30 border border-border">
+                <Search className="size-8 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Didn't find what you're looking for?</h3>
+                <p className="text-muted-foreground mb-6">Describe your exact needs and we'll match you with the best available Karighars in your area.</p>
+                <Button asChild className="rounded-xl px-8">
+                  <Link to="/">Post a custom Project</Link>
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </main>
 
       <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-        <DialogContent className="sm:max-w-[780px] p-0 overflow-hidden gap-0 flex flex-col h-[85vh] max-h-[800px] rounded-2xl">
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden gap-0 flex flex-col h-[85vh] max-h-[800px] rounded-2xl">
           <DialogHeader className="px-6 py-4 border-b border-border flex flex-row items-center justify-center relative shrink-0">
             <DialogTitle className="text-base font-semibold">Filters</DialogTitle>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto px-6 py-6 no-scrollbar">
             
-            {/* Service Type */}
+            {/* Location */}
             <div className="pb-8 border-b border-border">
-              <h3 className="text-xl font-medium mb-6">Service tier</h3>
-              <div className="flex rounded-xl overflow-hidden border border-border">
-                {['Any type', 'Standard', 'Premium'].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTier(t)}
-                    className={`flex-1 py-4 text-sm font-semibold transition-colors ${tier === t ? 'bg-foreground text-background' : 'bg-background hover:bg-muted'}`}
-                  >
-                    {t}
-                  </button>
-                ))}
+              <h3 className="text-xl font-medium mb-4">Location</h3>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  value={locationState} 
+                  onChange={e => setLocationState(e.target.value)} 
+                  placeholder="E.g. Andheri, Mumbai" 
+                  className="pl-10 h-12 rounded-xl"
+                />
               </div>
             </div>
 
             {/* Price Range */}
             <div className="py-8 border-b border-border">
               <h3 className="text-xl font-medium">Price range</h3>
-              <p className="text-sm text-muted-foreground mb-6 mt-1">Starting prices for jobs</p>
-              
-              {/* Fake Histogram */}
-              <div className="flex items-end h-16 gap-1 mb-4 px-2">
-                {[2, 4, 3, 6, 8, 12, 16, 24, 32, 28, 20, 16, 12, 14, 18, 22, 18, 10, 6, 4, 3, 2, 5, 8, 12, 10, 7].map((h, i) => (
-                  <div key={i} className="flex-1 bg-primary/80 rounded-t-sm" style={{ height: `${h * 3}%` }} />
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground mb-6 mt-1">Starting prices for Gigs</p>
 
               <div className="flex items-center gap-4">
                 <div className="flex-1 space-y-1 relative">
                   <Label className="text-xs text-muted-foreground absolute top-2 left-4 z-10">Minimum</Label>
-                  <Input value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="₹0" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
+                  <Input value={minPriceState} onChange={e => setMinPriceState(e.target.value)} placeholder="₹0" type="number" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
                 </div>
                 <div className="text-muted-foreground mt-4">-</div>
                 <div className="flex-1 space-y-1 relative">
                   <Label className="text-xs text-muted-foreground absolute top-2 left-4 z-10">Maximum</Label>
-                  <Input value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="₹50000+" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
+                  <Input value={maxPriceState} onChange={e => setMaxPriceState(e.target.value)} placeholder="₹50000+" type="number" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
                 </div>
               </div>
             </div>
 
-            {/* Experience */}
-            <div className="py-8 border-b border-border">
-              <h3 className="text-xl font-medium mb-6">Experience & Rating</h3>
-              
+            {/* Rating */}
+            <div className="py-8">
+              <h3 className="text-xl font-medium mb-6">Rating</h3>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-base text-foreground font-light">Years of experience</div>
+                  <div className="text-base text-foreground font-light">Minimum Rating</div>
                   <div className="flex items-center gap-4">
-                    <button onClick={() => setExp(Math.max(0, exp - 1))} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">-</button>
-                    <span className="w-8 text-center text-base">{exp === 0 ? 'Any' : `${exp}+`}</span>
-                    <button onClick={() => setExp(exp + 1)} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">+</button>
+                    <button onClick={() => setRatingState(Math.max(0, ratingState - 1))} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">-</button>
+                    <span className="w-8 text-center text-base">{ratingState === 0 ? 'Any' : `${ratingState}+`}</span>
+                    <button onClick={() => setRatingState(Math.min(5, ratingState + 1))} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">+</button>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Amenities / Badges */}
-            <div className="py-8">
-              <h3 className="text-xl font-medium mb-6">Badges & Verification</h3>
-              <div className="flex flex-wrap gap-3">
-                {['Background checked', 'Insured', 'Top Rated', 'Responsive', 'Free Estimates', 'Warranty provided'].map(a => (
-                  <button key={a} className="rounded-full border border-muted-foreground/30 px-6 py-2.5 text-sm hover:border-foreground transition-colors">
-                    {a}
-                  </button>
-                ))}
               </div>
             </div>
 
           </div>
 
           <DialogFooter className="px-6 py-4 border-t border-border flex flex-row items-center justify-between sm:justify-between shrink-0 bg-background">
-            <button onClick={() => { setTier("Any type"); setMinPrice(""); setMaxPrice(""); setExp(0); }} className="font-semibold underline text-sm text-foreground hover:opacity-70 transition-opacity">
+            <button onClick={clearFilters} className="font-semibold underline text-sm text-foreground hover:opacity-70 transition-opacity">
               Clear all
             </button>
-            <Button className="h-12 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold text-base" onClick={() => setFilterOpen(false)}>
-              Show {professionals.length} professionals
+            <Button className="h-12 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold text-base" onClick={applyFilters}>
+              Apply Filters
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -328,4 +384,3 @@ function ProfessionalsPage() {
     </PageShell>
   );
 }
-

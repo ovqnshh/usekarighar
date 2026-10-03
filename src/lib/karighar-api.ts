@@ -24,6 +24,14 @@ export const statusLabel: Record<string, string> = {
 
 export const inr = (n: number | null | undefined) => `₹${(n ?? 0).toLocaleString("en-IN")}`;
 
+export function computeQuoteTotal(labour: number, materialsCost: number, transport: number, other: number) {
+  const subtotal = (labour || 0) + (materialsCost || 0) + (transport || 0) + (other || 0);
+  const platformFee = Math.round(subtotal * 0.05); // 5% platform fee
+  const tax = Math.round((subtotal + platformFee) * 0.18); // 18% GST
+  const total = subtotal + platformFee + tax;
+  return { subtotal, platformFee, tax, total };
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

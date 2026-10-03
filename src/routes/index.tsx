@@ -145,13 +145,34 @@ function Index() {
           </div>
           <div className="hidden min-w-0 flex-1 px-6 md:block">
             <p className="text-xs font-semibold">Where</p>
-            <Popover>
+              <Popover>
               <PopoverTrigger asChild>
                 <button className="w-full truncate text-left text-base">{location || <span className="text-muted-foreground">Search neighbourhoods</span>}</button>
               </PopoverTrigger>
               <PopoverContent className="mt-4 w-80 overflow-hidden rounded-3xl p-0" align="start">
                 <div className="border-b border-border p-2"><Input autoFocus value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Search by neighbourhood..." className="h-10 rounded-xl border-0 shadow-none focus-visible:ring-0" /></div>
                 <div className="max-h-72 overflow-y-auto p-2">
+                  <button 
+                    onClick={() => {
+                      toast.loading("Detecting location...", { id: "gps" });
+                      navigator.geolocation.getCurrentPosition(async (pos) => {
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+                          const data = await res.json();
+                          if (data.address) {
+                            setLocation(data.address.suburb || data.address.neighbourhood || data.address.city || data.address.state_district || 'My Location');
+                            toast.success("Location updated!", { id: "gps" });
+                          }
+                        } catch (e) {
+                          toast.error("Failed to detect location", { id: "gps" });
+                        }
+                      }, () => toast.error("Location permission denied", { id: "gps" }));
+                    }} 
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted mb-2 text-[#E51D53]"
+                  >
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#E51D53]/10"><MapPin className="size-5" /></span>
+                    <span className="block text-sm font-semibold">Use my current location</span>
+                  </button>
                   <p className="px-3 py-2 text-xs font-semibold text-muted-foreground">Suggested areas</p>
                   {["Andheri West", "Bandra", "Juhu", "Colaba", "Navi Mumbai", "Powai"].map((loc) => (
                     <button key={loc} onClick={() => setLocation(loc)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted">
@@ -231,19 +252,23 @@ function Index() {
                         materials: 'e.g. Need Karighar to bring materials',
                         budget: 'e.g. ₹5,000',
                       };
+                      return (
                         <label key={key} className={key === 'summary' ? 'md:col-span-2' : ''}>
                           <span className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">{labels[key] ?? key}</span>
                           {key === 'materials' ? (
-                            <select
-                              value={value}
-                              onChange={(e) => setBrief((c) => ({ ...c, [key]: e.target.value }))}
-                              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            <Select 
+                              value={value} 
+                              onValueChange={(val) => setBrief((c) => ({ ...c, [key]: val }))}
                             >
-                              <option value="" disabled>Select option...</option>
-                              <option value="I have materials">I have materials</option>
-                              <option value="Karighar should bring materials">Karighar should bring materials</option>
-                              <option value="Not sure">Not sure</option>
-                            </select>
+                              <SelectTrigger className="h-11 bg-background">
+                                <SelectValue placeholder="Select option..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="I have materials">I have materials</SelectItem>
+                                <SelectItem value="Karighar should bring materials">Karighar should bring materials</SelectItem>
+                                <SelectItem value="Not sure">Not sure</SelectItem>
+                              </SelectContent>
+                            </Select>
                           ) : (
                             <Input 
                               value={value} 
@@ -317,3 +342,4 @@ function Card({ to, img, title, sub, saved, onSave, tag }: { to: string; img: st
     </div>
   );
 }
+

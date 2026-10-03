@@ -1,16 +1,16 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CalendarDays, Check, Clock3, Heart, MapPin, Star } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PageShell, TrustBadge } from '@/components/karighar-shell';
+import { PageShell } from '@/components/karighar-shell';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/karighar-api';
 import { toast } from 'sonner';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+
 
 export const Route = createFileRoute('/professionals/$id')({ component: ProfilePage });
 
@@ -19,20 +19,15 @@ function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [quoteOpen, setQuoteOpen] = useState(false);
   const [jobTitle, setJobTitle] = useState('');
   const [jobDetails, setJobDetails] = useState('');
-  const [jobLocation, setJobLocation] = useState('');
-  const [jobBudget, setJobBudget] = useState('');
-  const [jobDate, setJobDate] = useState('');
+  const [jobDate, setJobDate] = useState<Date>();
 
-  const { data: pro, isLoading, error: proError } = useQuery<any>({
+  const { data: pro, isLoading } = useQuery<any>({
     queryKey: ['professional', slug],
     queryFn: async () => {
-      // Check if slug is a valid UUID
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
       
-      // Fetch professional and gigs
       const { data, error } = await supabase
         .from('professionals')
         .select('*, gigs(*)')
@@ -41,14 +36,46 @@ function ProfilePage() {
       if (error) throw error;
       if (!data) return null;
       
-      // Fetch reviews separately to avoid PostgREST schema cache join issues
       const { data: reviews } = await supabase
         .from('reviews')
         .select('rating, body, created_at')
         .eq('professional_id', data.id)
         .order('created_at', { ascending: false });
         
-      return { ...data, reviews: reviews || [] };
+      const { count: projectsCount } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', data.id)
+        .eq('status', 'completed');
+
+      const { data: verifications } = await supabase
+        .from('karighar_verifications')
+        .select('type, status')
+        .eq('professional_id', data.id)
+        .eq('status', 'verified');
+
+      // fetch blocked or available dates
+      const { data: availability } = await supabase
+        .from('karighar_availability')
+        .select('date, status')
+        .eq('professional_id', data.id)
+        .eq('status', 'blocked');
+
+      // fetch already scheduled projects
+      const { data: scheduledProjects } = await supabase
+        .from('projects')
+        .select('timing')
+        .eq('professional_id', data.id)
+        .in('status', ['scheduled', 'in_progress']);
+
+      return { 
+        ...data, 
+        reviews: reviews || [],
+        completed_projects_count: projectsCount || 0,
+        verifications: verifications || [],
+        availability: availability || [],
+        scheduled_projects: scheduledProjects || []
+      };
     },
   });
 
@@ -79,16 +106,14 @@ function ProfilePage() {
     mutationFn: async () => {
       if (!user) throw new Error('Not logged in');
       if (!pro) throw new Error('Professional not found');
-      // 1. Create a project
+      
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
           customer_id: user.id,
           title: jobTitle || `Project with ${pro.name}`,
           summary: jobDetails,
-          location: jobLocation,
-          budget: jobBudget,
-          timing: jobDate,
+          timing: jobDate ? format(jobDate, 'yyyy-MM-dd') : null,
           professional_id: pro.id,
           status: 'requesting_quotes',
           source: 'quote',
@@ -96,7 +121,7 @@ function ProfilePage() {
         .select('id')
         .single();
       if (projectError) throw projectError;
-      // 2. Create a quote request for this professional
+      
       const { error: quoteError } = await supabase
         .from('quotes')
         .insert({ project_id: project.id, professional_id: pro.id, status: 'requested' });
@@ -104,8 +129,7 @@ function ProfilePage() {
       return project.id;
     },
     onSuccess: () => {
-      toast.success('Quote requested!', { description: `${pro?.name} has been notified and will respond soon.` });
-      setQuoteOpen(false);
+      toast.success('Request sent!', { description: `${pro?.name} has been notified.` });
       navigate({ to: '/my-projects' });
     },
     onError: (e: Error) => {
@@ -120,9 +144,9 @@ function ProfilePage() {
 
   const { data: portfolioImages = [] } = useQuery({
     queryKey: ['portfolio', pro?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       if (!pro) return [];
-      const { data } = await supabase.from('portfolio_images').select('*').eq('professional_id', pro.id).order('created_at', { ascending: false });
+      const { data } = await (supabase as any).from('portfolio_images').select('*').eq('professional_id', pro.id).order('created_at', { ascending: false });
       return data || [];
     },
     enabled: !!pro,
@@ -136,172 +160,255 @@ function ProfilePage() {
     return <PageShell><main className="mx-auto max-w-xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">Professional not found</h1><Button asChild className="mt-6"><Link to="/professionals">Browse Karighars</Link></Button></main></PageShell>;
   }
 
-  const avgRating = pro.reviews?.length > 0 ? (pro.reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / pro.reviews.length).toFixed(1) : pro.rating;
+  const avgRating = pro.reviews?.length > 0 ? (pro.reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / pro.reviews.length).toFixed(1) : 'New';
 
   return (
     <PageShell>
-      <main>
-        {/* Hero */}
-        <section className="relative h-72 overflow-hidden bg-gradient-to-br from-primary/20 to-muted md:h-96">
-          {portfolioImages.length > 0 ? (
-            <img src={portfolioImages[0].image_url} alt="" className="absolute inset-0 size-full object-cover blur-sm opacity-50 mix-blend-overlay" />
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 via-transparent to-transparent" />
-          <Link to="/professionals" className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full bg-background/95 px-4 py-2 text-sm font-semibold shadow">
-            <ArrowLeft className="size-4" /> Results
+      <main className="mx-auto max-w-[1120px] px-5 py-6 md:px-10 lg:px-10 pb-32">
+        {/* Top Header / Breadcrumb */}
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/professionals" className="inline-flex items-center gap-2 text-sm font-semibold hover:underline">
+            <ArrowLeft className="size-4" /> Back to results
           </Link>
-        </section>
-
-        <div className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
-          <div className="relative -mt-20 grid gap-8 lg:grid-cols-[1fr_340px]">
-            {/* Main content */}
-            <section>
-              {/* Identity card */}
-              <div className="rounded-xl border border-border bg-card p-6 shadow-xl">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-                  <div className="flex size-24 shrink-0 items-center justify-center rounded-full bg-primary/10 text-4xl font-bold text-primary border-4 border-card">
-                    {pro.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-primary">{pro.trade}</p>
-                    <h1 className="mt-1 font-display text-4xl font-semibold">{pro.name}</h1>
-                    <p className="mt-1 text-muted-foreground">{pro.business}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => saveMutation.mutate()} className="flex size-10 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors">
-                      <Heart className={`size-5 ${isSaved ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`} />
-                    </button>
-                    <div className="text-right">
-                      <p className="flex items-center gap-1 font-semibold"><Star className="size-4 fill-primary text-primary" /> {avgRating}</p>
-                      <p className="text-xs text-muted-foreground">{pro.reviews_count ?? pro.reviews?.length ?? 0} reviews · {pro.projects_count ?? 0} jobs</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bio */}
-              {(pro.bio || pro.youtube_link || pro.website_link) && (
-                <div className="py-8">
-                  <h2 className="font-display text-2xl font-semibold">About {pro.name}</h2>
-                  {pro.bio && <p className="mt-4 leading-7 text-muted-foreground whitespace-pre-wrap">{pro.bio}</p>}
-                  
-                  {(pro.website_link || pro.youtube_link) && (
-                    <div className="mt-4 flex flex-wrap gap-4">
-                      {pro.website_link && <a href={pro.website_link.startsWith('http') ? pro.website_link : `https://${pro.website_link}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-primary hover:underline">Visit Website</a>}
-                      {pro.youtube_link && <a href={pro.youtube_link.startsWith('http') ? pro.youtube_link : `https://${pro.youtube_link}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-red-600 hover:underline">Watch YouTube Video</a>}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Portfolio Images */}
-              {portfolioImages.length > 0 && (
-                <section className="border-t border-border py-8">
-                  <h2 className="font-display text-2xl font-semibold">Past Projects</h2>
-                  <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {portfolioImages.map((img: any) => (
-                      <a key={img.id} href={img.image_url} target="_blank" rel="noreferrer" className="block aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
-                        <img src={img.image_url} alt="Project work" className="w-full h-full object-cover" />
-                      </a>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Gigs */}
-              {pro.gigs && pro.gigs.length > 0 && (
-                <section className="border-t border-border py-8">
-                  <h2 className="font-display text-2xl font-semibold">Services offered</h2>
-                  <div className="mt-5 grid gap-3">
-                    {pro.gigs.map((gig: { id: string; name: string; description?: string; starting_price: number }) => (
-                      <article key={gig.id} className="flex items-center justify-between gap-5 rounded-xl border border-border p-5 hover:bg-muted/50 transition-colors">
-                        <div>
-                          <h3 className="font-semibold">{gig.name}</h3>
-                          {gig.description && <p className="mt-1 text-sm text-muted-foreground">{gig.description}</p>}
-                        </div>
-                        <p className="shrink-0 text-sm text-muted-foreground">From <strong className="text-lg text-foreground">₹{gig.starting_price.toLocaleString('en-IN')}</strong></p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Reviews */}
-              {pro.reviews && pro.reviews.length > 0 && (
-                <section className="border-t border-border py-8">
-                  <div className="flex items-end justify-between">
-                    <h2 className="font-display text-2xl font-semibold">Customer reviews</h2>
-                    <p className="flex items-center gap-1 text-lg font-semibold"><Star className="size-5 fill-primary text-primary" /> {avgRating}</p>
-                  </div>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    {pro.reviews.map((review: { rating: number; body: string; created_at: string }, i: number) => (
-                      <blockquote key={i} className="rounded-xl bg-muted p-5 text-sm leading-6">
-                        <div className="flex gap-1 mb-3">{[1,2,3,4,5].map((s) => <Star key={s} className={`size-3.5 ${s <= review.rating ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />)}</div>
-                        <p>{review.body}</p>
-                      </blockquote>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </section>
-
-            {/* Sidebar */}
-            <aside className="h-fit rounded-xl border border-border bg-card p-6 shadow-xl lg:sticky lg:top-24">
-              <div className="space-y-3 text-sm">
-                <p className="flex gap-3"><MapPin className="size-4 text-primary shrink-0" /> {pro.city || 'Mumbai'}</p>
-                {pro.experience && <p className="flex gap-3"><Clock3 className="size-4 text-primary shrink-0" /> {pro.experience} experience</p>}
-              </div>
-              <Button className="mt-6 h-12 w-full text-base rounded-full" onClick={() => {
-                if (!user) { navigate({ to: '/auth', search: { redirect: `/professionals/${slug}` } }); return; }
-                setQuoteOpen(true);
-              }}>
-                Request Quote
-              </Button>
-              <p className="mt-3 text-center text-xs text-muted-foreground">No payment taken at this stage</p>
-            </aside>
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 text-sm font-semibold hover:bg-muted px-3 py-1.5 rounded-lg transition-colors">
+              <Share className="size-4" /> Share
+            </button>
+            <button onClick={() => saveMutation.mutate()} className="flex items-center gap-2 text-sm font-semibold hover:bg-muted px-3 py-1.5 rounded-lg transition-colors">
+              <Heart className={`size-4 ${isSaved ? 'fill-destructive text-destructive' : ''}`} /> Save
+            </button>
           </div>
         </div>
-      </main>
 
-      {/* Request Quote Dialog */}
-      <Dialog open={quoteOpen} onOpenChange={setQuoteOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Request a quote from {pro.name}</DialogTitle>
-            <DialogDescription>Describe your project so {pro.name} can give you an accurate quote.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Project title</Label>
-              <Input placeholder="e.g. Fix leaking kitchen sink" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Describe the work needed</Label>
-              <Textarea placeholder="Tell them what needs to be done, current condition, any specific requirements..." value={jobDetails} onChange={(e) => setJobDetails(e.target.value)} className="min-h-24" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input placeholder="e.g. Andheri West" value={jobLocation} onChange={(e) => setJobLocation(e.target.value)} />
+        {/* Title */}
+        <h1 className="font-display text-[2rem] leading-tight font-semibold">{pro.business}</h1>
+        <div className="flex items-center gap-2 text-sm font-medium mt-1 mb-6">
+          <Star className="size-4 fill-foreground text-foreground" />
+          <span>{avgRating}</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="underline font-semibold cursor-pointer">{pro.reviews?.length ?? 0} reviews</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="underline font-semibold cursor-pointer">{pro.city || 'Mumbai, Maharashtra'}</span>
+        </div>
+
+        {/* Hero Image Grid */}
+        <div className="rounded-xl overflow-hidden grid grid-cols-4 grid-rows-2 gap-2 h-[45vh] min-h-[300px] max-h-[500px]">
+          {portfolioImages.length > 0 ? (
+            <>
+              <div className="col-span-2 row-span-2 relative hover:opacity-90 transition-opacity cursor-pointer">
+                <img src={portfolioImages[0]?.image_url} alt="" className="w-full h-full object-cover" />
               </div>
-              <div className="space-y-2">
-                <Label>Preferred date</Label>
-                <Input type="date" value={jobDate} onChange={(e) => setJobDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+              <div className="relative hover:opacity-90 transition-opacity cursor-pointer">
+                <img src={portfolioImages[1]?.image_url || portfolioImages[0]?.image_url} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="relative hover:opacity-90 transition-opacity cursor-pointer hidden md:block">
+                <img src={portfolioImages[2]?.image_url || portfolioImages[0]?.image_url} alt="" className="w-full h-full object-cover rounded-tr-xl" />
+              </div>
+              <div className="relative hover:opacity-90 transition-opacity cursor-pointer">
+                <img src={portfolioImages[3]?.image_url || portfolioImages[0]?.image_url} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="relative hover:opacity-90 transition-opacity cursor-pointer hidden md:block">
+                <img src={portfolioImages[4]?.image_url || portfolioImages[0]?.image_url} alt="" className="w-full h-full object-cover rounded-br-xl" />
+                <Button variant="secondary" className="absolute bottom-4 right-4 bg-background border border-border shadow-md text-sm px-4">
+                  Show all photos
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="col-span-4 row-span-2 bg-muted flex items-center justify-center relative">
+               <img src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&q=80&auto=format&fit=crop`} alt="" className="w-full h-full object-cover opacity-50" />
+               <div className="absolute inset-0 flex flex-col items-center justify-center">
+                 <h2 className="text-2xl font-bold bg-background/80 px-4 py-2 rounded-lg">{pro.business}</h2>
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content Layout */}
+        <div className="grid gap-12 lg:grid-cols-[1fr_360px] mt-12">
+          
+          <section className="space-y-8">
+            
+            {/* Professional info */}
+            <div className="flex items-center justify-between pb-8 border-b border-border">
+              <div>
+                <h2 className="text-2xl font-semibold">{pro.name}</h2>
+                <p className="text-muted-foreground mt-1 text-base">
+                  {pro.trade} · {pro.completed_projects_count} jobs completed · Member since {new Date(pro.created_at).getFullYear()}
+                </p>
+              </div>
+              <div className="relative shrink-0 ml-4">
+                <div className="size-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold border border-border overflow-hidden">
+                   {pro.name.charAt(0)}
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5">
+                  <Award className="size-6 text-rose-500 fill-rose-500" />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Budget (optional)</Label>
-              <Input placeholder="e.g. ₹2,000" value={jobBudget} onChange={(e) => setJobBudget(e.target.value)} />
+
+            {/* Highlights */}
+            <div className="space-y-6 pb-8 border-b border-border">
+              {pro.verifications?.some((v: any) => v.type === 'top_rated') && (
+                <div className="flex gap-5 items-start">
+                  <Award className="size-6 text-foreground shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <div>
+                    <h3 className="font-semibold text-foreground text-lg">Top Rated Karighar</h3>
+                    <p className="text-muted-foreground text-sm mt-0.5">Highly rated for quality work and reliability.</p>
+                  </div>
+                </div>
+              )}
+              {pro.verifications?.some((v: any) => v.type === 'background_check') && (
+                <div className="flex gap-5 items-start">
+                  <ShieldCheck className="size-6 text-foreground shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <div>
+                    <h3 className="font-semibold text-foreground text-lg">Background verified</h3>
+                    <p className="text-muted-foreground text-sm mt-0.5">Identity and qualifications have been verified.</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-5 items-start">
+                <CalendarDays className="size-6 text-foreground shrink-0 mt-0.5" strokeWidth={1.5} />
+                <div>
+                  <h3 className="font-semibold text-foreground text-lg">Flexible booking</h3>
+                  <p className="text-muted-foreground text-sm mt-0.5">Easily reschedule if your plans change.</p>
+                </div>
+              </div>
             </div>
+
+            {/* Description */}
+            <div className="pb-8 border-b border-border">
+              <p className="leading-7 text-foreground whitespace-pre-wrap line-clamp-6 text-base">
+                {pro.bio || `${pro.name} is a highly skilled ${pro.trade.toLowerCase()} serving the ${pro.city || 'Mumbai'} area. With a commitment to quality and customer satisfaction, they handle projects of all sizes.`}
+              </p>
+              <button className="text-foreground font-semibold underline mt-4 flex items-center gap-1 hover:text-foreground/80">
+                Show more <ChevronRight className="size-4" />
+              </button>
+            </div>
+
+            {/* Gigs / Services */}
+            <div className="pb-8 border-b border-border">
+              <h2 className="font-display text-[1.35rem] font-semibold mb-6">What this Karighar offers</h2>
+              <div className="grid sm:grid-cols-2 gap-y-4 gap-x-8">
+                {pro.gigs && pro.gigs.filter((g: any) => g.is_published !== false).length > 0 ? pro.gigs.filter((g: any) => g.is_published !== false).map((gig: any) => (
+                  <div key={gig.id} className="flex items-center gap-4">
+                    <Wrench className="size-6 text-muted-foreground shrink-0" strokeWidth={1.5} />
+                    <span className="text-foreground text-base">{gig.name}</span>
+                  </div>
+                )) : (
+                   <p className="text-muted-foreground">Contact for detailed services.</p>
+                )}
+              </div>
+              <Button variant="outline" className="mt-8 rounded-lg font-semibold px-6 border-foreground py-6 text-base">
+                Show all services
+              </Button>
+            </div>
+            
+          </section>
+
+          {/* Sticky Sidebar Form */}
+          <aside className="relative">
+            <div className="sticky top-28 rounded-2xl border border-border bg-background p-6 shadow-[0_6px_16px_rgba(0,0,0,0.12)] mb-10">
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-xl font-bold">Request a Quote</span>
+              </div>
+
+              <div className="rounded-xl border border-muted-foreground/30 overflow-hidden mb-4">
+                <div className="border-b border-muted-foreground/30">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="w-full text-left p-3 focus-within:bg-muted/30 transition-colors flex items-center justify-between">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-foreground block cursor-pointer">Date</label>
+                          <span className={`text-sm block mt-1 ${!jobDate ? 'text-muted-foreground' : 'text-foreground'}`}>
+                            {jobDate ? format(jobDate, 'dd-MM-yyyy') : 'Select a date'}
+                          </span>
+                        </div>
+                        <CalendarDays className="size-4 text-foreground/80 mr-2" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={jobDate}
+                        onSelect={setJobDate}
+                        disabled={(date) => {
+                          if (date < new Date(new Date().setHours(0,0,0,0))) return true;
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          if (pro.scheduled_projects?.some((p: any) => p.timing === dateStr)) return true;
+                          if (pro.availability?.some((a: any) => a.date === dateStr && a.status === 'blocked')) return true;
+                          return false;
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="p-3 border-b border-muted-foreground/30 focus-within:bg-muted/30 transition-colors">
+                  <label className="text-[10px] font-bold uppercase text-foreground block">Job Title</label>
+                  <input type="text" placeholder="e.g. Kitchen tap repair" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground mt-1" />
+                </div>
+                <div className="p-3 focus-within:bg-muted/30 transition-colors">
+                  <label className="text-[10px] font-bold uppercase text-foreground block">Details</label>
+                  <textarea placeholder="Describe the issue..." value={jobDetails} onChange={(e) => setJobDetails(e.target.value)} className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground resize-none h-16 mt-1" />
+                </div>
+              </div>
+
+              <Button 
+                className="w-full py-6 text-base font-semibold bg-[#E51D53] hover:bg-[#d4174a] text-white rounded-lg shadow-md transition-all active:scale-[0.98]"
+                disabled={!jobTitle || requestQuoteMutation.isPending}
+                onClick={() => {
+                   if (!user) { navigate({ to: '/auth', search: { redirect: `/professionals/${slug}` } }); return; }
+                   requestQuoteMutation.mutate();
+                }}
+              >
+                {requestQuoteMutation.isPending ? 'Sending request...' : 'Check availability'}
+              </Button>
+
+              <p className="text-center text-sm text-muted-foreground mt-4">You won't be charged yet</p>
+            </div>
+          </aside>
+        </div>
+
+        {/* Full width reviews section */}
+        <section className="py-12 border-t border-border mt-6">
+          <div className="flex items-center gap-2 text-2xl font-semibold mb-8">
+            <Star className="size-5 fill-foreground text-foreground" />
+            <span>{avgRating} · {pro.reviews?.length ?? 0} reviews</span>
           </div>
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setQuoteOpen(false)}>Cancel</Button>
-            <Button className="flex-1" disabled={!jobTitle || requestQuoteMutation.isPending} onClick={() => requestQuoteMutation.mutate()}>
-              {requestQuoteMutation.isPending ? 'Sending...' : 'Send request'}
-            </Button>
+          
+          <div className="grid md:grid-cols-2 gap-x-20 gap-y-10">
+            {pro.reviews && pro.reviews.length > 0 ? (
+              pro.reviews.map((r: any, i: number) => (
+                <div key={i}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center text-lg font-bold">
+                       {['A','B','C','D','M','S','R'][i % 7]}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-base">Customer</h4>
+                      <p className="text-sm text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 mb-2">
+                     {[1,2,3,4,5].map(s => <Star key={s} className={`size-3 ${s <= r.rating ? 'fill-foreground text-foreground' : 'text-muted-foreground'}`} />)}
+                  </div>
+                  <p className="text-base text-foreground/90 leading-relaxed">{r.body}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground col-span-2">No reviews yet.</p>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+          {pro.reviews && pro.reviews.length > 0 && (
+             <Button variant="outline" className="mt-10 rounded-lg font-semibold px-6 py-6 text-base border-foreground">
+               Show all {pro.reviews.length} reviews
+             </Button>
+          )}
+        </section>
+
+      </main>
     </PageShell>
   );
 }
+
