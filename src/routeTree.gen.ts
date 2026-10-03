@@ -20,11 +20,10 @@ import { Route as ProjectRouteImport } from './routes/project'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
-import { Route as ScratchDashboardRouteImport } from './routes/scratch/dashboard'
-import { Route as ScratchOnboardingRouteImport } from './routes/scratch/onboarding'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -81,6 +80,11 @@ const ShortlistRoute = ShortlistRouteImport.update({
   path: '/shortlist',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -95,16 +99,6 @@ const ProfessionalsIdRoute = ProfessionalsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ProfessionalsRoute,
-} as any)
-const ScratchDashboardRoute = ScratchDashboardRouteImport.update({
-  id: '/scratch/dashboard',
-  path: '/scratch/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ScratchOnboardingRoute = ScratchOnboardingRouteImport.update({
-  id: '/scratch/onboarding',
-  path: '/scratch/onboarding',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   id: '/projects/$id',
@@ -123,10 +117,9 @@ export interface FileRoutesByFullPath {
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
-  '/scratch/dashboard': typeof ScratchDashboardRoute
-  '/scratch/onboarding': typeof ScratchOnboardingRoute
   '/professionals/': typeof ProfessionalsIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -140,10 +133,9 @@ export interface FileRoutesByTo {
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
-  '/scratch/dashboard': typeof ScratchDashboardRoute
-  '/scratch/onboarding': typeof ScratchOnboardingRoute
   '/professionals': typeof ProfessionalsIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -160,10 +152,9 @@ export interface FileRoutesById {
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
-  '/scratch/dashboard': typeof ScratchDashboardRoute
-  '/scratch/onboarding': typeof ScratchOnboardingRoute
   '/professionals/': typeof ProfessionalsIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -180,10 +171,9 @@ export interface FileRouteTypes {
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/account'
     | '/dashboard'
     | '/professionals/$id'
-    | '/scratch/dashboard'
-    | '/scratch/onboarding'
     | '/professionals/'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -197,10 +187,9 @@ export interface FileRouteTypes {
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/account'
     | '/dashboard'
     | '/professionals/$id'
-    | '/scratch/dashboard'
-    | '/scratch/onboarding'
     | '/professionals'
     | '/projects/$id'
   id:
@@ -216,10 +205,9 @@ export interface FileRouteTypes {
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/_authenticated/account'
     | '/_authenticated/dashboard'
     | '/professionals/$id'
-    | '/scratch/dashboard'
-    | '/scratch/onboarding'
     | '/professionals/'
     | '/_authenticated/projects/$id'
   fileRoutesById: FileRoutesById
@@ -236,8 +224,6 @@ export interface RootRouteChildren {
   RenovationPlannerRoute: typeof RenovationPlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
-  ScratchDashboardRoute: typeof ScratchDashboardRoute
-  ScratchOnboardingRoute: typeof ScratchOnboardingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShortlistRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -340,20 +333,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfessionalsIdRouteImport
       parentRoute: typeof ProfessionalsRoute
     }
-    '/scratch/dashboard': {
-      id: '/scratch/dashboard'
-      path: '/scratch/dashboard'
-      fullPath: '/scratch/dashboard'
-      preLoaderRoute: typeof ScratchDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/scratch/onboarding': {
-      id: '/scratch/onboarding'
-      path: '/scratch/onboarding'
-      fullPath: '/scratch/onboarding'
-      preLoaderRoute: typeof ScratchOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/projects/$id': {
       id: '/_authenticated/projects/$id'
       path: '/projects/$id'
@@ -365,11 +344,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
 }
@@ -403,8 +384,6 @@ const rootRouteChildren: RootRouteChildren = {
   RenovationPlannerRoute: RenovationPlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
-  ScratchDashboardRoute: ScratchDashboardRoute,
-  ScratchOnboardingRoute: ScratchOnboardingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
