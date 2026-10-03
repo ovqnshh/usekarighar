@@ -77,27 +77,11 @@ function ProfessionalsPage() {
   const { data: professionals = [], isLoading } = useQuery({
     queryKey: ['professionals', category, location, minPrice, maxPrice, rating, sort],
     queryFn: async () => {
-      let q = supabase.from('professionals').select('*, gigs(*)');
-      
-      if (category && category !== 'All') {
-        if (CATEGORY_TRADES[category]) {
-          q = q.in('trade', CATEGORY_TRADES[category]);
-        } else {
-          q = q.eq('trade', category);
-        }
-      }
-      
-      if (location) {
-        q = q.ilike('city', `%${location}%`);
-      }
-      
-      if (rating) {
-        q = q.gte('rating', rating);
-      }
-
-      const { data, error } = await q;
+      // 1. Fetch all professionals from Supabase to get real UUIDs (no DB-side filtering)
+      const { data, error } = await supabase.from('professionals').select('*, gigs(*)');
       if (error) throw error;
       
+      // 2. Map and merge with rich dummy data (overriding trade strings to perfectly match UI filters)
       let filtered = (data || []).map((pro: any) => {
         const dummy = dummyProfessionals.find(d => d.id === pro.slug);
         
@@ -111,6 +95,7 @@ function ProfessionalsPage() {
           
         return {
           ...pro,
+          trade: dummy?.trade || pro.trade, // Override trade with the perfectly matched dummy trade
           image: dummy?.image,
           portfolio: dummy?.portfolio,
           computedRating,
@@ -118,6 +103,26 @@ function ProfessionalsPage() {
         };
       });
       
+      // 3. Apply category filter in JS
+      if (category && category !== 'All') {
+        if (CATEGORY_TRADES[category]) {
+          filtered = filtered.filter(p => CATEGORY_TRADES[category].includes(p.trade));
+        } else {
+          filtered = filtered.filter(p => p.trade === category);
+        }
+      }
+      
+      // 4. Apply location filter in JS
+      if (location) {
+        filtered = filtered.filter(p => p.city.toLowerCase().includes(location.toLowerCase()));
+      }
+      
+      // 5. Apply rating filter in JS
+      if (rating) {
+        filtered = filtered.filter(p => (p.computedRating || 0) >= rating);
+      }
+
+      // 6. Apply price filter in JS
       if (minPrice !== undefined || maxPrice !== undefined) {
         filtered = filtered.filter((pro: any) => {
           if (pro.lowestGigPrice === Infinity) return false;
@@ -127,6 +132,7 @@ function ProfessionalsPage() {
         });
       }
       
+      // 7. Sort
       if (sort === 'price') {
         filtered.sort((a: any, b: any) => a.lowestGigPrice - b.lowestGigPrice);
       } else {
