@@ -95,7 +95,7 @@ BEGIN
                 dummy_proj UUID := gen_random_uuid();
             BEGIN
                 INSERT INTO public.projects (id, customer_id, professional_id, title, status, summary, location, budget, timing, intent, source)
-                VALUES (dummy_proj, user_id, pro_id, 'Completed Job', 'completed', 'Standard service.', cities[1 + floor(random() * array_length(cities, 1))::INT], '1000', 'flexible', 'fix', 'direct');
+                VALUES (dummy_proj, user_id, pro_id, 'Completed Job', 'completed', 'Standard service.', cities[1 + floor(random() * array_length(cities, 1))::INT], '1000', 'flexible', 'fix', 'quote');
                 
                 INSERT INTO public.reviews (professional_id, project_id, rating, body, created_at)
                 VALUES (
