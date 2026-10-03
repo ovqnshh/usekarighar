@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
 import { Route as MyProjectsRouteImport } from './routes/my-projects'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ProDashboardRouteImport } from './routes/pro-dashboard'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
@@ -51,6 +52,11 @@ const BecomeAProRoute = BecomeAProRouteImport.update({
 const MyProjectsRoute = MyProjectsRouteImport.update({
   id: '/my-projects',
   path: '/my-projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProDashboardRoute = ProDashboardRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/pricing': typeof PricingRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/pricing': typeof PricingRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/pricing': typeof PricingRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/pricing'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/pricing'
     | '/pro-dashboard'
     | '/project'
     | '/renovation-planner'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/pricing'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
@@ -254,6 +266,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BecomeAProRoute: typeof BecomeAProRoute
   MyProjectsRoute: typeof MyProjectsRoute
+  PricingRoute: typeof PricingRoute
   ProDashboardRoute: typeof ProDashboardRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/my-projects'
       fullPath: '/my-projects'
       preLoaderRoute: typeof MyProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pro-dashboard': {
@@ -438,6 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BecomeAProRoute: BecomeAProRoute,
   MyProjectsRoute: MyProjectsRoute,
+  PricingRoute: PricingRoute,
   ProDashboardRoute: ProDashboardRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,

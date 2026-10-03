@@ -81,6 +81,9 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
           })}
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2 min-w-0">
+          <Link to="/pricing" className="hidden rounded-full px-4 py-3 text-sm font-medium hover:bg-muted lg:block">
+            Pricing
+          </Link>
           <Link to={isPro ? "/dashboard" : "/become-a-pro"} className="hidden rounded-full px-4 py-3 text-sm font-medium hover:bg-muted lg:block">
             {isPro ? "Switch to professional" : "Become a pro"}
           </Link>
@@ -101,6 +104,7 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
                   
                   <div className="h-px bg-border my-2" />
                   
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/pricing">Upgrade to Prime</Link></DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Notifications</DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Account settings</DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/renovation-planner">AI room planner</Link></DropdownMenuItem>
@@ -124,6 +128,7 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
                 <div className="flex flex-col py-2">
                   <DropdownMenuItem asChild className="cursor-pointer px-4 py-3 hover:bg-muted font-semibold"><Link to="/auth">Log in or sign up</Link></DropdownMenuItem>
                   <div className="h-px bg-border my-2" />
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/pricing">Pricing & Plans</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/become-a-pro">Become a professional</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/renovation-planner">AI room planner</Link></DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Help Centre</DropdownMenuItem>

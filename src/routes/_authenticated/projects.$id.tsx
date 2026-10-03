@@ -69,7 +69,8 @@ function ProjectDetail() {
   if (!p) return <PageShell><main className="mx-auto max-w-6xl px-5 py-10">{project.isLoading ? "Loading…" : "Project not found."}</main></PageShell>;
   const rows: [string, (q: NonNullable<typeof quotes.data>[number]) => string][] = [
     ["Labour", (q) => inr(q.labour)], ["Materials", (q) => inr(q.materials_cost)], ["Transport", (q) => inr(q.transport)], ["Other", (q) => inr(q.other)],
-    ["Platform fee", (q) => inr(q.platform_fee)], ["Tax", (q) => inr(q.tax)], ["Duration", (q) => q.duration], ["Workers", (q) => String(q.workers)],
+    ["Karighar Platform Fee (15%)", (q) => inr(Math.round((q.labour + q.materials_cost + q.transport + q.other) * 0.15))], 
+    ["Tax", (q) => inr(q.tax)], ["Duration", (q) => q.duration], ["Workers", (q) => String(q.workers)],
     ["Materials by", (q) => materialsLabel[q.materials] ?? q.materials], ["Warranty", (q) => q.warranty || "—"],
   ];
   return (
@@ -175,7 +176,7 @@ function ProjectDetail() {
             <h3 className="font-semibold">{q.professionals?.name}</h3><p className="text-sm text-muted-foreground">{q.professionals?.business}</p>
             {q.status === "requested" ? <p className="mt-4 text-sm text-muted-foreground">Waiting for quote…</p> : <>
               <dl className="mt-4 space-y-2 text-sm">{rows.map(([label, fn]) => <div key={label} className="flex justify-between gap-3"><dt className="text-muted-foreground">{label}</dt><dd>{fn(q)}</dd></div>)}</dl>
-              <p className="mt-3 flex justify-between border-t border-border pt-3 text-lg"><span>Total</span><strong>{inr(q.total)}</strong></p>
+              <p className="mt-3 flex justify-between border-t border-border pt-3 text-lg"><span>Total</span><strong>{inr(q.labour + q.materials_cost + q.transport + q.other + Math.round((q.labour + q.materials_cost + q.transport + q.other) * 0.15) + q.tax)}</strong></p>
               <p className="mt-3 text-xs leading-5 text-muted-foreground">{q.scope}</p>
               {q.status === "submitted" && p.status === "requested" ? <Button className="mt-4 w-full" onClick={() => accept(q.id)}>Accept</Button> : <p className="mt-4 text-sm font-semibold capitalize">{q.status}</p>}
             </>}
