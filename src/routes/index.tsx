@@ -103,11 +103,23 @@ function Index() {
     <div className="flex flex-col items-center gap-6 pb-4">
       <div className="mx-auto mt-2 w-full max-w-4xl rounded-full border border-border bg-background p-2 pl-8 shadow-float">
         <div className="flex items-center md:divide-x md:divide-border">
-          <div className="min-w-0 flex-[2] pr-4">
-            <p className="text-xs font-semibold">What</p>
+          <div className="min-w-0 flex-[2] pr-4 flex flex-col justify-center">
+            <p className="text-xs font-semibold pl-1 mb-0.5">What</p>
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-full truncate text-left text-base text-foreground focus:outline-none">{request || <span className="text-muted-foreground">Select a service</span>}</button>
+                <button className="w-full text-left text-base text-foreground focus:outline-none flex items-center gap-2 pl-1">
+                  {request ? (
+                    <>
+                      {(() => {
+                        const Icon = TRADES.find(t => t.label === request)?.icon;
+                        return Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null;
+                      })()}
+                      <span className="truncate">{request}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Select a service</span>
+                  )}
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 rounded-3xl p-2" align="start">
                 <div className="max-h-72 overflow-y-auto no-scrollbar">
@@ -182,42 +194,30 @@ function Index() {
       <main className="animate-in fade-in duration-500">
         
         {/* AI Assistant Banner */}
-        <section className="mx-auto max-w-[1760px] px-5 py-12 md:px-10 xl:px-20">
-          <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/5 to-secondary/30 p-6 md:p-10 shadow-sm flex flex-col md:flex-row items-center gap-8">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold font-display flex items-center gap-2"><Sparkles className="size-6 text-primary" /> Not sure what you need? Let AI help</h2>
-              <p className="mt-2 text-muted-foreground">Describe your issue in your own words, or upload a photo of the problem.</p>
-              
-              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-                <Textarea 
-                  value={aiPrompt} 
-                  onChange={(e) => setAiPrompt(e.target.value)} 
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); understand(); } }}
-                  placeholder="e.g. My bathroom tile is broken and I don't know who to call..." 
-                  className="bg-background h-[60px] rounded-xl flex-1 resize-none py-4 px-4 overflow-hidden" 
-                />
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button variant="outline" className="h-[60px] px-6 shrink-0 rounded-xl bg-background hover:bg-muted font-medium text-muted-foreground" aria-label="Upload photo" onClick={() => document.getElementById('photo-upload')?.click()}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" className="mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                    Add photo
-                  </Button>
-                  <input type="file" id="photo-upload" className="hidden" accept="image/*" />
-                  <Button onClick={understand} disabled={!aiPrompt.trim()} className="h-[60px] px-8 rounded-xl shrink-0 font-semibold w-full sm:w-auto">
-                    Analyze
-                  </Button>
-                </div>
-              </div>
+        <section className="mx-auto max-w-[1760px] px-5 pt-8 pb-4 md:px-10 xl:px-20">
+          <div className="mx-auto max-w-5xl rounded-3xl border border-border bg-gradient-to-r from-primary/5 via-secondary/10 to-transparent p-2 pl-6 pr-2 shadow-sm flex flex-col md:flex-row items-center gap-4">
+            <div className="flex-1 min-w-0 py-2">
+              <h2 className="text-lg font-bold font-display flex items-center gap-2"><Sparkles className="size-5 text-primary" /> Not sure what you need? Let AI help</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Describe your issue in your own words, or upload a photo.</p>
             </div>
             
-            <div className="hidden lg:block w-80 shrink-0">
-              <div className="rounded-2xl border border-border bg-background p-5 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-3"><Sparkles className="size-5 text-primary/40" /></div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">AI Diagnosis</p>
-                <p className="text-sm font-medium leading-relaxed">"Based on your description, this looks like a localized tile replacement job."</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="text-[11px] font-semibold bg-muted px-2 py-1 rounded">Tiling & flooring</span>
-                  <span className="text-[11px] font-semibold bg-muted px-2 py-1 rounded">₹1,500 - ₹3,000</span>
-                </div>
+            <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2 shrink-0">
+              <Input 
+                value={aiPrompt} 
+                onChange={(e) => setAiPrompt(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); understand(); } }}
+                placeholder="e.g. My AC is making noise..." 
+                className="bg-background h-12 w-full sm:w-72 rounded-2xl shadow-sm" 
+              />
+              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button variant="outline" className="h-12 px-4 shrink-0 rounded-2xl bg-background hover:bg-muted font-medium text-muted-foreground shadow-sm" aria-label="Upload photo" onClick={() => document.getElementById('photo-upload')?.click()}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  Add photo
+                </Button>
+                <input type="file" id="photo-upload" className="hidden" accept="image/*" />
+                <Button onClick={understand} disabled={!aiPrompt.trim()} className="h-12 px-6 rounded-2xl shrink-0 font-semibold shadow-sm w-full sm:w-auto">
+                  Analyze
+                </Button>
               </div>
             </div>
           </div>
