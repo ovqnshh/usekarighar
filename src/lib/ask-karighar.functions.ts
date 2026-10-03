@@ -9,6 +9,7 @@ const BriefSchema = z.object({
   location: z.string().describe('Location mentioned, or empty string'),
   budget: z.string().describe('Budget mentioned, or empty string'),
   timing: z.string().describe('When they want it done, or empty string'),
+  materials: z.string().describe('Material preferences (e.g., "I have materials", "Karighar should bring materials", "Not sure"), or empty string'),
   trades: z.string().describe('Likely trades needed, e.g. Plumber, Electrician'),
   duration: z.string().describe('Estimated job duration, e.g. 1-2 hours'),
   cost: z.string().describe('Rough cost estimate range in INR, e.g. ₹1,200–₹2,400'),
@@ -32,9 +33,10 @@ ${data.location ? `Preferred location: ${data.location}` : ''}
 Rules:
 - intent: if they want something NEW built → build, if they want something improved/redone → renovate, if something is broken/not working → fix
 - summary: one clear sentence describing the job
-- location: use the preferred location if provided, otherwise extract city/area mentioned, or output 'Location not specified'
+- location: use the preferred location if provided, otherwise extract city/area mentioned, or output an empty string
 - budget: extract any budget mentioned (format as ₹X,XXX), or output 'To be discussed'
-- timing: use the preferred date if given, otherwise extract timing words (tomorrow, next week etc), or output 'Flexible'
+- timing: use the preferred date if given, otherwise extract timing words (tomorrow, next week etc), or output an empty string
+- materials: if they mention they have materials or need them, extract it, otherwise output an empty string
 - trades: which type of professional is needed (Plumber, Electrician, Carpenter, Painter, Renovation contractor, etc.)
 - duration: estimate job duration (1-2 hours, half day, 2-3 days etc)
 - cost: estimate cost range in INR based on the job type and Indian market rates`,
@@ -88,9 +90,10 @@ Rules:
         brief: {
           intent,
           summary: data.text.length > 3 ? data.text.charAt(0).toUpperCase() + data.text.slice(1) : 'Professional required',
-          location: data.location || 'Location not specified',
+          location: data.location || '',
           budget: budgetMatch ? (budgetMatch[0].startsWith('₹') ? budgetMatch[0] : `₹${budgetMatch[0]}`) : 'To be discussed',
-          timing: data.date || 'Flexible',
+          timing: data.date || '',
+          materials: '',
           trades,
           duration,
           cost,

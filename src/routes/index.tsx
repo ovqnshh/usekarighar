@@ -73,8 +73,8 @@ function Index() {
   const [brief, setBrief] = useState<{
     intent: string; summary: string; location: string;
     budget: string; timing: string; trades: string;
-    duration: string; cost: string;
-  }>({ intent: '', summary: '', location: '', budget: '', timing: '', trades: '', duration: '', cost: '' });
+    materials: string; duration: string; cost: string;
+  }>({ intent: '', summary: '', location: '', budget: '', timing: '', trades: '', materials: '', duration: '', cost: '' });
 
   useEffect(() => { if (intent) askRef.current?.focus(); }, [intent]);
 
@@ -166,26 +166,6 @@ function Index() {
           <Button onClick={() => navigate({ to: '/professionals', search: { category: request, location } })} disabled={!request} className="ml-2 size-12 shrink-0 rounded-full p-0 md:size-14" aria-label="Ask Karighar"><Search className="size-5" /></Button>
         </div>
       </div>
-      
-      {/* Categories Row */}
-      <div className="w-full max-w-[1760px] mx-auto flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth px-5 mt-6 pb-2">
-        {TRADES.map((t) => {
-          const Icon = t.icon;
-          return (
-            <Link
-              key={t.label}
-              to="/professionals"
-              search={{ category: t.label }}
-              className="group flex shrink-0 flex-col items-center gap-2 transition-all duration-300 pb-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 border-b-2 border-transparent"
-            >
-              <Icon className="size-6 transition-transform duration-300 group-hover:scale-110" />
-              <span className="text-xs font-medium whitespace-nowrap transition-colors duration-300">
-                {t.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
     </div>
   );
 
@@ -243,12 +223,35 @@ function Index() {
                       const labels: Record<string, string> = {
                         intent: 'Project type', summary: 'Summary', location: 'Location',
                         budget: 'Budget', timing: 'When', trades: 'Trades needed',
-                        duration: 'Estimated duration', cost: 'Estimated cost',
+                        materials: 'Materials', duration: 'Estimated duration', cost: 'Estimated cost',
                       };
-                      return (
+                      const placeholders: Record<string, string> = {
+                        location: 'e.g. Andheri West',
+                        timing: 'e.g. Tomorrow or Next Week',
+                        materials: 'e.g. Need Karighar to bring materials',
+                        budget: 'e.g. ₹5,000',
+                      };
                         <label key={key} className={key === 'summary' ? 'md:col-span-2' : ''}>
                           <span className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">{labels[key] ?? key}</span>
-                          <Input value={value} onChange={(e) => setBrief((c) => ({ ...c, [key]: e.target.value }))} className="h-11 bg-background" />
+                          {key === 'materials' ? (
+                            <select
+                              value={value}
+                              onChange={(e) => setBrief((c) => ({ ...c, [key]: e.target.value }))}
+                              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="" disabled>Select option...</option>
+                              <option value="I have materials">I have materials</option>
+                              <option value="Karighar should bring materials">Karighar should bring materials</option>
+                              <option value="Not sure">Not sure</option>
+                            </select>
+                          ) : (
+                            <Input 
+                              value={value} 
+                              onChange={(e) => setBrief((c) => ({ ...c, [key]: e.target.value }))} 
+                              placeholder={placeholders[key] || ''}
+                              className="h-11 bg-background" 
+                            />
+                          )}
                         </label>
                       );
                     })}

@@ -56,9 +56,11 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-gradient-to-b from-background to-muted/60 backdrop-blur-xl">
-      <div className="mx-auto grid h-20 max-w-[1760px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 md:px-10 xl:px-20">
-        <Brand />
-        <nav className="flex min-w-0 justify-center gap-1 overflow-x-auto no-scrollbar sm:gap-6" aria-label="Main navigation">
+      <div className="mx-auto flex h-20 max-w-[1760px] items-center px-5 md:px-10 xl:px-20">
+        <div className="flex flex-1 items-center justify-start min-w-0">
+          <Brand />
+        </div>
+        <nav className="flex shrink-0 justify-center gap-1 overflow-x-auto no-scrollbar sm:gap-6" aria-label="Main navigation">
           {TABS.map((t) => {
             const isActive = active === t.category;
             const inner = (
@@ -74,7 +76,7 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
             );
           })}
         </nav>
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-1 items-center justify-end gap-2 min-w-0">
           <Link to={isPro ? "/dashboard" : "/become-a-pro"} className="hidden rounded-full px-4 py-3 text-sm font-medium hover:bg-muted lg:block">
             {isPro ? "Switch to professional" : "Become a pro"}
           </Link>

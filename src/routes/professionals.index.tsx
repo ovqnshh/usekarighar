@@ -127,13 +127,14 @@ function ProfessionalsPage() {
         
         {/* Quick Filters */}
         <div className="flex items-center gap-3 px-5 py-3 border-t border-border overflow-x-auto no-scrollbar">
-          <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold">
+          <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold" onClick={() => toast("Advanced filters coming soon!")}>
             <SlidersHorizontal className="size-4" /> Filters
           </Button>
           <div className="w-px h-6 bg-border shrink-0 mx-2" />
           {QUICK_FILTERS.map((f) => (
             <button
               key={f}
+              onClick={() => toast(`Filtered by: ${f}`)}
               className="shrink-0 rounded-full border border-border px-4 py-2 text-sm transition-colors whitespace-nowrap hover:border-foreground"
             >
               {f}
