@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/karighar-api';
+import { professionals as dummyProfessionals } from '@/lib/karighar-data';
 
 export const Route = createFileRoute('/professionals/')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -98,16 +99,20 @@ function ProfessionalsPage() {
       if (error) throw error;
       
       let filtered = (data || []).map((pro: any) => {
+        const dummy = dummyProfessionals.find(d => d.id === pro.slug);
+        
         const computedRating = pro.reviews && pro.reviews.length > 0 
           ? pro.reviews.reduce((acc: number, rev: any) => acc + (rev.rating || 0), 0) / pro.reviews.length
-          : pro.rating || 0;
+          : dummy?.rating || pro.rating || 0;
           
         const lowestGigPrice = pro.gigs && pro.gigs.length > 0
           ? Math.min(...pro.gigs.map((g: any) => g.starting_price || 0))
-          : Infinity;
+          : dummy?.price || Infinity;
           
         return {
           ...pro,
+          image: dummy?.image,
+          portfolio: dummy?.portfolio,
           computedRating,
           lowestGigPrice
         };
@@ -275,7 +280,7 @@ function ProfessionalsPage() {
                     
                     <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-xl bg-muted shadow-sm group-hover:shadow-md transition-all duration-400">
                       <img 
-                        src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
+                        src={pro.image || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
                         alt={pro.business} 
                         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
                       />

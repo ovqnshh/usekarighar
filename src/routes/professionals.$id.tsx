@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { LiveMap } from '@/components/live-map';
+import { professionals as dummyProfessionals } from '@/lib/karighar-data';
 
 const professionalQueryOptions = (slug: string) => queryOptions({
   queryKey: ['professional', slug],
@@ -24,6 +25,8 @@ const professionalQueryOptions = (slug: string) => queryOptions({
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
+    
+    const dummy = dummyProfessionals.find(p => p.id === data.slug);
       
       const { data: reviews } = await supabase
         .from('reviews')
@@ -58,12 +61,16 @@ const professionalQueryOptions = (slug: string) => queryOptions({
         .in('status', ['scheduled', 'in_progress']);
 
       return { 
-        ...data, 
-        reviews: reviews || [],
-        completed_projects_count: projectsCount || 0,
-        verifications: verifications || [],
+        ...data,
+        image: dummy?.image,
+        portfolio: dummy?.portfolio,
+        reviews: dummy && (!reviews || reviews.length === 0) 
+          ? Array.from({ length: dummy.reviews }).map((_, i) => ({ rating: dummy.rating, body: 'Great work!', created_at: new Date().toISOString() }))
+          : reviews || [],
+        completed_projects_count: projectsCount || dummy?.projects || 0,
+        verifications: verifications || [{ type: 'identity', status: 'verified' }, { type: 'background', status: 'verified' }],
         availability: availability || [],
-        scheduled_projects: scheduledProjects || []
+        scheduled_projects: scheduledProjects || [],
       };
   },
 });
@@ -154,8 +161,8 @@ function ProfilePage() {
     queryKey: ['portfolio', pro?.id],
     queryFn: async (): Promise<any[]> => {
       if (!pro) return [];
-      const { data } = await (supabase as any).from('portfolio_images').select('*').eq('professional_id', pro.id).order('created_at', { ascending: false });
-      return data || [];
+      if (pro.portfolio) return pro.portfolio.map((img: string) => ({ image_url: img }));
+      return [];
     },
     enabled: !!pro,
   });
@@ -224,7 +231,7 @@ function ProfilePage() {
             </>
           ) : (
             <div className="col-span-4 row-span-2 bg-muted flex items-center justify-center relative">
-               <img src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&q=80&auto=format&fit=crop`} alt="" className="w-full h-full object-cover opacity-50" />
+               <img src={pro.image || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&q=80&auto=format&fit=crop`} alt="" className="w-full h-full object-cover opacity-50" />
                <div className="absolute inset-0 flex flex-col items-center justify-center">
                  <h2 className="text-2xl font-bold bg-background/80 px-4 py-2 rounded-lg">{pro.business}</h2>
                </div>
