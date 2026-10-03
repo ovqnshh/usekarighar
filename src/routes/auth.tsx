@@ -160,7 +160,6 @@ function AuthPage() {
           </AnimatePresence>
         </motion.div>
       </div>
-      </div>
 
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
         <DialogContent className="rounded-2xl sm:max-w-md">
