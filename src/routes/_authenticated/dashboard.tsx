@@ -60,6 +60,7 @@ function ProDashboard({ pro, user }: { pro: ProRow, user: any }) {
           <button onClick={() => setActiveTab("calendar")} className={`transition-colors hover:text-foreground relative ${activeTab === 'calendar' ? 'text-foreground font-semibold after:absolute after:-bottom-[26px] after:left-0 after:right-0 after:h-0.5 after:bg-foreground' : ''}`}>Calendar</button>
           <button onClick={() => setActiveTab("services")} className={`transition-colors hover:text-foreground relative ${activeTab === 'services' ? 'text-foreground font-semibold after:absolute after:-bottom-[26px] after:left-0 after:right-0 after:h-0.5 after:bg-foreground' : ''}`}>My Services</button>
           <button onClick={() => setActiveTab("messages")} className={`transition-colors hover:text-foreground ${activeTab === 'messages' ? 'text-foreground font-semibold' : ''}`}>Messages</button>
+          <button onClick={() => setActiveTab("team")} className={`transition-colors hover:text-foreground ${activeTab === 'team' ? 'text-foreground font-semibold relative after:absolute after:-bottom-[26px] after:left-0 after:right-0 after:h-0.5 after:bg-foreground' : ''}`}>Agency Team</button>
         </nav>
 
         <div className="flex items-center gap-4 shrink-0">
@@ -120,6 +121,7 @@ function ProDashboard({ pro, user }: { pro: ProRow, user: any }) {
         {activeTab === "services" && <MyServicesTab pro={pro} />}
         {activeTab === "messages" && <MessagesTab pro={pro} />}
         {activeTab === "today" && <TodayTab pro={pro} />}
+        {activeTab === "team" && <AgencyTeamTab pro={pro} />}
       </main>
     </div>
   );
@@ -1092,6 +1094,106 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+ 
+ 
+
+function AgencyTeamTab({ pro }: { pro: ProRow }) {
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("Helper");
+
+  const members = useQuery({
+    queryKey: ["agency-members", pro.id],
+    queryFn: async () => (await supabase.from("agency_members").select("*").eq("professional_id", pro.id)).data ?? []
+  });
+
+  async function addMember() {
+    if (!name || !phone) return toast.error("Name and Phone required");
+    const { error } = await supabase.from("agency_members").insert({
+      professional_id: pro.id, name, phone, role
+    });
+    if (error) return toast.error("Failed to add member");
+    toast.success("Team member added");
+    setName(""); setPhone("");
+    qc.invalidateQueries({ queryKey: ["agency-members"] });
+  }
+
+  async function removeMember(id: string) {
+    await supabase.from("agency_members").delete().eq("id", id);
+    toast.success("Member removed");
+    qc.invalidateQueries({ queryKey: ["agency-members"] });
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-blue-900 text-white rounded-2xl p-8 relative overflow-hidden shadow-xl">
+        <div className="absolute top-0 right-0 p-8 opacity-10"><Users className="size-32" /></div>
+        <h2 className="text-2xl font-bold font-display relative z-10">Agency Mode Active</h2>
+        <p className="text-blue-200 mt-2 max-w-xl relative z-10">
+          You are on Karighar Agency. You can add up to 5 team members and dispatch them to jobs. They will receive the job location, and customers can track their arrival.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card className="md:col-span-1 h-fit">
+          <CardHeader>
+            <CardTitle>Add Team Member</CardTitle>
+            <CardDescription>Dispatch them to specific jobs.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rahul Sharma" />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9876543210" />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <select value={role} onChange={e => setRole(e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <option>Helper</option>
+                <option>Senior Plumber</option>
+                <option>Electrician</option>
+                <option>Carpenter</option>
+              </select>
+            </div>
+            <Button onClick={addMember} className="w-full">Add Member</Button>
+          </CardContent>
+        </Card>
+
+        <div className="md:col-span-2 space-y-4">
+          <h3 className="text-xl font-bold">Your Team ({members.data?.length || 0}/5)</h3>
+          {members.isLoading ? (
+            <p className="text-muted-foreground">Loading team...</p>
+          ) : members.data?.length === 0 ? (
+            <div className="bg-muted/50 border border-dashed border-border rounded-xl p-10 text-center">
+              <p className="text-muted-foreground">You haven't added any team members yet.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {members.data?.map(m => (
+                <div key={m.id} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+                      {m.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{m.name} <span className="ml-2 text-xs bg-muted px-2 py-1 rounded-full">{m.role}</span></h4>
+                      <p className="text-sm text-muted-foreground mt-1">{m.phone}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => removeMember(m.id)}>Remove</Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

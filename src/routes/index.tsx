@@ -282,13 +282,22 @@ function Index() {
                     })}
                   </div>
                   <p className="mb-5 text-xs leading-5 text-muted-foreground">Durations and costs are early estimates, not guarantees. Your chosen professional will confirm them after reviewing the project.</p>
+                  
+                  <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                    <input type="checkbox" id="urgent-toggle" className="rounded text-red-600 focus:ring-red-500 w-4 h-4" />
+                    <label htmlFor="urgent-toggle" className="text-sm font-semibold text-red-900 cursor-pointer flex-1">
+                      🚨 This is an emergency (Applies 1.5x Surge Pricing for immediate response)
+                    </label>
+                  </div>
+
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button className="h-12 flex-1 text-base" onClick={() => {
                       sessionStorage.setItem('karighar-brief', JSON.stringify(brief));
                       navigate({ to: '/professionals', search: { category: brief.trades, location: brief.location !== 'Location not specified' ? brief.location : undefined } });
                     }}><Search /> Browse Karighars</Button>
                     <Button variant="secondary" className="h-12 flex-1 text-base bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" onClick={() => {
-                      toast.success("Job posted! Local professionals are being notified.");
+                      const isUrgent = (document.getElementById('urgent-toggle') as HTMLInputElement)?.checked;
+                      toast.success(isUrgent ? "🚨 EMERGENCY Job posted with 1.5x Surge Pricing! Pros are being alerted." : "⚡ Job posted! Local professionals are being notified.");
                     }}>
                       ⚡ Post to Local Board
                     </Button>
