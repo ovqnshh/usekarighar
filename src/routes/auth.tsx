@@ -101,7 +101,7 @@ function AuthPage() {
         <Brand />
         <Link to="/become-a-pro" className="rounded-full px-4 py-3 text-sm font-medium hover:bg-muted">Become a pro</Link>
       </header>
-      <div className="pointer-events-none absolute inset-0 top-20 grid grid-cols-3 gap-6 p-6 opacity-90 md:grid-cols-6" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 top-20 grid content-start grid-cols-3 gap-6 p-6 opacity-90 md:grid-cols-6" aria-hidden>
         {Array.from({ length: 12 }).map((_, i) => (
           <img key={i} src={wall[i % wall.length]} alt="" className={`h-56 w-full rounded-3xl object-cover ${i % 2 ? "mt-16" : ""}`} />
         ))}
