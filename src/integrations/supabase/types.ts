@@ -76,6 +76,67 @@ export type Database = {
           },
         ]
       }
+      karighar_availability: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          professional_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          professional_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          professional_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "karighar_availability_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_locations: {
+        Row: {
+          professional_id: string
+          latitude: number
+          longitude: number
+          updated_at: string
+        }
+        Insert: {
+          professional_id: string
+          latitude: number
+          longitude: number
+          updated_at?: string
+        }
+        Update: {
+          professional_id?: string
+          latitude?: number
+          longitude?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_locations_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: true
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           id: string

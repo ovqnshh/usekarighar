@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award, Camera } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-
+import { LiveMap } from '@/components/live-map';
 
 export const Route = createFileRoute('/professionals/$id')({ component: ProfilePage });
 
@@ -22,6 +22,7 @@ function ProfilePage() {
   const [jobTitle, setJobTitle] = useState('');
   const [jobDetails, setJobDetails] = useState('');
   const [jobDate, setJobDate] = useState<Date>();
+  const [isAILoading, setIsAILoading] = useState(false);
 
   const { data: pro, isLoading } = useQuery<any>({
     queryKey: ['professional', slug],
@@ -304,6 +305,11 @@ function ProfilePage() {
               </Button>
             </div>
             
+            <div className="py-8 border-t border-border mt-8">
+              <h2 className="font-display text-[1.35rem] font-semibold mb-6">Live Location</h2>
+              <LiveMap professionalId={pro.id} />
+              <p className="text-sm text-muted-foreground mt-2">Track the professional's current location in real-time.</p>
+            </div>
           </section>
 
           {/* Sticky Sidebar Form */}
@@ -344,8 +350,56 @@ function ProfilePage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="p-3 border-b border-muted-foreground/30 focus-within:bg-muted/30 transition-colors">
-                  <label className="text-[10px] font-bold uppercase text-foreground block">Job Title</label>
+                <div className="p-3 border-b border-muted-foreground/30 focus-within:bg-muted/30 transition-colors relative">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-bold uppercase text-foreground block">Job Title</label>
+                    <label className="text-[10px] font-bold uppercase text-[#E51D53] cursor-pointer flex items-center gap-1 hover:underline">
+                      <Camera className="size-3" />
+                      {isAILoading ? 'Analyzing...' : 'AI Auto-fill with Photo'}
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsAILoading(true);
+                          try {
+                            const base64 = await new Promise<string>((resolve) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => resolve(reader.result as string);
+                              reader.readAsDataURL(file);
+                            });
+                            const base64Data = base64.split(',')[1];
+                            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                contents: [{
+                                  parts: [
+                                    { text: 'Analyze this household problem image. Return ONLY a raw JSON object (no markdown) with two keys: "title" (a short 3-5 word job title) and "description" (a detailed description of what seems to be wrong).' },
+                                    { inline_data: { mime_type: file.type, data: base64Data } }
+                                  ]
+                                }]
+                              })
+                            });
+                            const data = await response.json();
+                            const text = data.candidates[0].content.parts[0].text;
+                            const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+                            if (parsed.title) setJobTitle(parsed.title);
+                            if (parsed.description) setJobDetails(parsed.description);
+                            toast.success("AI successfully analyzed the image!");
+                          } catch (err) {
+                            console.error(err);
+                            toast.error("AI Analysis failed. Check API key.");
+                          } finally {
+                            setIsAILoading(false);
+                            if (e.target) e.target.value = '';
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                   <input type="text" placeholder="e.g. Kitchen tap repair" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground mt-1" />
                 </div>
                 <div className="p-3 focus-within:bg-muted/30 transition-colors">

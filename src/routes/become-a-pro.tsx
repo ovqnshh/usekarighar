@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,12 @@ function BecomeAProPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   
+  const [photos, setPhotos] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isVerified, setIsVerified] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
     business: "",
@@ -62,6 +68,25 @@ function BecomeAProPage() {
 
   const nextStep = () => setStep((s) => Math.min(s + 1, 7));
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files) {
+      const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      setPhotos(prev => [...prev, ...droppedFiles]);
+    }
+  };
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+      setPhotos(prev => [...prev, ...selectedFiles]);
+    }
+  };
+  
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -324,16 +349,45 @@ function BecomeAProPage() {
         {step === 5 && (
           <div className="flex-1 flex flex-col items-center max-w-2xl mx-auto w-full px-6 py-12 animate-in slide-in-from-right-8 duration-500">
             <h1 className="text-3xl font-semibold mb-2 text-center">Add some photos of your past work</h1>
-            <p className="text-muted-foreground mb-10 text-center">You'll need 3 photos to get started. You can add more or make changes later.</p>
+            <p className="text-muted-foreground mb-10 text-center">You can add photos to get started, or make changes later.</p>
             
-            <div className="w-full border border-dashed border-border rounded-2xl bg-muted/20 p-16 flex flex-col items-center justify-center text-center">
-              <ImagePlus className="size-16 text-foreground mb-4" strokeWidth={1} />
+            <div 
+              className="w-full border-2 border-dashed border-border hover:border-foreground/50 transition-colors rounded-2xl bg-muted/10 p-16 flex flex-col items-center justify-center text-center cursor-pointer relative"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+              />
+              <ImagePlus className="size-16 text-foreground/70 mb-4" strokeWidth={1} />
               <h3 className="text-xl font-semibold mb-2">Drag and drop</h3>
               <p className="text-muted-foreground mb-6">or browse for photos</p>
-              <Button className="bg-foreground text-background hover:bg-foreground/90 font-semibold px-8 rounded-full">
+              <Button type="button" className="bg-foreground text-background hover:bg-foreground/90 font-semibold px-8 rounded-full pointer-events-none">
                 Browse
               </Button>
             </div>
+
+            {photos.length > 0 && (
+              <div className="w-full mt-8 grid grid-cols-3 gap-4">
+                {photos.map((photo, i) => (
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                    <img src={URL.createObjectURL(photo)} alt="preview" className="w-full h-full object-cover" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
+                      className="absolute top-2 right-2 bg-background/80 hover:bg-background text-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -378,24 +432,51 @@ function BecomeAProPage() {
             
             <div className="w-full space-y-6">
               <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
-                <h3 className="font-semibold text-lg mb-1">Identity verification</h3>
-                <p className="text-muted-foreground text-sm mb-6">Required to publish</p>
-                
-                <div className="bg-muted/30 rounded-xl p-8 flex flex-col items-center text-center">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <ShieldCheck className="size-12 text-primary" />
-                  </div>
-                  <h4 className="text-xl font-semibold mb-2">Verify your identity</h4>
-                  <p className="text-muted-foreground mb-6">We'll gather some information to help confirm you're you.</p>
-                  <Button className="bg-foreground text-background hover:bg-foreground/90 px-8 rounded-full font-semibold">
-                    Get started
-                  </Button>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-semibold text-lg">Identity verification</h3>
+                  {isVerified && <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Verified</span>}
                 </div>
+                <p className="text-muted-foreground text-sm mb-6">{isVerified ? "Your identity is verified" : "Required to publish"}</p>
+                
+                {!isVerified && (
+                  <div className="bg-muted/30 rounded-xl p-8 flex flex-col items-center text-center">
+                    <div className="bg-primary/10 p-4 rounded-full mb-4">
+                      <ShieldCheck className="size-12 text-primary" />
+                    </div>
+                    <h4 className="text-xl font-semibold mb-2">Verify your identity</h4>
+                    <p className="text-muted-foreground mb-6">We'll gather some information to help confirm you're you.</p>
+                    <Button 
+                      onClick={() => {
+                        toast.success("Identity verified successfully!");
+                        setIsVerified(true);
+                      }}
+                      className="bg-foreground text-background hover:bg-foreground/90 px-8 rounded-full font-semibold"
+                    >
+                      Get started
+                    </Button>
+                  </div>
+                )}
               </div>
               
-              <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
-                <h3 className="font-semibold text-lg mb-1">Phone number confirmation</h3>
-                <p className="text-muted-foreground text-sm">Not started</p>
+              <div className="rounded-2xl border border-border bg-background p-6 shadow-sm flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Phone number confirmation</h3>
+                  <p className="text-muted-foreground text-sm">{isPhoneVerified ? "Phone number confirmed" : "Not started"}</p>
+                </div>
+                {!isPhoneVerified ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      toast.success("Phone number confirmed!");
+                      setIsPhoneVerified(true);
+                    }}
+                    className="rounded-full font-semibold"
+                  >
+                    Verify
+                  </Button>
+                ) : (
+                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Confirmed</span>
+                )}
               </div>
             </div>
           </div>
@@ -436,7 +517,7 @@ function BecomeAProPage() {
             ) : step === 7 ? (
               <Button 
                 onClick={handleSubmit}
-                disabled={loading || !formData.name || !formData.city}
+                disabled={loading || !formData.name || !formData.city || !isVerified || !isPhoneVerified}
                 className="bg-[#E51D53] hover:bg-[#d4174a] text-white px-8 h-12 rounded-lg font-semibold text-base"
               >
                 {loading ? "Publishing..." : "Publish profile"}
