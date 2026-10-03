@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Brand } from "@/components/karighar-shell";
+import { projectImages } from "@/lib/karighar-data";
 import { Spinner } from "@/components/page-transition";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -28,6 +30,8 @@ export const Route = createFileRoute("/auth")({
   ]}),
   component: AuthPage,
 });
+
+const wall = Object.values(projectImages);
 
 function PasswordField({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
   const [show, setShow] = useState(false);
@@ -92,25 +96,25 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4 sm:p-6">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="auth-orb -right-32 -top-32 size-[500px] bg-primary/20" />
-        <div className="auth-orb -left-32 bottom-0 size-[400px] bg-warm" style={{ animationDelay: "3s" }} />
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+      <header className="relative z-20 flex h-20 items-center justify-between border-b border-border bg-background px-5 md:px-10 xl:px-20">
+        <Brand />
+        <Link to="/become-a-pro" className="rounded-full px-4 py-3 text-sm font-medium hover:bg-muted">Become a pro</Link>
+      </header>
+      <div className="pointer-events-none absolute inset-0 top-20 grid content-start grid-cols-3 gap-6 p-6 opacity-90 md:grid-cols-6" aria-hidden>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <img key={i} src={wall[i % wall.length]} alt="" className={`h-56 w-full rounded-3xl object-cover ${i % 2 ? "mt-16" : ""}`} />
+        ))}
       </div>
+      <div className="pointer-events-none absolute inset-0 top-20 bg-foreground/45" />
 
-      <div className="relative z-10 w-full max-w-md">
-        <Button variant="ghost" asChild className="absolute -top-14 left-0 gap-2 text-muted-foreground hover:bg-primary/10 hover:text-foreground">
-          <Link to="/"><ArrowLeft className="size-4" /> Back to Home</Link>
-        </Button>
-
-        <motion.div initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={transitions.smooth}
-          className="rounded-3xl border border-border bg-card/80 p-6 shadow-float backdrop-blur-xl sm:p-8">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={transitions.smooth}
+          className="w-full max-w-xl rounded-[2rem] bg-background p-6 shadow-2xl sm:p-10">
           <div className="text-center">
-            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-primary text-2xl font-semibold text-primary-foreground shadow-float">K</span>
-            <h1 className="mt-4 font-display text-3xl font-semibold">Karighar</h1>
-            <p className="mt-1 text-muted-foreground">Get your home projects done by <span className="font-semibold text-primary">trusted pros</span></p>
+            <div className="flex justify-center"><Brand /></div>
+            <h1 className="mt-4 text-3xl font-semibold">{mode === "in" ? "Log in or sign up" : "Create your account"}</h1>
           </div>
-
           <div className="mt-6 flex gap-2 rounded-2xl border border-border bg-muted/70 p-1.5">
             {(["in", "up"] as const).map((m) => (
               <button key={m} type="button" onClick={() => setMode(m)}
@@ -120,7 +124,7 @@ function AuthPage() {
             ))}
           </div>
 
-          <Button variant="outline" className="mt-5 h-12 w-full rounded-xl transition-transform active:scale-[0.98]" onClick={google}>Continue with Google</Button>
+          <Button variant="outline" className="mt-5 h-14 w-full rounded-xl font-semibold transition-transform active:scale-[0.98]" onClick={google}>Continue with Google</Button>
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or with email<span className="h-px flex-1 bg-border" /></div>
 
           <AnimatePresence mode="wait" initial={false}>
@@ -149,7 +153,7 @@ function AuthPage() {
                 </div>
                 <PasswordField id="password" value={password} onChange={setPassword} />
               </div>
-              <Button type="submit" disabled={busy} className="h-12 w-full rounded-xl text-base font-semibold transition-transform active:scale-[0.98]">
+              <Button type="submit" disabled={busy} className="h-14 w-full rounded-xl bg-gradient-to-r from-primary to-primary/80 text-base font-semibold transition-transform active:scale-[0.98]">
                 {busy ? <><Spinner className="mr-2" />{mode === "in" ? "Signing in..." : "Creating account..."}</> : mode === "in" ? "Sign in" : "Create account"}
               </Button>
             </motion.form>
