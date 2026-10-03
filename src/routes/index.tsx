@@ -329,15 +329,15 @@ function Row({ title, children }: { title: string; children: ReactNode }) {
 
 function Card({ to, img, title, sub, saved, onSave, tag }: { to: string; img: string; title: string; sub: string; saved: boolean; onSave: () => void; tag?: string }) {
   return (
-    <div className="group relative w-[44vw] shrink-0 snap-start sm:w-auto">
-      <Link to="/professionals/$id" params={{ id: to }}>
-        <div className="overflow-hidden rounded-2xl"><img src={img} loading="lazy" alt={title} className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
-        {tag ? <span className="absolute left-3 top-3 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold shadow-float">{tag}</span> : null}
-        <p className="mt-2 truncate font-semibold">{title}</p>
-        <p className="truncate text-sm text-muted-foreground">{sub}</p>
+    <div className="group relative w-[44vw] shrink-0 snap-start sm:w-auto p-2 -m-2 transition-all duration-400 ease-out hover:-translate-y-1.5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:bg-card active:scale-[0.98] rounded-2xl">
+      <Link to="/professionals/$id" params={{ id: to }} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl block">
+        <div className="overflow-hidden rounded-xl shadow-sm group-hover:shadow-md transition-all duration-400"><img src={img} loading="lazy" alt={title} className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" /></div>
+        {tag ? <span className="absolute left-4 top-4 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold shadow-float">{tag}</span> : null}
+        <p className="mt-3 truncate font-semibold px-1">{title}</p>
+        <p className="truncate text-sm text-muted-foreground px-1">{sub}</p>
       </Link>
-      <button onClick={onSave} aria-label={saved ? "Remove from shortlist" : "Save to shortlist"} className="absolute right-3 top-3 transition-transform active:scale-90">
-        <Heart className={`size-6 stroke-background stroke-2 drop-shadow ${saved ? "fill-primary" : "fill-foreground/40"}`} />
+      <button onClick={onSave} aria-label={saved ? "Remove from shortlist" : "Save to shortlist"} className="absolute right-4 top-4 transition-all duration-300 hover:scale-110 active:scale-95 bg-background/50 hover:bg-red-50 backdrop-blur-md rounded-full p-2.5">
+        <Heart className={`size-4 transition-colors ${saved ? "fill-red-500 text-red-500 stroke-red-500" : "fill-foreground/40 stroke-foreground/40 hover:fill-red-500 hover:stroke-red-500"}`} />
       </button>
     </div>
   );

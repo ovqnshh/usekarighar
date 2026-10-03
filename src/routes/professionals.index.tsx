@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Search, Star, SlidersHorizontal, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -251,35 +252,36 @@ function ProfessionalsPage() {
             <h1 className="text-xl font-semibold">Over {professionals.length}+ professionals</h1>
           </div>
 
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />)}
-            </div>
-          ) : professionals.length === 0 ? (
-            <div className="mt-16 text-center text-muted-foreground">
-              <p className="text-lg font-semibold">{getEmptyMessage()}</p>
-              <p className="text-sm mt-2">Try adjusting your filters</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                {professionals.map((pro: any) => (
-                  <article key={pro.id} className="group relative flex flex-col gap-3">
-                    <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }} className="absolute inset-0 z-10">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />)}
+              </motion.div>
+            ) : professionals.length === 0 ? (
+              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="mt-16 text-center text-muted-foreground">
+                <p className="text-lg font-semibold">{getEmptyMessage()}</p>
+                <p className="text-sm mt-2">Try adjusting your filters</p>
+              </motion.div>
+            ) : (
+              <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+                  {professionals.map((pro: any) => (
+                  <article key={pro.id} className="group relative flex flex-col gap-3 transition-all duration-400 ease-out hover:-translate-y-1.5 active:scale-[0.98] p-2 -m-2 rounded-2xl hover:bg-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
+                    <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }} className="absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl">
                       <span className="sr-only">View profile</span>
                     </Link>
                     
-                    <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-xl bg-muted">
+                    <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-xl bg-muted shadow-sm group-hover:shadow-md transition-all duration-400">
                       <img 
                         src={`https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
                         alt={pro.business} 
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
                       />
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveMutation.mutate(pro.id); }}
-                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2 hover:bg-background/80 bg-background/50 backdrop-blur-sm transition-colors"
+                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2.5 transition-all duration-300 bg-background/50 backdrop-blur-md hover:bg-red-50 hover:scale-110 active:scale-95"
                       >
-                        <Heart className={`size-5 transition-colors ${savedIds.includes(pro.id) ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
+                        <Heart className={`size-4 transition-colors ${savedIds.includes(pro.id) ? 'fill-red-500 text-red-500' : 'text-foreground/80 hover:text-red-500'}`} />
                       </button>
                     </div>
 
@@ -309,8 +311,9 @@ function ProfessionalsPage() {
                   <Link to="/">Post a custom Project</Link>
                 </Button>
               </div>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
 

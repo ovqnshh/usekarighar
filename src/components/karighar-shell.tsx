@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SiteFooter } from "./site-footer";
+import { motion } from "framer-motion";
 
 export function Brand() {
   return (
@@ -60,13 +61,16 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
         <div className="flex flex-1 items-center justify-start min-w-0">
           <Brand />
         </div>
-        <nav className="flex shrink-0 justify-center gap-1 overflow-x-auto no-scrollbar sm:gap-6" aria-label="Main navigation">
+        <nav className="flex shrink-0 justify-center gap-1 overflow-x-auto no-scrollbar sm:gap-6 relative" aria-label="Main navigation">
           {TABS.map((t) => {
             const isActive = active === t.category;
             const inner = (
-              <span className={`group flex items-center gap-2 border-b-[3px] px-1 py-3 text-sm font-medium transition-colors md:text-base ${isActive ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"}`}>
+              <span className={`group relative flex items-center gap-2 px-1 py-3 text-sm font-medium transition-colors md:text-base ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 <t.icon className={`size-6 transition-transform group-hover:scale-110 ${isActive ? "text-primary" : ""}`} strokeWidth={1.6} />
                 <span className="hidden sm:inline">{t.label}</span>
+                {isActive && (
+                  <motion.div layoutId="nav-indicator" className="absolute bottom-0 left-0 right-0 h-[3px] bg-foreground" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                )}
               </span>
             );
             return t.category ? (

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award, Camera } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,30 +12,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { LiveMap } from '@/components/live-map';
 
-export const Route = createFileRoute('/professionals/$id')({ component: ProfilePage });
-
-function ProfilePage() {
-  const { id: slug } = Route.useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDetails, setJobDetails] = useState('');
-  const [jobDate, setJobDate] = useState<Date>();
-  const [isAILoading, setIsAILoading] = useState(false);
-
-  const { data: pro, isLoading } = useQuery<any>({
-    queryKey: ['professional', slug],
-    queryFn: async () => {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-      
-      const { data, error } = await supabase
-        .from('professionals')
-        .select('*, gigs(*)')
-        .or(isUuid ? `id.eq.${slug},slug.eq.${slug}` : `slug.eq.${slug}`)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
+const professionalQueryOptions = (slug: string) => queryOptions({
+  queryKey: ['professional', slug],
+  queryFn: async () => {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+    
+    const { data, error } = await supabase
+      .from('professionals')
+      .select('*, gigs(*)')
+      .or(isUuid ? `id.eq.${slug},slug.eq.${slug}` : `slug.eq.${slug}`)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
       
       const { data: reviews } = await supabase
         .from('reviews')
@@ -77,8 +65,26 @@ function ProfilePage() {
         availability: availability || [],
         scheduled_projects: scheduledProjects || []
       };
-    },
-  });
+  },
+});
+
+export const Route = createFileRoute('/professionals/$id')({
+  loader: ({ context: { queryClient }, params: { id } }) => 
+    queryClient.ensureQueryData(professionalQueryOptions(id)),
+  component: ProfilePage 
+});
+
+function ProfilePage() {
+  const { id: slug } = Route.useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDetails, setJobDetails] = useState('');
+  const [jobDate, setJobDate] = useState<Date>();
+  const [isAILoading, setIsAILoading] = useState(false);
+
+  const { data: pro, isLoading } = useQuery(professionalQueryOptions(slug));
 
   const { data: isSaved } = useQuery({
     queryKey: ['is-saved', slug, user?.id],

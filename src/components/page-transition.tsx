@@ -1,19 +1,29 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, type ReactNode } from "react";
 import { pageVariants } from "@/lib/animations";
 
-/** Shikayat-style page transition: soft fade + 10px rise on every route change. */
+/** Smooth, modern page transition using AnimatePresence. */
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const first = useRef(true);
   useEffect(() => {
     first.current = false;
   }, []);
+
   return (
-    <motion.div key={pathname} variants={pageVariants} initial={first.current ? false : "hidden"} animate="visible">
-      {children}
-    </motion.div>
+    <AnimatePresence mode="wait">
+      <motion.div 
+        key={pathname} 
+        variants={pageVariants} 
+        initial={first.current ? false : "hidden"} 
+        animate="visible"
+        exit="exit"
+        className="w-full h-full flex flex-col flex-1"
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
