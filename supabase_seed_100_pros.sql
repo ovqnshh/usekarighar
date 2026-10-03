@@ -63,11 +63,12 @@ BEGIN
         
         -- Create Professional Profile
         INSERT INTO public.professionals (
-            id, user_id, bio, business, city, experience, projects_count, rating, reviews, slug, trade, created_at
+            id, user_id, name, bio, business, city, experience, projects_count, rating, reviews, slug, trade, created_at
         )
         VALUES (
             pro_id,
             user_id,
+            name,
             'Hi, I am ' || name || '. I have been working as a professional ' || trade || ' for over ' || floor(random() * 15 + 1)::TEXT || ' years. I believe in delivering high-quality work and ensuring customer satisfaction.',
             name || ' ' || businesses[1 + floor(random() * array_length(businesses, 1))::INT],
             cities[1 + floor(random() * array_length(cities, 1))::INT],
