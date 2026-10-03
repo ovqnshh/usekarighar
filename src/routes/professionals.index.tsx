@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/karighar-api';
 
@@ -49,7 +53,11 @@ function ProfessionalsPage() {
   const qc = useQueryClient();
   const { category } = Route.useSearch();
   const [trade, setTrade] = useState(category && !['build', 'renovate', 'fix'].includes(category) ? category : 'All');
-
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [tier, setTier] = useState('Any type');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [exp, setExp] = useState(0);
   useEffect(() => {
     if (category && !['build', 'renovate', 'fix'].includes(category)) {
       setTrade(category);
@@ -127,7 +135,7 @@ function ProfessionalsPage() {
         
         {/* Quick Filters */}
         <div className="flex items-center gap-3 px-5 py-3 border-t border-border overflow-x-auto no-scrollbar">
-          <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold" onClick={() => toast("Advanced filters coming soon!")}>
+          <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold" onClick={() => setFilterOpen(true)}>
             <SlidersHorizontal className="size-4" /> Filters
           </Button>
           <div className="w-px h-6 bg-border shrink-0 mx-2" />
@@ -227,6 +235,97 @@ function ProfessionalsPage() {
           </div>
         </div>
       </main>
+
+      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <DialogContent className="sm:max-w-[780px] p-0 overflow-hidden gap-0 flex flex-col h-[85vh] max-h-[800px] rounded-2xl">
+          <DialogHeader className="px-6 py-4 border-b border-border flex flex-row items-center justify-center relative shrink-0">
+            <DialogTitle className="text-base font-semibold">Filters</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto px-6 py-6 no-scrollbar">
+            
+            {/* Service Type */}
+            <div className="pb-8 border-b border-border">
+              <h3 className="text-xl font-medium mb-6">Service tier</h3>
+              <div className="flex rounded-xl overflow-hidden border border-border">
+                {['Any type', 'Standard', 'Premium'].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTier(t)}
+                    className={`flex-1 py-4 text-sm font-semibold transition-colors ${tier === t ? 'bg-foreground text-background' : 'bg-background hover:bg-muted'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range */}
+            <div className="py-8 border-b border-border">
+              <h3 className="text-xl font-medium">Price range</h3>
+              <p className="text-sm text-muted-foreground mb-6 mt-1">Starting prices for jobs</p>
+              
+              {/* Fake Histogram */}
+              <div className="flex items-end h-16 gap-1 mb-4 px-2">
+                {[2, 4, 3, 6, 8, 12, 16, 24, 32, 28, 20, 16, 12, 14, 18, 22, 18, 10, 6, 4, 3, 2, 5, 8, 12, 10, 7].map((h, i) => (
+                  <div key={i} className="flex-1 bg-primary/80 rounded-t-sm" style={{ height: `${h * 3}%` }} />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-1 relative">
+                  <Label className="text-xs text-muted-foreground absolute top-2 left-4 z-10">Minimum</Label>
+                  <Input value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="₹0" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
+                </div>
+                <div className="text-muted-foreground mt-4">-</div>
+                <div className="flex-1 space-y-1 relative">
+                  <Label className="text-xs text-muted-foreground absolute top-2 left-4 z-10">Maximum</Label>
+                  <Input value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="₹50000+" className="h-14 rounded-2xl border-muted-foreground/30 px-4 pt-5 pb-1 shadow-none focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-foreground" />
+                </div>
+              </div>
+            </div>
+
+            {/* Experience */}
+            <div className="py-8 border-b border-border">
+              <h3 className="text-xl font-medium mb-6">Experience & Rating</h3>
+              
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="text-base text-foreground font-light">Years of experience</div>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => setExp(Math.max(0, exp - 1))} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">-</button>
+                    <span className="w-8 text-center text-base">{exp === 0 ? 'Any' : `${exp}+`}</span>
+                    <button onClick={() => setExp(exp + 1)} className="size-8 rounded-full border border-muted-foreground/30 flex items-center justify-center hover:border-foreground text-muted-foreground hover:text-foreground transition-colors">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Amenities / Badges */}
+            <div className="py-8">
+              <h3 className="text-xl font-medium mb-6">Badges & Verification</h3>
+              <div className="flex flex-wrap gap-3">
+                {['Background checked', 'Insured', 'Top Rated', 'Responsive', 'Free Estimates', 'Warranty provided'].map(a => (
+                  <button key={a} className="rounded-full border border-muted-foreground/30 px-6 py-2.5 text-sm hover:border-foreground transition-colors">
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t border-border flex flex-row items-center justify-between sm:justify-between shrink-0 bg-background">
+            <button onClick={() => { setTier("Any type"); setMinPrice(""); setMaxPrice(""); setExp(0); }} className="font-semibold underline text-sm text-foreground hover:opacity-70 transition-opacity">
+              Clear all
+            </button>
+            <Button className="h-12 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold text-base" onClick={() => setFilterOpen(false)}>
+              Show {professionals.length} professionals
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
+
