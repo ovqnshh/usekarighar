@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Globe, IndianRupee } from "lucide-react";
 
 const cols = [
-  { title: "Support", links: [["Help Centre", "/"], ["Get help with a project issue", "/my-projects"], ["Karighar Cover", "/"], ["Cancellation options", "/"], ["Report a safety concern", "/"]] },
-  { title: "For professionals", links: [["Become a pro", "/become-a-pro"], ["List your services", "/dashboard"], ["Pro dashboard", "/dashboard"], ["Pro resources", "/"], ["Community forum", "/"]] },
+  { title: "Support", links: [["Help Centre", "/help"], ["Get help with a project issue", "/help/contact"], ["Karighar Cover", "/help"], ["Cancellation options", "/help"], ["Report a safety concern", "/help/contact"]] },
+  { title: "For professionals", links: [["Become a pro", "/become-a-pro"], ["List your services", "/dashboard"], ["Pro dashboard", "/dashboard"], ["Pro resources", "/help"], ["Community forum", "/"]] },
   { title: "Karighar", links: [["How it works", "/"], ["Browse Karighars", "/professionals"], ["AI room planner", "/renovation-planner"], ["Careers", "/"], ["Newsroom", "/"]] },
 ] as const;
 

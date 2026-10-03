@@ -22,6 +22,9 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as HelpIndexRouteImport } from './routes/help.index'
+import { Route as HelpArticleIdRouteImport } from './routes/help.$articleId'
+import { Route as HelpContactRouteImport } from './routes/help.contact'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -90,6 +93,21 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const HelpIndexRoute = HelpIndexRouteImport.update({
+  id: '/help/',
+  path: '/help/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpArticleIdRoute = HelpArticleIdRouteImport.update({
+  id: '/help/$articleId',
+  path: '/help/$articleId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpContactRoute = HelpContactRouteImport.update({
+  id: '/help/contact',
+  path: '/help/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfessionalsIndexRoute = ProfessionalsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -119,7 +137,10 @@ export interface FileRoutesByFullPath {
   '/shortlist': typeof ShortlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help/$articleId': typeof HelpArticleIdRoute
+  '/help/contact': typeof HelpContactRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
+  '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -135,7 +156,10 @@ export interface FileRoutesByTo {
   '/shortlist': typeof ShortlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/help/$articleId': typeof HelpArticleIdRoute
+  '/help/contact': typeof HelpContactRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
+  '/help': typeof HelpIndexRoute
   '/professionals': typeof ProfessionalsIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -154,7 +178,10 @@ export interface FileRoutesById {
   '/shortlist': typeof ShortlistRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/help/$articleId': typeof HelpArticleIdRoute
+  '/help/contact': typeof HelpContactRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
+  '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
@@ -173,7 +200,10 @@ export interface FileRouteTypes {
     | '/shortlist'
     | '/account'
     | '/dashboard'
+    | '/help/$articleId'
+    | '/help/contact'
     | '/professionals/$id'
+    | '/help/'
     | '/professionals/'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -189,7 +219,10 @@ export interface FileRouteTypes {
     | '/shortlist'
     | '/account'
     | '/dashboard'
+    | '/help/$articleId'
+    | '/help/contact'
     | '/professionals/$id'
+    | '/help'
     | '/professionals'
     | '/projects/$id'
   id:
@@ -207,7 +240,10 @@ export interface FileRouteTypes {
     | '/shortlist'
     | '/_authenticated/account'
     | '/_authenticated/dashboard'
+    | '/help/$articleId'
+    | '/help/contact'
     | '/professionals/$id'
+    | '/help/'
     | '/professionals/'
     | '/_authenticated/projects/$id'
   fileRoutesById: FileRoutesById
@@ -224,6 +260,9 @@ export interface RootRouteChildren {
   RenovationPlannerRoute: typeof RenovationPlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
+  HelpArticleIdRoute: typeof HelpArticleIdRoute
+  HelpContactRoute: typeof HelpContactRoute
+  HelpIndexRoute: typeof HelpIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +358,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/help/': {
+      id: '/help/'
+      path: '/help'
+      fullPath: '/help/'
+      preLoaderRoute: typeof HelpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/$articleId': {
+      id: '/help/$articleId'
+      path: '/help/$articleId'
+      fullPath: '/help/$articleId'
+      preLoaderRoute: typeof HelpArticleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/contact': {
+      id: '/help/contact'
+      path: '/help/contact'
+      fullPath: '/help/contact'
+      preLoaderRoute: typeof HelpContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/professionals/': {
       id: '/professionals/'
       path: '/'
@@ -384,6 +444,9 @@ const rootRouteChildren: RootRouteChildren = {
   RenovationPlannerRoute: RenovationPlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
+  HelpArticleIdRoute: HelpArticleIdRoute,
+  HelpContactRoute: HelpContactRoute,
+  HelpIndexRoute: HelpIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
