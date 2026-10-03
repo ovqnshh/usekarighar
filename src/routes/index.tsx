@@ -7,9 +7,10 @@ import waterTankImage from "@/assets/water-tank-project.jpg";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { professionals } from "@/lib/karighar-data";
 import { useShortlist } from "@/lib/shortlist";
@@ -125,10 +126,12 @@ function Index() {
                 <div className="max-h-72 overflow-y-auto no-scrollbar">
                   <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Services</p>
                   {TRADES.map((t) => (
-                    <button key={t.label} onClick={() => setRequest(t.label)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted">
-                      <t.icon className="size-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t.label}</span>
-                    </button>
+                    <PopoverClose asChild key={t.label}>
+                      <button onClick={() => setRequest(t.label)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted">
+                        <t.icon className="size-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{t.label}</span>
+                      </button>
+                    </PopoverClose>
                   ))}
                 </div>
               </PopoverContent>
