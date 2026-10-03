@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Hammer, Search, Sparkles, Wrench, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import heroImage from "@/assets/karighar-hero.jpg";
 import bathroomImage from "@/assets/bathroom-project.jpg";
 import wardrobeImage from "@/assets/wardrobe-project.jpg";
 import waterTankImage from "@/assets/water-tank-project.jpg";
@@ -12,6 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { professionals } from "@/lib/karighar-data";
+import { useShortlist } from "@/lib/shortlist";
+import { Link } from "@tanstack/react-router";
+import { Heart, ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
 import { parseProjectRequest } from "@/lib/ask-karighar.functions";
 
 type SearchParams = { intent?: "build" | "renovate" | "fix" };
@@ -39,6 +43,7 @@ const intentions = [
 ] as const;
 
 function Index() {
+  const { has, toggle } = useShortlist();
   const { intent } = Route.useSearch();
   const navigate = useNavigate();
   const askRef = useRef<HTMLTextAreaElement>(null);
@@ -75,84 +80,50 @@ function Index() {
     }
   }
 
-  return (
-    <PageShell>
-      <main>
-        <section className="px-5 pt-8 lg:px-10">
-          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl">
-            <img src={heroImage} width={1536} height={1024} alt="A craftsperson completing custom cabinetry in a Mumbai home" className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/30 to-foreground/10" />
-            <div className="relative flex min-h-[560px] flex-col items-center justify-end px-5 pb-12 text-center md:min-h-[620px] md:pb-16">
-              <h1 className="max-w-4xl text-5xl font-bold leading-[1.02] text-primary-foreground md:text-7xl">Tell Karighar what you want done.</h1>
-              <p className="mt-4 max-w-xl text-lg text-primary-foreground/85 md:text-xl">We’ll help you figure out how to get it done.</p>
-              <div className="mt-8 w-full max-w-4xl rounded-full bg-background p-2 pl-6 text-left shadow-2xl">
-                <div className="flex items-center gap-2 md:divide-x md:divide-border">
-                  <div className="min-w-0 flex-[2] pr-4">
-                    <p className="flex items-center gap-1.5 text-xs font-bold text-foreground"><Sparkles className="size-3.5 text-primary" /> What</p>
-                    <Textarea ref={askRef} rows={1} value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); understand(); } }} placeholder="Fix my water tank in Andheri..." aria-label="Describe your project" className="min-h-0 resize-none border-0 bg-transparent p-0 text-base text-foreground shadow-none focus-visible:ring-0 md:text-base" />
-                  </div>
-                  <div className="hidden min-w-0 flex-1 px-4 md:block relative">
-                    <p className="flex items-center gap-1.5 text-xs font-bold text-foreground"><CalendarIcon className="size-3.5 text-primary" /> When</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start text-left font-normal px-0 h-auto py-1 hover:bg-transparent text-base">
-                          {date ? format(date, "PPP") : <span className="text-muted-foreground">Add dates</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="center">
-                        <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="hidden min-w-0 flex-1 px-4 md:block relative">
-                    <p className="flex items-center gap-1.5 text-xs font-bold text-foreground"><MapPin className="size-3.5 text-primary" /> Where</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="w-full text-left h-auto px-0 py-1 border-0 bg-transparent text-base shadow-none focus-visible:ring-0 text-foreground truncate outline-none">
-                          {location || <span className="text-muted-foreground">Search destinations</span>}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0 rounded-2xl overflow-hidden mt-4" align="start">
-                        <div className="p-2 bg-muted/50 border-b border-border">
-                           <Input 
-                             autoFocus
-                             value={location} 
-                             onChange={(e) => setLocation(e.target.value)} 
-                             placeholder="Search by neighborhood..." 
-                             className="h-10 border-0 bg-background rounded-xl focus-visible:ring-0 shadow-none text-base" 
-                           />
-                        </div>
-                        <div className="p-2 max-h-72 overflow-y-auto no-scrollbar">
-                          <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Suggested regions</p>
-                          {['Andheri West', 'Bandra', 'Juhu', 'Colaba', 'Navi Mumbai', 'Powai'].map(loc => (
-                            <button
-                              key={loc}
-                              onClick={() => setLocation(loc)}
-                              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-muted rounded-xl transition-colors"
-                            >
-                              <div className="flex size-10 items-center justify-center bg-muted-foreground/10 rounded-lg shrink-0">
-                                <MapPin className="size-5 text-foreground" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm">{loc}</p>
-                                <p className="text-xs text-muted-foreground">Mumbai, Maharashtra</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="pl-2">
-                    <Button onClick={understand} disabled={!request.trim()} size="lg" className="h-14 shrink-0 rounded-full px-6 text-base" aria-label="Ask Karighar"><Search className="size-5" /><span className="hidden sm:inline ml-2">Search</span></Button>
-                  </div>
-                </div>
+  const searchBar = (
+    <div className="mx-auto mt-2 w-full max-w-4xl rounded-full border border-border bg-background p-2 pl-8 shadow-float">
+      <div className="flex items-center md:divide-x md:divide-border">
+        <div className="min-w-0 flex-[2] pr-4">
+          <p className="text-xs font-semibold">What</p>
+          <Textarea ref={askRef} rows={1} value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); understand(); } }} placeholder="Fix my water tank in Andheri..." aria-label="Describe your project" className="min-h-0 resize-none border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0 md:text-base" />
+        </div>
+        <div className="hidden min-w-0 flex-1 px-6 md:block">
+          <p className="text-xs font-semibold">When</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="w-full truncate text-left text-base">{date ? format(date, "PPP") : <span className="text-muted-foreground">Add dates</span>}</button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto rounded-3xl p-2" align="center"><Calendar mode="single" selected={date} onSelect={setDate} initialFocus /></PopoverContent>
+          </Popover>
+        </div>
+        <div className="hidden min-w-0 flex-1 px-6 md:block">
+          <p className="text-xs font-semibold">Where</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="w-full truncate text-left text-base">{location || <span className="text-muted-foreground">Search neighbourhoods</span>}</button>
+            </PopoverTrigger>
+            <PopoverContent className="mt-4 w-80 overflow-hidden rounded-3xl p-0" align="start">
+              <div className="border-b border-border p-2"><Input autoFocus value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Search by neighbourhood..." className="h-10 rounded-xl border-0 shadow-none focus-visible:ring-0" /></div>
+              <div className="max-h-72 overflow-y-auto p-2">
+                <p className="px-3 py-2 text-xs font-semibold text-muted-foreground">Suggested areas</p>
+                {["Andheri West", "Bandra", "Juhu", "Colaba", "Navi Mumbai", "Powai"].map((loc) => (
+                  <button key={loc} onClick={() => setLocation(loc)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-muted"><MapPin className="size-5" /></span>
+                    <span><span className="block text-sm font-semibold">{loc}</span><span className="text-xs text-muted-foreground">Mumbai, Maharashtra</span></span>
+                  </button>
+                ))}
               </div>
-              <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-primary-foreground/90"><span className="flex items-center gap-2"><Check className="size-4" /> Clear estimates</span><span className="flex items-center gap-2"><Check className="size-4" /> Verified professionals</span><span className="flex items-center gap-2"><Check className="size-4" /> No booking fee</span></div>
-            </div>
-          </div>
-        </section>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <Button onClick={understand} disabled={!request.trim()} className="ml-2 size-12 shrink-0 rounded-full p-0 md:size-14" aria-label="Ask Karighar"><Search className="size-5" /></Button>
+      </div>
+    </div>
+  );
 
+  return (
+    <PageShell headerExtra={searchBar}>
+      <main>
         {stage !== "ask" ? (
           <section className="bg-secondary/70 px-5 py-16 lg:px-8" aria-live="polite">
             <div className="mx-auto max-w-4xl">
@@ -194,20 +165,53 @@ function Index() {
           </section>
         ) : null}
 
-        <section className="px-5 py-18 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 max-w-xl"><p className="text-sm font-semibold text-primary">Start with your goal</p><h2 className="mt-2 font-display text-4xl font-semibold">What would you like to do?</h2></div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {intentions.map((item) => (
-                <Button key={item.key} variant="ghost" onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); askRef.current?.focus(); window.scrollTo({ top: 160, behavior: "smooth" }); }} className="group block h-auto p-0 text-left whitespace-normal hover:bg-transparent">
-                  <div className="overflow-hidden rounded-2xl"><img src={item.image} width={1200} height={912} loading="lazy" alt="" className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
-                  <div className="pt-3"><div className="flex items-center gap-2"><item.icon className="size-4 text-primary" /><span className="font-semibold">{item.title}</span></div><p className="mt-1 text-muted-foreground">{item.copy}</p><p className="mt-1 text-sm"><span className="font-semibold">e.g.</span> {item.example}</p></div>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </section>
+        <Row title="Top-rated Karighars in Mumbai">
+          {professionals.map((p) => (
+            <Card key={p.id} to={p.id} img={p.portfolio[0]} saved={has(p.id)} onSave={() => toggle(p.id)} tag="Karighar favourite" title={p.business} sub={`${p.trade} · ★ ${p.rating}`} />
+          ))}
+          {professionals.map((p) => (
+            <Card key={p.id + "b"} to={p.id} img={p.image} saved={has(p.id)} onSave={() => toggle(p.id)} title={p.name} sub={`From ₹${p.price} · ★ ${p.rating}`} />
+          ))}
+        </Row>
+        <Row title="Start with your goal">
+          {intentions.map((item) => (
+            <button key={item.key} onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); window.scrollTo({ top: 0, behavior: "smooth" }); askRef.current?.focus(); }} className="group w-[72vw] shrink-0 snap-start text-left sm:w-auto">
+              <div className="overflow-hidden rounded-2xl"><img src={item.image} loading="lazy" alt="" className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
+              <p className="mt-2 flex items-center gap-1.5 font-semibold"><item.icon className="size-4 text-primary" />{item.title}</p>
+              <p className="text-sm text-muted-foreground">e.g. {item.example}</p>
+            </button>
+          ))}
+        </Row>
+        <Row title="Available today near Powai">
+          {[...professionals].reverse().map((p) => (
+            <Card key={p.id} to={p.id} img={p.portfolio[1]} saved={has(p.id)} onSave={() => toggle(p.id)} title={p.city.split(",")[0]} sub={`${p.availability} · ★ ${p.rating}`} />
+          ))}
+        </Row>
       </main>
     </PageShell>
+  );
+}
+function Row({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mx-auto max-w-[1760px] px-5 pt-10 md:px-10 xl:px-20">
+      <h2 className="mb-4 flex items-center gap-2 text-2xl font-semibold">{title}<span className="grid size-7 place-items-center rounded-full bg-muted"><ChevronRight className="size-4" /></span></h2>
+      <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">{children}</div>
+    </section>
+  );
+}
+
+function Card({ to, img, title, sub, saved, onSave, tag }: { to: string; img: string; title: string; sub: string; saved: boolean; onSave: () => void; tag?: string }) {
+  return (
+    <div className="group relative w-[44vw] shrink-0 snap-start sm:w-auto">
+      <Link to="/professionals/$id" params={{ id: to }}>
+        <div className="overflow-hidden rounded-2xl"><img src={img} loading="lazy" alt={title} className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
+        {tag ? <span className="absolute left-3 top-3 rounded-full bg-background/95 px-3 py-1 text-xs font-semibold shadow-float">{tag}</span> : null}
+        <p className="mt-2 truncate font-semibold">{title}</p>
+        <p className="truncate text-sm text-muted-foreground">{sub}</p>
+      </Link>
+      <button onClick={onSave} aria-label={saved ? "Remove from shortlist" : "Save to shortlist"} className="absolute right-3 top-3 transition-transform active:scale-90">
+        <Heart className={`size-6 stroke-background stroke-2 drop-shadow ${saved ? "fill-primary" : "fill-foreground/40"}`} />
+      </button>
+    </div>
   );
 }
