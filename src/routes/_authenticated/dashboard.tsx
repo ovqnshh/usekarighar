@@ -1097,9 +1097,6 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
     </div>
   );
 }
- 
- 
-
 function AgencyTeamTab({ pro }: { pro: ProRow }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
