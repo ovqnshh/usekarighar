@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { inr, materialsLabel, statusLabel } from "@/lib/karighar-api";
 import { ShieldCheck } from "lucide-react";
+
+import { useAuth } from "@/lib/karighar-api";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [
@@ -21,6 +25,39 @@ export const Route = createFileRoute("/_authenticated/projects/$id")({
 function ProjectDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [offerAmount, setOfferAmount] = useState("");
+  
+  useEffect(() => {
+    // Fetch initial messages
+    supabase.from("messages").select("*").eq("project_id", id).order("created_at", { ascending: true })
+      .then(({ data }) => setMessages(data || []));
+
+    // Subscribe to realtime
+    const sub = supabase.channel(`project_${id}_messages`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${id}` }, payload => {
+        setMessages(prev => [...prev, payload.new]);
+      })
+      .subscribe();
+      
+    return () => { supabase.removeChannel(sub); };
+  }, [id]);
+
+  async function sendMessage(isSpecialOffer = false) {
+    if (!newMessage.trim() && !isSpecialOffer) return;
+    if (!user) return;
+    const { error } = await supabase.from("messages").insert({
+      project_id: id,
+      sender_id: user.id,
+      content: newMessage || `Special offer: ₹${offerAmount}`,
+      is_special_offer: isSpecialOffer,
+      offer_amount: isSpecialOffer ? Number(offerAmount) : null
+    });
+    if (error) toast.error("Failed to send message");
+    else { setNewMessage(""); setOfferAmount(""); }
+  }
   const project = useQuery({ queryKey: ["project", id], queryFn: async () => (await supabase.from("projects").select("*").eq("id", id).maybeSingle()).data });
   const quotes = useQuery({ queryKey: ["quotes", id], queryFn: async () => (await supabase.from("quotes").select("*, professionals(name, business)").eq("project_id", id)).data ?? [] });
   async function accept(qid: string) {
@@ -100,6 +137,56 @@ function ProjectDetail() {
             </>}
           </article>
         ))}
+      </div>
+      <h2 className="mt-10 font-display text-2xl font-semibold">Live Negotiation & Chat</h2>
+      <div className="mt-4 flex flex-col h-[500px] border border-border rounded-xl bg-card overflow-hidden shadow-sm">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">No messages yet. Send a message to negotiate or ask questions.</div>
+          ) : (
+            messages.map((m) => {
+              const isMine = m.sender_id === user?.id;
+              return (
+                <div key={m.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                  <div className={`px-4 py-2 rounded-2xl max-w-[80%] ${isMine ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"} ${m.is_special_offer ? "border-2 border-yellow-400 !bg-yellow-50 text-yellow-900" : ""}`}>
+                    {m.is_special_offer ? (
+                      <div className="flex flex-col gap-2">
+                        <span className="font-bold text-xs uppercase tracking-wider text-yellow-700">⚡ Special Offer</span>
+                        <span className="text-xl font-bold">{inr(m.offer_amount)}</span>
+                        <span className="text-sm opacity-90">{m.content}</span>
+                        {!isMine && p.status === "requested" && (
+                           <Button size="sm" className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white w-full" onClick={() => toast.success("Offer accepted! Escrow will be initialized.")}>Accept Offer</Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p>{m.content}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-1 px-1">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="p-3 border-t border-border bg-muted/30">
+           {/* If user is the professional, show special offer input */}
+           {user?.id !== p.customer_id && (
+              <div className="flex gap-2 mb-3 px-1">
+                <Input type="number" placeholder="Offer price (₹)" value={offerAmount} onChange={e => setOfferAmount(e.target.value)} className="h-9 w-36 bg-background" />
+                <Button size="sm" variant="secondary" onClick={() => sendMessage(true)} disabled={!offerAmount} className="h-9 text-xs">⚡ Send Special Offer</Button>
+              </div>
+           )}
+           <div className="flex gap-2">
+             <Input 
+               value={newMessage} 
+               onChange={e => setNewMessage(e.target.value)} 
+               onKeyDown={e => e.key === 'Enter' && sendMessage()}
+               placeholder="Type a message..." 
+               className="bg-background"
+             />
+             <Button onClick={() => sendMessage(false)}>Send</Button>
+           </div>
+        </div>
       </div>
     </main></PageShell>
   );

@@ -55,12 +55,12 @@ CREATE POLICY "Users can accept bids" ON public.job_bids FOR UPDATE USING (
 
 -- Policies for Project Milestones
 CREATE POLICY "Users and assigned pros can view milestones" ON public.project_milestones FOR SELECT USING (
-    auth.uid() IN (SELECT user_id FROM public.projects WHERE id = project_id) OR
+    auth.uid() IN (SELECT customer_id FROM public.projects WHERE id = project_id) OR
     auth.uid() IN (SELECT p.user_id FROM public.projects proj JOIN public.professionals p ON p.id = proj.professional_id WHERE proj.id = project_id)
 );
 CREATE POLICY "Users can update milestones (release funds)" ON public.project_milestones FOR UPDATE USING (
-    auth.uid() IN (SELECT user_id FROM public.projects WHERE id = project_id)
+    auth.uid() IN (SELECT customer_id FROM public.projects WHERE id = project_id)
 );
 CREATE POLICY "System can insert milestones" ON public.project_milestones FOR INSERT WITH CHECK (
-    auth.uid() IN (SELECT user_id FROM public.projects WHERE id = project_id)
+    auth.uid() IN (SELECT customer_id FROM public.projects WHERE id = project_id)
 );
