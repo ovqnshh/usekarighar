@@ -20,6 +20,23 @@ import { parseProjectRequest } from "@/lib/ask-karighar.functions";
 
 type SearchParams = { intent?: "build" | "renovate" | "fix" };
 
+import { Plug, Droplet, Fan, PaintRoller, BrickWall, Umbrella, LayoutGrid, Box, Lock, Bug, Users, Home } from 'lucide-react';
+
+const TRADES = [
+  { label: 'Electrical repair & installation', icon: Plug },
+  { label: 'Plumbing repair & installation', icon: Droplet },
+  { label: 'AC & appliance repair/installation', icon: Fan },
+  { label: 'Carpentry & custom furniture', icon: Hammer },
+  { label: 'Painting & wall finishing', icon: PaintRoller },
+  { label: 'Masonry & plastering', icon: BrickWall },
+  { label: 'Waterproofing', icon: Umbrella },
+  { label: 'Tiling & flooring', icon: LayoutGrid },
+  { label: 'False ceiling & POP work', icon: Box },
+  { label: 'Home automation & smart locks', icon: Lock },
+  { label: 'Pest control', icon: Bug },
+  { label: 'General labour / helper', icon: Users },
+];
+
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): SearchParams => {
     const value = search["intent"];
@@ -118,12 +135,32 @@ function Index() {
         </div>
         <Button onClick={understand} disabled={!request.trim()} className="ml-2 size-12 shrink-0 rounded-full p-0 md:size-14" aria-label="Ask Karighar"><Search className="size-5" /></Button>
       </div>
+      
+      {/* Categories Row */}
+      <div className="w-full max-w-[1760px] mx-auto flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth px-5 mt-6 pb-2">
+        {TRADES.map((t) => {
+          const Icon = t.icon;
+          return (
+            <Link
+              key={t.label}
+              to="/professionals"
+              search={{ category: t.label }}
+              className="group flex shrink-0 flex-col items-center gap-2 transition-all duration-300 pb-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 border-b-2 border-transparent"
+            >
+              <Icon className="size-6 transition-transform duration-300 group-hover:scale-110" />
+              <span className="text-xs font-medium whitespace-nowrap transition-colors duration-300">
+                {t.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 
   return (
     <PageShell headerExtra={searchBar}>
-      <main>
+      <main className="animate-in fade-in duration-500">
         {stage !== "ask" ? (
           <section className="bg-secondary/70 px-5 py-16 lg:px-8" aria-live="polite">
             <div className="mx-auto max-w-4xl">

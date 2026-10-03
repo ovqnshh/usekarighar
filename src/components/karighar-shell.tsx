@@ -85,25 +85,43 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button className="grid size-11 place-items-center rounded-full bg-muted transition-colors hover:bg-border" aria-label="Open menu"><Menu className="size-5" /></button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 shadow-float">
+            <DropdownMenuContent align="end" className="w-64 rounded-2xl p-0 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border-0 overflow-hidden mt-2">
               {user ? (
-                <>
-                  <div className="truncate px-3 py-2 text-sm text-muted-foreground">{user.email}</div>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/my-projects"><LayoutDashboard className="mr-2 size-4" />My projects</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/shortlist"><Heart className="mr-2 size-4" />Shortlist</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/renovation-planner"><Sparkles className="mr-2 size-4" />AI room planner</Link></DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to={isPro ? "/dashboard" : "/become-a-pro"}><BriefcaseBusiness className="mr-2 size-4" />{isPro ? "Switch to professional" : "Become a pro"}</Link></DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer rounded-lg py-2.5" onClick={handleLogout}><LogOut className="mr-2 size-4" />Log out</DropdownMenuItem>
-                </>
+                <div className="flex flex-col py-2">
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted font-semibold"><Link to="/shortlist">Shortlist</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/my-projects">My projects</Link></DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Messages</DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Profile</DropdownMenuItem>
+                  
+                  <div className="h-px bg-border my-2" />
+                  
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Notifications</DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Account settings</DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/renovation-planner">AI room planner</Link></DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Help Centre</DropdownMenuItem>
+                  
+                  <div className="h-px bg-border my-2" />
+                  
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-3 hover:bg-muted h-auto">
+                    <Link to={isPro ? "/dashboard" : "/become-a-pro"} className="flex flex-col gap-1 items-start whitespace-normal">
+                      <span className="font-semibold text-sm">{isPro ? "Professional Dashboard" : "Become a professional"}</span>
+                      {!isPro && <span className="text-xs text-muted-foreground leading-snug">It's easy to start offering your services and earn extra income.</span>}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Refer a Karighar</DropdownMenuItem>
+                  
+                  <div className="h-px bg-border my-2" />
+                  
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted" onClick={handleLogout}>Log out</DropdownMenuItem>
+                </div>
               ) : (
-                <>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5 font-semibold"><Link to="/auth">Log in or sign up</Link></DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/become-a-pro">Become a pro</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/renovation-planner">AI room planner</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg py-2.5"><Link to="/shortlist">Shortlist</Link></DropdownMenuItem>
-                </>
+                <div className="flex flex-col py-2">
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-3 hover:bg-muted font-semibold"><Link to="/auth">Log in or sign up</Link></DropdownMenuItem>
+                  <div className="h-px bg-border my-2" />
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/become-a-pro">Become a professional</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer px-4 py-2.5 hover:bg-muted"><Link to="/renovation-planner">AI room planner</Link></DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer px-4 py-2.5 hover:bg-muted">Help Centre</DropdownMenuItem>
+                </div>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

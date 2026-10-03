@@ -111,11 +111,18 @@ function BecomeAProPage() {
                 <Select value={formData.trade} onValueChange={(v) => updateForm("trade", v)}>
                   <SelectTrigger className="h-12"><SelectValue placeholder="Select a trade" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Plumbing & water systems">Plumbing & water systems</SelectItem>
-                    <SelectItem value="Electrical & lighting">Electrical & lighting</SelectItem>
-                    <SelectItem value="Renovation & interiors">Renovation & interiors</SelectItem>
-                    <SelectItem value="Carpentry & woodwork">Carpentry & woodwork</SelectItem>
-                    <SelectItem value="Painting & finishing">Painting & finishing</SelectItem>
+                    <SelectItem value="Electrical repair & installation">Electrical repair & installation</SelectItem>
+                    <SelectItem value="Plumbing repair & installation">Plumbing repair & installation</SelectItem>
+                    <SelectItem value="AC & appliance repair/installation">AC & appliance repair/installation</SelectItem>
+                    <SelectItem value="Carpentry & custom furniture">Carpentry & custom furniture</SelectItem>
+                    <SelectItem value="Painting & wall finishing">Painting & wall finishing</SelectItem>
+                    <SelectItem value="Masonry & plastering">Masonry & plastering</SelectItem>
+                    <SelectItem value="Waterproofing">Waterproofing</SelectItem>
+                    <SelectItem value="Tiling & flooring">Tiling & flooring</SelectItem>
+                    <SelectItem value="False ceiling & POP work">False ceiling & POP work</SelectItem>
+                    <SelectItem value="Home automation & smart locks">Home automation & smart locks</SelectItem>
+                    <SelectItem value="Pest control">Pest control</SelectItem>
+                    <SelectItem value="General labour / helper">General labour / helper</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

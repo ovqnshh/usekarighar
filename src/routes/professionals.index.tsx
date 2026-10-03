@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Heart, Search, Star, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,22 @@ export const Route = createFileRoute('/professionals/')({
   component: ProfessionalsPage,
 });
 
+import { Plug, Droplet, Fan, Hammer, PaintRoller, BrickWall, Umbrella, LayoutGrid, Box, Lock, Bug, Users, Home } from 'lucide-react';
+
 const TRADES = [
-  'All',
-  'Plumbing & water systems',
-  'Electrical & lighting',
-  'Renovation & interiors',
-  'Carpentry & woodwork',
-  'Painting & finishing',
+  { label: 'All', icon: Home },
+  { label: 'Electrical repair & installation', icon: Plug },
+  { label: 'Plumbing repair & installation', icon: Droplet },
+  { label: 'AC & appliance repair/installation', icon: Fan },
+  { label: 'Carpentry & custom furniture', icon: Hammer },
+  { label: 'Painting & wall finishing', icon: PaintRoller },
+  { label: 'Masonry & plastering', icon: BrickWall },
+  { label: 'Waterproofing', icon: Umbrella },
+  { label: 'Tiling & flooring', icon: LayoutGrid },
+  { label: 'False ceiling & POP work', icon: Box },
+  { label: 'Home automation & smart locks', icon: Lock },
+  { label: 'Pest control', icon: Bug },
+  { label: 'General labour / helper', icon: Users },
 ];
 
 const QUICK_FILTERS = [
@@ -38,14 +47,19 @@ const QUICK_FILTERS = [
 function ProfessionalsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [trade, setTrade] = useState('All');
-  
   const { category } = Route.useSearch();
+  const [trade, setTrade] = useState(category && !['build', 'renovate', 'fix'].includes(category) ? category : 'All');
 
+  useEffect(() => {
+    if (category && !['build', 'renovate', 'fix'].includes(category)) {
+      setTrade(category);
+    }
+  }, [category]);
+  
   const CATEGORY_TRADES: Record<string, string[]> = {
-    build: ['Carpentry & woodwork', 'Renovation & interiors', 'Carpenter / Builder'],
-    renovate: ['Renovation & interiors', 'Painting & finishing', 'Renovation contractor'],
-    fix: ['Plumbing & water systems', 'Electrical & lighting', 'Handyman / Plumber'],
+    build: ['Carpentry & custom furniture', 'Masonry & plastering', 'False ceiling & POP work'],
+    renovate: ['Painting & wall finishing', 'Tiling & flooring', 'Waterproofing'],
+    fix: ['Plumbing repair & installation', 'Electrical repair & installation', 'AC & appliance repair/installation'],
   };
 
   const { data: professionals = [], isLoading } = useQuery({
@@ -89,23 +103,34 @@ function ProfessionalsPage() {
   return (
     <PageShell>
       {/* Filters Bar */}
-      <div className="sticky top-20 z-30 bg-background border-b border-border shadow-sm">
-        <div className="flex items-center gap-3 px-5 py-4 overflow-x-auto no-scrollbar">
+      <div className="sticky top-20 z-30 bg-background border-b border-border shadow-sm pt-4">
+        <div className="flex items-center gap-6 px-5 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
+          {TRADES.map((t) => {
+            const Icon = t.icon;
+            const isActive = trade === t.label;
+            return (
+              <button
+                key={t.label}
+                onClick={() => setTrade(t.label)}
+                className={`group flex shrink-0 flex-col items-center gap-2 border-b-2 transition-all duration-300 pb-2 hover:border-foreground/30 ${
+                  isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'
+                }`}
+              >
+                <Icon className={`size-6 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:text-foreground'}`} />
+                <span className={`text-xs whitespace-nowrap transition-colors duration-300 ${isActive ? 'font-semibold' : 'font-medium group-hover:text-foreground'}`}>
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Quick Filters */}
+        <div className="flex items-center gap-3 px-5 py-3 border-t border-border overflow-x-auto no-scrollbar">
           <Button variant="outline" className="rounded-full shrink-0 gap-2 font-semibold">
             <SlidersHorizontal className="size-4" /> Filters
           </Button>
           <div className="w-px h-6 bg-border shrink-0 mx-2" />
-          {TRADES.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTrade(t)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors whitespace-nowrap ${
-                trade === t ? 'border-foreground bg-foreground font-semibold text-background' : 'border-border hover:border-foreground'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
           {QUICK_FILTERS.map((f) => (
             <button
               key={f}
@@ -117,7 +142,7 @@ function ProfessionalsPage() {
         </div>
       </div>
 
-      <main className="flex h-[calc(100vh-140px)] w-full">
+      <main className="flex h-[calc(100vh-140px)] w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Listings List */}
         <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
           <div className="mb-6 flex items-center justify-between">
