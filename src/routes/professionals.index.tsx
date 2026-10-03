@@ -75,7 +75,7 @@ function ProfessionalsPage() {
   const { data: professionals = [], isLoading } = useQuery({
     queryKey: ['professionals', category, location, minPrice, maxPrice, rating, sort],
     queryFn: async () => {
-      let q = supabase.from('professionals').select('*, reviews(*), gigs(*)');
+      let q = supabase.from('professionals').select('*, gigs(*)');
       
       if (category && category !== 'All') {
         if (CATEGORY_TRADES[category]) {
