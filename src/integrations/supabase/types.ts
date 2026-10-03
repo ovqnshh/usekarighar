@@ -14,6 +14,9 @@ export type Database = {
   }
   public: {
     Tables: {
+      job_requests: { Row: { id: string, user_id: string, title: string, description: string, materials_needed: any, location: string, status: string, created_at: string }, Insert: { id?: string, user_id: string, title: string, description: string, materials_needed?: any, location: string, status?: string, created_at?: string }, Update: { id?: string, user_id?: string, title?: string, description?: string, materials_needed?: any, location?: string, status?: string, created_at?: string } },
+      job_bids: { Row: { id: string, job_request_id: string, professional_id: string, amount: number, eta_minutes: number, status: string, created_at: string }, Insert: { id?: string, job_request_id: string, professional_id: string, amount: number, eta_minutes: number, status?: string, created_at?: string }, Update: { id?: string, job_request_id?: string, professional_id?: string, amount?: number, eta_minutes?: number, status?: string, created_at?: string } },
+      project_milestones: { Row: { id: string, project_id: string, title: string, percentage: number, status: string, created_at: string }, Insert: { id?: string, project_id: string, title: string, percentage: number, status?: string, created_at?: string }, Update: { id?: string, project_id?: string, title?: string, percentage?: number, status?: string, created_at?: string } },
       gigs: {
         Row: {
           addons: Json

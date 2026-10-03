@@ -83,6 +83,7 @@ function ProfilePage() {
   const [jobDetails, setJobDetails] = useState('');
   const [jobDate, setJobDate] = useState<Date>();
   const [isAILoading, setIsAILoading] = useState(false);
+  const [jobMaterials, setJobMaterials] = useState<string[]>([]);
 
   const { data: pro, isLoading } = useQuery(professionalQueryOptions(slug));
 
@@ -383,7 +384,7 @@ function ProfilePage() {
                               body: JSON.stringify({
                                 contents: [{
                                   parts: [
-                                    { text: 'Analyze this household problem image. Return ONLY a raw JSON object (no markdown) with two keys: "title" (a short 3-5 word job title) and "description" (a detailed description of what seems to be wrong).' },
+                                    { text: 'Analyze this household problem image. Return ONLY a raw JSON object (no markdown) with three keys: "title" (a short 3-5 word job title), "description" (a detailed description of what seems to be wrong), and "materials" (an array of strings listing specific spare parts or hardware materials needed to fix this, e.g. ["1x 20mm PVC Pipe", "Teflon Tape"]). If no materials are obvious, return an empty array.' },
                                     { inline_data: { mime_type: file.type, data: base64Data } }
                                   ]
                                 }]
@@ -394,7 +395,8 @@ function ProfilePage() {
                             const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
                             if (parsed.title) setJobTitle(parsed.title);
                             if (parsed.description) setJobDetails(parsed.description);
-                            toast.success("AI successfully analyzed the image!");
+                            if (parsed.materials) setJobMaterials(parsed.materials);
+                            toast.success("AI successfully analyzed the image and estimated materials!");
                           } catch (err) {
                             console.error(err);
                             toast.error("AI Analysis failed. Check API key.");
@@ -408,10 +410,27 @@ function ProfilePage() {
                   </div>
                   <input type="text" placeholder="e.g. Kitchen tap repair" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground mt-1" />
                 </div>
-                <div className="p-3 focus-within:bg-muted/30 transition-colors">
+                <div className="p-3 border-b border-muted-foreground/30 focus-within:bg-muted/30 transition-colors">
                   <label className="text-[10px] font-bold uppercase text-foreground block">Details</label>
                   <textarea placeholder="Describe the issue..." value={jobDetails} onChange={(e) => setJobDetails(e.target.value)} className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground resize-none h-16 mt-1" />
                 </div>
+                {jobMaterials.length > 0 && (
+                  <div className="p-3 bg-primary/5">
+                    <label className="text-[10px] font-bold uppercase text-primary flex items-center gap-1 mb-2">
+                      <Sparkles className="size-3" /> AI Material Fetcher
+                    </label>
+                    <div className="space-y-2">
+                      {jobMaterials.map((m, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm text-foreground/80">
+                          <Check className="size-3.5 text-green-600" /> {m}
+                        </div>
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full mt-3 h-8 text-xs bg-background hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">
+                      🛒 Order parts on Zepto (10 mins)
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Button 

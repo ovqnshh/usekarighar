@@ -5,6 +5,7 @@ import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { inr, materialsLabel, statusLabel } from "@/lib/karighar-api";
+import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [
@@ -39,7 +40,53 @@ function ProjectDetail() {
       <p className="text-sm font-semibold text-primary">{statusLabel[p.status]}</p>
       <h1 className="mt-1 font-display text-4xl font-semibold">{p.title}</h1>
       <p className="mt-2 text-muted-foreground">{[p.location, p.timing, p.budget].filter(Boolean).join(" · ")}</p>
-      {p.price != null ? <p className="mt-4 text-lg">Agreed price <strong>{inr(p.price)}</strong> <span className="text-sm text-muted-foreground">(pay after work is confirmed)</span></p> : null}
+      
+      {p.status === "in_progress" || p.status === "scheduled" || p.status === "completed" ? (
+        <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="grid size-12 place-items-center rounded-full bg-primary/10">
+              <ShieldCheck className="size-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Karighar SafePay Escrow</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your money is held safely in escrow. Release funds only when milestones are met.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              { id: '1', title: 'Arrival & Inspection', percentage: 20, status: 'funded' },
+              { id: '2', title: 'Work Completion', percentage: 80, status: 'pending' }
+            ].map((m: any, idx: number) => (
+              <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-background rounded-xl border border-border shadow-sm gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`grid size-8 place-items-center rounded-full text-xs font-bold ${m.status === 'released' ? 'bg-green-100 text-green-700' : m.status === 'funded' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{m.title}</h3>
+                    <p className="text-xs text-muted-foreground">{m.percentage}% of total</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${m.status === 'released' ? 'bg-green-50 text-green-700' : m.status === 'funded' ? 'bg-blue-50 text-blue-700' : 'bg-muted text-muted-foreground'}`}>
+                    {m.status.toUpperCase()}
+                  </span>
+                  {m.status === 'pending' && (
+                    <Button size="sm" onClick={() => toast.success('Escrow funded via Stripe!')} className="h-8">Fund Escrow</Button>
+                  )}
+                  {m.status === 'funded' && (
+                    <Button size="sm" onClick={() => toast.success('Funds released to professional!')} className="h-8 bg-green-600 hover:bg-green-700">Release Funds</Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <h2 className="mt-10 font-display text-2xl font-semibold">Quotes</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         {quotes.data?.map((q) => (

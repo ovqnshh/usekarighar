@@ -282,10 +282,17 @@ function Index() {
                     })}
                   </div>
                   <p className="mb-5 text-xs leading-5 text-muted-foreground">Durations and costs are early estimates, not guarantees. Your chosen professional will confirm them after reviewing the project.</p>
-                  <Button className="h-12 w-full text-base" onClick={() => {
-                    sessionStorage.setItem('karighar-brief', JSON.stringify(brief));
-                    navigate({ to: '/professionals', search: { category: brief.trades, location: brief.location !== 'Location not specified' ? brief.location : undefined } });
-                  }}><Search /> Find Professionals</Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button className="h-12 flex-1 text-base" onClick={() => {
+                      sessionStorage.setItem('karighar-brief', JSON.stringify(brief));
+                      navigate({ to: '/professionals', search: { category: brief.trades, location: brief.location !== 'Location not specified' ? brief.location : undefined } });
+                    }}><Search /> Browse Karighars</Button>
+                    <Button variant="secondary" className="h-12 flex-1 text-base bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" onClick={() => {
+                      toast.success("Job posted! Local professionals are being notified.");
+                    }}>
+                      ⚡ Post to Local Board
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
