@@ -14,11 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
-      agency_members: { Row: { id: string, professional_id: string, name: string, phone: string, role: string, created_at: string }, Insert: { id?: string, professional_id: string, name: string, phone: string, role?: string, created_at?: string }, Update: { id?: string, professional_id?: string, name?: string, phone?: string, role?: string, created_at?: string } },
-      messages: { Row: { id: string, project_id: string, sender_id: string, content: string, is_special_offer: boolean | null, offer_amount: number | null, created_at: string }, Insert: { id?: string, project_id: string, sender_id: string, content: string, is_special_offer?: boolean | null, offer_amount?: number | null, created_at?: string }, Update: { id?: string, project_id?: string, sender_id?: string, content?: string, is_special_offer?: boolean | null, offer_amount?: number | null, created_at?: string } },
-      job_requests: { Row: { id: string, user_id: string, title: string, description: string, materials_needed: any, location: string, is_urgent: boolean | null, status: string, created_at: string }, Insert: { id?: string, user_id: string, title: string, description: string, materials_needed?: any, location: string, is_urgent?: boolean | null, status?: string, created_at?: string }, Update: { id?: string, user_id?: string, title?: string, description?: string, materials_needed?: any, location?: string, status?: string, created_at?: string } },
-      job_bids: { Row: { id: string, job_request_id: string, professional_id: string, amount: number, eta_minutes: number, status: string, created_at: string }, Insert: { id?: string, job_request_id: string, professional_id: string, amount: number, eta_minutes: number, status?: string, created_at?: string }, Update: { id?: string, job_request_id?: string, professional_id?: string, amount?: number, eta_minutes?: number, status?: string, created_at?: string } },
-      project_milestones: { Row: { id: string, project_id: string, title: string, percentage: number, status: string, created_at: string }, Insert: { id?: string, project_id: string, title: string, percentage: number, status?: string, created_at?: string }, Update: { id?: string, project_id?: string, title?: string, percentage?: number, status?: string, created_at?: string } },
+      agency_members: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          professional_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          professional_id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          professional_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_members_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gigs: {
         Row: {
           addons: Json
@@ -28,6 +58,7 @@ export type Database = {
           duration: string
           id: string
           included: string[]
+          is_published: boolean
           materials: string
           name: string
           not_included: string[]
@@ -45,6 +76,7 @@ export type Database = {
           duration?: string
           id?: string
           included?: string[]
+          is_published?: boolean
           materials?: string
           name: string
           not_included?: string[]
@@ -62,6 +94,7 @@ export type Database = {
           duration?: string
           id?: string
           included?: string[]
+          is_published?: boolean
           materials?: string
           name?: string
           not_included?: string[]
@@ -94,7 +127,7 @@ export type Database = {
           date: string
           id?: string
           professional_id: string
-          status: string
+          status?: string
         }
         Update: {
           created_at?: string
@@ -113,23 +146,99 @@ export type Database = {
           },
         ]
       }
+      karighar_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          professional_id: string
+          status: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          professional_id: string
+          status?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          professional_id?: string
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "karighar_verifications_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_special_offer: boolean
+          offer_amount: number | null
+          project_id: string
+          read: boolean
+          receiver_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_special_offer?: boolean
+          offer_amount?: number | null
+          project_id: string
+          read?: boolean
+          receiver_id?: string | null
+          sender_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_special_offer?: boolean
+          offer_amount?: number | null
+          project_id?: string
+          read?: boolean
+          receiver_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professional_locations: {
         Row: {
-          professional_id: string
           latitude: number
           longitude: number
+          professional_id: string
           updated_at: string
         }
         Insert: {
-          professional_id: string
           latitude: number
           longitude: number
+          professional_id: string
           updated_at?: string
         }
         Update: {
-          professional_id?: string
           latitude?: number
           longitude?: number
+          professional_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -139,38 +248,8 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "professionals"
             referencedColumns: ["id"]
-          }
+          },
         ]
-      }
-      profiles: {
-        Row: {
-          id: string
-          full_name: string | null
-          phone: string | null
-          city: string | null
-          is_professional: boolean | null
-          notifications_enabled: boolean | null
-          created_at: string
-        }
-        Insert: {
-          id: string
-          full_name?: string | null
-          phone?: string | null
-          city?: string | null
-          is_professional?: boolean | null
-          notifications_enabled?: boolean | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          full_name?: string | null
-          phone?: string | null
-          city?: string | null
-          is_professional?: boolean | null
-          notifications_enabled?: boolean | null
-          created_at?: string
-        }
-        Relationships: []
       }
       professionals: {
         Row: {
@@ -217,6 +296,36 @@ export type Database = {
           slug?: string
           trade?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          is_professional: boolean | null
+          notifications_enabled: boolean | null
+          phone: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          is_professional?: boolean | null
+          notifications_enabled?: boolean | null
+          phone?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          is_professional?: boolean | null
+          notifications_enabled?: boolean | null
+          phone?: string | null
         }
         Relationships: []
       }
@@ -364,12 +473,87 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          body: string
+          created_at: string
+          customer_id: string
+          id: string
+          professional_id: string
+          project_id: string | null
+          rating: number
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          professional_id: string
+          project_id?: string | null
+          rating: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          professional_id?: string
+          project_id?: string | null
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_karighars: {
+        Row: {
+          created_at: string
+          id: string
+          professional_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          professional_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          professional_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_karighars_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       accept_quote: { Args: { _quote_id: string }; Returns: undefined }
+      decline_quote: { Args: { _quote_id: string }; Returns: undefined }
       owns_professional: { Args: { _pid: string }; Returns: boolean }
       owns_project: { Args: { _id: string }; Returns: boolean }
       pro_on_project: { Args: { _id: string }; Returns: boolean }
