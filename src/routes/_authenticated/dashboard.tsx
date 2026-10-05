@@ -420,10 +420,10 @@ function MessagesTab({ pro }: { pro: ProRow }) {
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
           <div className="border-b border-border p-4 shrink-0 flex justify-between items-center bg-card">
             <h3 className="font-semibold text-lg">{activeThread.title}</h3>
-            <Link to={`/projects/${activeThread.projectId}`} className="text-sm font-semibold text-[#E51D53] hover:underline">View Project</Link>
+            <Link to="/projects/$id" params={{ id: activeThread.projectId }} className="text-sm font-semibold text-[#E51D53] hover:underline">View Project</Link>
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-4">
-            {activeThread.messages.map(msg => {
+            {activeThread.messages.map((msg: any) => {
               const isMe = msg.sender_id === user?.id;
               return (
                 <div key={msg.id} className={`flex flex-col max-w-[70%] ${isMe ? 'self-end items-end' : 'self-start items-start'}`}>
