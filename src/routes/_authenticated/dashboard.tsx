@@ -159,26 +159,17 @@ function TodayTab({ pro }: { pro: ProRow }) {
     // Compute total securely
     const { platformFee, tax, total } = computeQuoteTotal(labour, materials_cost, transport, other);
     
-    const { error: quoteErr } = await supabase
-      .from("quotes")
-      .update({ 
-        status: 'submitted', 
-        labour, 
-        materials_cost, 
-        transport, 
-        other,
-        platform_fee: platformFee,
-        tax,
-        total 
-      })
-      .eq("id", quoteId);
+    void total; void projectId;
+    const { error: quoteErr } = await supabase.rpc("submit_quote", {
+      _quote_id: quoteId, _labour: labour, _materials_cost: materials_cost, _transport: transport, _other: other,
+      _platform_fee: platformFee, _tax: tax, _duration: "", _workers: 1, _materials: "professional", _warranty: "", _scope: "",
+    });
       
     if (quoteErr) {
       setLoadingId(null);
       return toast.error("Failed to send quote");
     }
 
-    await supabase.from("projects").update({ status: 'quotes_received' }).eq("id", projectId);
     
     qc.invalidateQueries({ queryKey: ["pro-quotes", pro.id] });
     toast.success("Quote sent to customer!");
@@ -188,7 +179,8 @@ function TodayTab({ pro }: { pro: ProRow }) {
   const declineQuote = async (quoteId: string) => {
     if (!confirm("Are you sure you want to decline this request?")) return;
     setLoadingId(quoteId);
-    await supabase.from("quotes").update({ status: 'declined' }).eq("id", quoteId);
+    const { error } = await supabase.rpc("decline_quote", { _quote_id: quoteId });
+    if (error) toast.error("Couldn't decline", { description: error.message }); else toast.success("Request declined");
     qc.invalidateQueries({ queryKey: ["pro-quotes", pro.id] });
     setLoadingId(null);
   };

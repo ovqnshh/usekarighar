@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award, Camera } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronRight, Check, Clock3, Heart, MapPin, Star, ShieldCheck, Wrench, Share, Award, Camera, Sparkles } from 'lucide-react';
+import { useServerFn } from '@tanstack/react-start';
+import { analyzeJobPhoto } from '@/lib/renovation.functions';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient, queryOptions } from '@tanstack/react-query';
 import { PageShell } from '@/components/karighar-shell';
@@ -384,29 +386,16 @@ function ProfilePage() {
                               reader.onloadend = () => resolve(reader.result as string);
                               reader.readAsDataURL(file);
                             });
-                            const base64Data = base64.split(',')[1];
-                            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                contents: [{
-                                  parts: [
-                                    { text: 'Analyze this household problem image. Return ONLY a raw JSON object (no markdown) with three keys: "title" (a short 3-5 word job title), "description" (a detailed description of what seems to be wrong), and "materials" (an array of strings listing specific spare parts or hardware materials needed to fix this, e.g. ["1x 20mm PVC Pipe", "Teflon Tape"]). If no materials are obvious, return an empty array.' },
-                                    { inline_data: { mime_type: file.type, data: base64Data } }
-                                  ]
-                                }]
-                              })
-                            });
-                            const data = await response.json();
-                            const text = data.candidates[0].content.parts[0].text;
-                            const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+                            const r = await analyzePhoto({ data: { image: base64 } });
+                            if (!r.result) throw new Error(r.error ?? 'AI analysis failed');
+                            const parsed = r.result;
                             if (parsed.title) setJobTitle(parsed.title);
                             if (parsed.description) setJobDetails(parsed.description);
                             if (parsed.materials) setJobMaterials(parsed.materials);
                             toast.success("AI successfully analyzed the image and estimated materials!");
                           } catch (err) {
                             console.error(err);
-                            toast.error("AI Analysis failed. Check API key.");
+                            toast.error("Photo analysis failed", { description: err instanceof Error ? err.message : undefined });
                           } finally {
                             setIsAILoading(false);
                             if (e.target) e.target.value = '';
