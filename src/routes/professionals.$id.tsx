@@ -92,6 +92,7 @@ function ProfilePage() {
   const [jobDetails, setJobDetails] = useState('');
   const [jobDate, setJobDate] = useState<Date>();
   const [isAILoading, setIsAILoading] = useState(false);
+  const analyzePhoto = useServerFn(analyzeJobPhoto);
   const [jobMaterials, setJobMaterials] = useState<string[]>([]);
 
   const { data: pro, isLoading } = useQuery(professionalQueryOptions(slug));
@@ -130,7 +131,7 @@ function ProfilePage() {
           customer_id: user.id,
           title: jobTitle || `Project with ${pro.name}`,
           summary: jobDetails,
-          timing: jobDate ? format(jobDate, 'yyyy-MM-dd') : null,
+          timing: jobDate ? format(jobDate, 'yyyy-MM-dd') : '',
           professional_id: pro.id,
           status: 'requesting_quotes',
           source: 'quote',

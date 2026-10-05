@@ -93,7 +93,7 @@ function ProjectDetail() {
               <div>
                 <p className="font-semibold text-blue-950">{p.professionals.name}</p>
                 <p className="text-sm text-blue-800">{p.professionals.business}</p>
-                <p className="text-sm font-medium mt-1 text-blue-900">{p.professionals.phone || "+91 98765 43210"}</p>
+                <p className="text-sm font-medium mt-1 text-blue-900">{(p.professionals as any).phone || "Phone shared after booking"}</p>
               </div>
             </div>
             <p className="text-xs text-blue-700/80 mt-4 leading-relaxed">
