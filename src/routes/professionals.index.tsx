@@ -16,14 +16,17 @@ import { useAuth } from '@/lib/karighar-api';
 import { professionals as dummyProfessionals } from '@/lib/karighar-data';
 
 export const Route = createFileRoute('/professionals/')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    category: typeof search['category'] === 'string' ? search['category'] : undefined,
-    location: typeof search['location'] === 'string' ? search['location'] : undefined,
-    minPrice: typeof search['minPrice'] === 'number' ? search['minPrice'] : (typeof search['minPrice'] === 'string' && !isNaN(parseInt(search['minPrice'])) ? parseInt(search['minPrice']) : undefined),
-    maxPrice: typeof search['maxPrice'] === 'number' ? search['maxPrice'] : (typeof search['maxPrice'] === 'string' && !isNaN(parseInt(search['maxPrice'])) ? parseInt(search['maxPrice']) : undefined),
-    rating: typeof search['rating'] === 'number' ? search['rating'] : (typeof search['rating'] === 'string' && !isNaN(parseFloat(search['rating'])) ? parseFloat(search['rating']) : undefined),
-    sort: typeof search['sort'] === 'string' ? search['sort'] : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { category?: string; location?: string; minPrice?: number; maxPrice?: number; rating?: number; sort?: string } => {
+    const num = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'string' && v !== '' && !isNaN(Number(v)) ? Number(v) : undefined);
+    const out: { category?: string; location?: string; minPrice?: number; maxPrice?: number; rating?: number; sort?: string } = {};
+    if (typeof search['category'] === 'string') out.category = search['category'];
+    if (typeof search['location'] === 'string') out.location = search['location'];
+    const mn = num(search['minPrice']); if (mn !== undefined) out.minPrice = mn;
+    const mx = num(search['maxPrice']); if (mx !== undefined) out.maxPrice = mx;
+    const r = num(search['rating']); if (r !== undefined) out.rating = r;
+    if (typeof search['sort'] === 'string') out.sort = search['sort'];
+    return out;
+  },
   head: () => ({ meta: [
     { title: 'Matched Karighars — Karighar' },
   ]}),
