@@ -924,6 +924,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
   });
 
   const saveGig = async () => {
+    if (!editingId) return;
     if (!formData.name) return toast.error("Name is required");
     if (editingId === 'new') {
       const { error } = await supabase.from('gigs').insert({
