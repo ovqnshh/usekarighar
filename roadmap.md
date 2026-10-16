@@ -1,7 +1,6 @@
-# Karighar build
-- [x] Shared visual system and navigation
-- [x] Ask Karighar and editable brief
-- [x] Professional results and filters
-- [x] Professional storefront and quote action
-- [x] Project workspace tabs
-- [x] Responsive interaction verification
+# Karighar revamp
+- [ ] Modern categories, accurate results and consistent Airbnb-inspired presentation
+- [ ] Working AI ideas and detailed editable project brief
+- [ ] Professional workspace: gigs, messages, calendar and upcoming bookings
+- [ ] Verify customer booking reaches the professional workspace
+- [ ] Fix existing errors and verify desktop/mobile interactions

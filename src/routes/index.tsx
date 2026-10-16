@@ -18,26 +18,17 @@ import { useShortlist } from "@/lib/shortlist";
 import { Link } from "@tanstack/react-router";
 import { Heart, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
-import { parseProjectRequest } from "@/lib/ask-karighar.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { ProjectBrief } from "@/components/project-brief";
+import type { AskBrief } from "@/lib/project-brief";
+import { services } from "@/lib/services";
+import { parseProjectRequest, suggestProjectIdeas } from "@/lib/ask-karighar.functions";
 
 type SearchParams = { intent?: "build" | "renovate" | "fix" };
 
 import { Plug, Droplet, Fan, PaintRoller, BrickWall, Umbrella, LayoutGrid, Box, Lock, Bug, Users, Home } from 'lucide-react';
 
-const TRADES = [
-  { label: 'Electrical repair & installation', icon: Plug },
-  { label: 'Plumbing repair & installation', icon: Droplet },
-  { label: 'AC & appliance repair/installation', icon: Fan },
-  { label: 'Carpentry & custom furniture', icon: Hammer },
-  { label: 'Painting & wall finishing', icon: PaintRoller },
-  { label: 'Masonry & plastering', icon: BrickWall },
-  { label: 'Waterproofing', icon: Umbrella },
-  { label: 'Tiling & flooring', icon: LayoutGrid },
-  { label: 'False ceiling & POP work', icon: Box },
-  { label: 'Home automation & smart locks', icon: Lock },
-  { label: 'Pest control', icon: Bug },
-  { label: 'General labour / helper', icon: Users },
-];
+const TRADES = services.filter(s => s.id);
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): SearchParams => {
@@ -72,33 +63,29 @@ function Index() {
   const [location, setLocation] = useState("");
   const [stage, setStage] = useState<"ask" | "loading" | "brief">("ask");
   const [aiLoading, setAiLoading] = useState(false);
-  const [brief, setBrief] = useState<{
-    intent: string; summary: string; location: string;
-    budget: string; timing: string; trades: string;
-    materials: string; duration: string; cost: string;
-  }>({ intent: '', summary: '', location: '', budget: '', timing: '', trades: '', materials: '', duration: '', cost: '' });
-
+  const [brief, setBrief] = useState<AskBrief | null>(null);
+  const parseRequest = useServerFn(parseProjectRequest);
+  const getIdeas = useServerFn(suggestProjectIdeas);
+  const [ideas, setIdeas] = useState<string[]>([]);
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
   useEffect(() => { if (intent) askRef.current?.focus(); }, [intent]);
-
+  async function loadIdeas() {
+    if(aiPrompt.trim().length<3) return;
+    setIdeasLoading(true); setIdeasOpen(true); setAiError('');
+    try { const r=await getIdeas({data:{text:aiPrompt}});setIdeas(r.ideas); }
+    catch(e){setAiError(e instanceof Error?e.message:'Ideas are unavailable right now.');}
+    finally{setIdeasLoading(false);}
+  }
   async function understand() {
-    if (!aiPrompt.trim()) return;
-    setStage('loading');
-    setAiLoading(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if(aiPrompt.trim().length<3 || aiLoading) return;
+    setStage('loading');setAiLoading(true);setAiError('');setIdeasOpen(false);
     try {
-      const result = await parseProjectRequest({
-        data: { text: aiPrompt, ...(date ? { date: format(date, 'PPP') } : {}), ...(location ? { location } : {}) },
-      });
-      if (result.ok) {
-        setBrief(result.brief);
-      }
-    } catch (e) {
-      // fallback: still show brief section even if AI fails
-      console.error('AI parse failed', e);
-    } finally {
-      setAiLoading(false);
-      setStage('brief');
-    }
+      const r=await parseRequest({data:{text:aiPrompt,...(date?{date:format(date,'yyyy-MM-dd')}:{}),...(location?{location}:{})}});
+      setBrief(r.brief);setStage('brief');
+    } catch(e){setAiError(e instanceof Error?e.message:'Unable to prepare your brief.');setStage('ask');}
+    finally{setAiLoading(false);}
   }
 
   const searchBar = (
@@ -113,10 +100,10 @@ function Index() {
                   {request ? (
                     <>
                       {(() => {
-                        const Icon = TRADES.find(t => t.label === request)?.icon;
+                        const Icon = TRADES.find(t => t.id === request)?.icon;
                         return Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null;
                       })()}
-                      <span className="truncate">{request}</span>
+                      <span className="truncate">{TRADES.find(t=>t.id===request)?.label ?? request}</span>
                     </>
                   ) : (
                     <span className="text-muted-foreground">Select a service</span>
@@ -128,7 +115,7 @@ function Index() {
                   <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Services</p>
                   {TRADES.map((t) => (
                     <PopoverClose asChild key={t.label}>
-                      <button onClick={() => setRequest(t.label)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted">
+                      <button onClick={() => setRequest(t.id)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-muted">
                         <t.icon className="size-4 text-muted-foreground" />
                         <span className="text-sm font-medium">{t.label}</span>
                       </button>
@@ -172,9 +159,9 @@ function Index() {
                         }
                       }, () => toast.error("Location permission denied", { id: "gps" }));
                     }} 
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted mb-2 text-[#E51D53]"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted mb-2 text-primary"
                   >
-                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#E51D53]/10"><MapPin className="size-5" /></span>
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10"><MapPin className="size-5" /></span>
                     <span className="block text-sm font-semibold">Use my current location</span>
                   </button>
                   <p className="px-3 py-2 text-xs font-semibold text-muted-foreground">Suggested areas</p>
@@ -198,123 +185,21 @@ function Index() {
     <PageShell headerExtra={searchBar}>
       <main className="animate-in fade-in duration-500">
         
-        {/* AI Assistant Banner */}
-        <section className="mx-auto max-w-[1760px] px-5 pt-8 pb-4 md:px-10 xl:px-20">
-          <div className="mx-auto max-w-5xl rounded-3xl border border-border bg-gradient-to-r from-primary/5 via-secondary/10 to-transparent p-2 pl-6 pr-2 shadow-sm flex flex-col md:flex-row items-center gap-4">
-            <div className="flex-1 min-w-0 py-2">
-              <h2 className="text-lg font-bold font-display flex items-center gap-2"><Sparkles className="size-5 text-primary" /> Not sure what you need? Let AI help</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Describe your issue in your own words, or upload a photo.</p>
-            </div>
-            
-            <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2 shrink-0">
-              <Input 
-                value={aiPrompt} 
-                onChange={(e) => setAiPrompt(e.target.value)} 
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); understand(); } }}
-                placeholder="e.g. My AC is making noise..." 
-                className="bg-background h-12 w-full sm:w-72 rounded-2xl shadow-sm" 
-              />
-              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                <Button variant="outline" className="h-12 px-4 shrink-0 rounded-2xl bg-background hover:bg-muted font-medium text-muted-foreground shadow-sm" aria-label="Upload photo" onClick={() => document.getElementById('photo-upload')?.click()}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" className="mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                  Add photo
-                </Button>
-                <input type="file" id="photo-upload" className="hidden" accept="image/*" />
-                <Button onClick={understand} disabled={!aiPrompt.trim()} className="h-12 px-6 rounded-2xl shrink-0 font-semibold shadow-sm w-full sm:w-auto">
-                  Analyze
-                </Button>
-              </div>
-            </div>
+        <section className="mx-auto max-w-6xl px-5 pt-8 md:px-10">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-5"><div><p className="text-sm font-medium text-primary mb-2">ASK KARIGHAR</p><h1 className="text-3xl font-semibold">What does your home need?</h1><p className="mt-2 text-muted-foreground">A small fix or a fresh start. Tell us what you have in mind.</p></div><Button asChild variant="ghost" className="rounded-full"><Link to="/renovation-planner">Plan from a room photo <ArrowRight className="size-4"/></Link></Button></div>
+          <div className="relative rounded-2xl border border-border bg-background shadow-float p-4">
+            <Textarea ref={askRef} aria-label="Describe your project" value={aiPrompt} onChange={e=>{setAiPrompt(e.target.value);setIdeasOpen(false);}} placeholder="For example, my bathroom has damp walls and I’d like to replace the tiles…" rows={2} className="border-0 shadow-none resize-none focus-visible:ring-0 text-base"/>
+            <div className="flex flex-wrap justify-between items-center gap-3 mt-3"><Button variant="ghost" onClick={loadIdeas} disabled={aiPrompt.trim().length<3||ideasLoading||aiLoading} className="rounded-full"><Sparkles className="size-4"/>{ideasLoading?'Finding ideas…':'Suggest ideas'}</Button><Button onClick={understand} disabled={aiPrompt.trim().length<3||aiLoading} className="rounded-full px-6">{aiLoading?'Preparing brief…':'Create project brief'}<ArrowRight className="size-4"/></Button></div>
+            {ideasOpen&&<div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-border bg-popover p-2 shadow-float" aria-label="AI project ideas">{ideasLoading?<p className="p-4 text-sm text-muted-foreground">Finding ideas for your home…</p>:ideas.map((idea,i)=><Button key={i} variant="ghost" className="h-auto w-full justify-start whitespace-normal rounded-xl py-3 text-left" onClick={()=>{setAiPrompt(idea);setIdeasOpen(false);}}><ArrowRight className="size-4 shrink-0"/>{idea}</Button>)}</div>}
           </div>
+          {aiError&&<p role="alert" className="mt-4 text-sm text-destructive">{aiError}</p>}
+          {stage==='loading'&&<div aria-live="polite" className="py-14 text-center"><div className="mx-auto mb-4 size-7 animate-spin rounded-full border-2 border-primary border-t-transparent"/><h2 className="text-xl font-semibold">Preparing your project brief</h2><p className="mt-2 text-muted-foreground">Scope, materials, estimates and the details to confirm.</p></div>}
         </section>
-
-        {stage !== "ask" ? (
-          <section className="bg-secondary/70 px-5 py-16 lg:px-8" aria-live="polite">
-            <div className="mx-auto max-w-4xl">
-              {stage === "loading" ? (
-                <div className="flex min-h-72 flex-col items-center justify-center text-center">
-                  <div className="mb-6 flex gap-2">{[0, 1, 2].map((item) => <span key={item} className="loading-dot size-3 rounded-full bg-primary" style={{ animationDelay: `${item * 160}ms` }} />)}</div>
-                  <h2 className="font-display text-3xl font-semibold">Understanding your request with AI...</h2>
-                  <p className="mt-3 text-muted-foreground">Picking out the details that matter…</p>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border bg-card p-5 shadow-xl shadow-foreground/5 md:p-8">
-                  <div className="flex flex-col justify-between gap-3 border-b border-border pb-6 md:flex-row md:items-end">
-                    <div><p className="text-sm font-semibold text-primary">Your project brief</p><h2 className="mt-1 font-display text-3xl font-semibold">Here’s what we understood</h2></div>
-                    <span className="text-xs text-muted-foreground">Edit anything before you continue</span>
-                  </div>
-                  <div className="grid gap-x-8 gap-y-5 py-7 md:grid-cols-2">
-                    {Object.entries(brief).map(([key, value]) => {
-                      const labels: Record<string, string> = {
-                        intent: 'Project type', summary: 'Summary', location: 'Location',
-                        budget: 'Budget', timing: 'When', trades: 'Trades needed',
-                        materials: 'Materials', duration: 'Estimated duration', cost: 'Estimated cost',
-                      };
-                      const placeholders: Record<string, string> = {
-                        location: 'e.g. Andheri West',
-                        timing: 'e.g. Tomorrow or Next Week',
-                        materials: 'e.g. Need Karighar to bring materials',
-                        budget: 'e.g. ₹5,000',
-                      };
-                      return (
-                        <label key={key} className={key === 'summary' ? 'md:col-span-2' : ''}>
-                          <span className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">{labels[key] ?? key}</span>
-                          {key === 'materials' ? (
-                            <Select 
-                              value={value} 
-                              onValueChange={(val) => setBrief((c) => ({ ...c, [key]: val }))}
-                            >
-                              <SelectTrigger className="h-11 bg-background">
-                                <SelectValue placeholder="Select option..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="I have materials">I have materials</SelectItem>
-                                <SelectItem value="Karighar should bring materials">Karighar should bring materials</SelectItem>
-                                <SelectItem value="Not sure">Not sure</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input 
-                              value={value} 
-                              onChange={(e) => setBrief((c) => ({ ...c, [key]: e.target.value }))} 
-                              placeholder={placeholders[key] || ''}
-                              className="h-11 bg-background" 
-                            />
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className="mb-5 text-xs leading-5 text-muted-foreground">Durations and costs are early estimates, not guarantees. Your chosen professional will confirm them after reviewing the project.</p>
-                  
-                  <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-                    <input type="checkbox" id="urgent-toggle" className="rounded text-red-600 focus:ring-red-500 w-4 h-4" />
-                    <label htmlFor="urgent-toggle" className="text-sm font-semibold text-red-900 cursor-pointer flex-1">
-                      🚨 This is an emergency (Applies 1.5x Surge Pricing for immediate response)
-                    </label>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button className="h-12 flex-1 text-base" onClick={() => {
-                      sessionStorage.setItem('karighar-brief', JSON.stringify(brief));
-                      navigate({ to: '/professionals', search: { category: brief.trades, location: brief.location !== 'Location not specified' ? brief.location : undefined } });
-                    }}><Search /> Browse Karighars</Button>
-                    <Button variant="secondary" className="h-12 flex-1 text-base bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200" onClick={() => {
-                      const isUrgent = (document.getElementById('urgent-toggle') as HTMLInputElement)?.checked;
-                      toast.success(isUrgent ? "🚨 EMERGENCY Job posted with 1.5x Surge Pricing! Pros are being alerted." : "⚡ Job posted! Local professionals are being notified.");
-                    }}>
-                      ⚡ Post to Local Board
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        ) : null}
+        {stage==='brief'&&brief&&<ProjectBrief brief={brief} onChange={setBrief} onContinue={()=>{sessionStorage.setItem('karighar-brief',JSON.stringify(brief));navigate({to:'/professionals',search:{category:brief.trades,...(brief.location?{location:brief.location}:{})}});}}/>}
 
         <Row title="Top-rated Karighars in Mumbai">
           {professionals.map((p) => (
-            <Card key={p.id} to={p.id} img={p.portfolio[0]} saved={has(p.id)} onSave={() => toggle(p.id)} tag="Karighar favourite" title={p.business} sub={`${p.trade} · ★ ${p.rating}`} />
+            <Card key={p.id} to={p.id} img={p.portfolio[0]} saved={has(p.id)} onSave={() => toggle(p.id)} tag="Featured storefront" title={p.business} sub={`${p.trade} · ★ ${p.rating}`} />
           ))}
           {professionals.map((p) => (
             <Card key={p.id + "b"} to={p.id} img={p.image} saved={has(p.id)} onSave={() => toggle(p.id)} title={p.name} sub={`From ₹${p.price} · ★ ${p.rating}`} />
@@ -322,14 +207,14 @@ function Index() {
         </Row>
         <Row title="Start with your goal">
           {intentions.map((item) => (
-            <button key={item.key} onClick={() => { setRequest(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); window.scrollTo({ top: 0, behavior: "smooth" }); askRef.current?.focus(); }} className="group w-[72vw] shrink-0 snap-start text-left sm:w-auto">
+            <button key={item.key} onClick={() => { setAiPrompt(item.key === "build" ? "I want a custom wardrobe for my bedroom" : item.key === "renovate" ? "I want to renovate my bathroom" : "I need someone to fix a leaking pipe"); window.scrollTo({ top: 0, behavior: "smooth" }); askRef.current?.focus(); }} className="group w-[72vw] shrink-0 snap-start text-left sm:w-auto">
               <div className="overflow-hidden rounded-2xl"><img src={item.image} loading="lazy" alt="" className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105" /></div>
               <p className="mt-2 flex items-center gap-1.5 font-semibold"><item.icon className="size-4 text-primary" />{item.title}</p>
               <p className="text-sm text-muted-foreground">e.g. {item.example}</p>
             </button>
           ))}
         </Row>
-        <Row title="Available today near Powai">
+        <Row title="Explore local Karighar storefronts">
           {[...professionals].reverse().map((p) => (
             <Card key={p.id} to={p.id} img={p.portfolio[1]} saved={has(p.id)} onSave={() => toggle(p.id)} title={p.city.split(",")[0]} sub={`${p.availability} · ★ ${p.rating}`} />
           ))}
@@ -356,8 +241,8 @@ function Card({ to, img, title, sub, saved, onSave, tag }: { to: string; img: st
         <p className="mt-3 truncate font-semibold px-1">{title}</p>
         <p className="truncate text-sm text-muted-foreground px-1">{sub}</p>
       </Link>
-      <button onClick={onSave} aria-label={saved ? "Remove from shortlist" : "Save to shortlist"} className="absolute right-4 top-4 transition-all duration-300 hover:scale-110 active:scale-95 bg-background/50 hover:bg-red-50 backdrop-blur-md rounded-full p-2.5">
-        <Heart className={`size-4 transition-colors ${saved ? "fill-red-500 text-red-500 stroke-red-500" : "fill-foreground/40 stroke-foreground/40 hover:fill-red-500 hover:stroke-red-500"}`} />
+      <button onClick={onSave} aria-label={saved ? "Remove from shortlist" : "Save to shortlist"} className="absolute right-4 top-4 transition-all duration-300 hover:scale-110 active:scale-95 bg-background/50 hover:bg-destructive/10 backdrop-blur-md rounded-full p-2.5">
+        <Heart className={`size-4 transition-colors ${saved ? "fill-destructive text-destructive stroke-destructive" : "fill-foreground/40 stroke-foreground/40 hover:fill-destructive hover:stroke-destructive"}`} />
       </button>
     </div>
   );

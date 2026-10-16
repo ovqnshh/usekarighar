@@ -93,7 +93,7 @@ function AccountPage() {
     }
   };
 
-  const renderField = (id: string, label: string, description: string, placeholder: string = "") => {
+  const renderField = (id: "full_name" | "phone" | "city", label: string, description: string, placeholder: string = "") => {
     const isEditing = editingField === id;
     const value = editValues[id];
     const displayValue = profile?.[id] || (id === 'full_name' ? user?.user_metadata?.full_name : "") || "Not provided";
@@ -224,7 +224,7 @@ function AccountPage() {
           <h2 className="text-2xl font-bold mb-8">Personal information</h2>
           
           <div className="space-y-6">
-            {renderField("full_name", "Legal name", "This is the name on your travel document, which could be a license or a passport.", "e.g. John Doe")}
+            {renderField("full_name", "Legal name", "The name customers and professionals will see on your projects.", "e.g. Priya Sharma")}
             
             <div className="flex justify-between items-start pb-6 border-b border-border/50 group">
               <div>
