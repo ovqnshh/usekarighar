@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/karighar-api';
+import { services, matchesService } from '@/lib/services';
 import { professionals as dummyProfessionals } from '@/lib/karighar-data';
 
 export const Route = createFileRoute('/professionals/')({
@@ -35,27 +36,8 @@ export const Route = createFileRoute('/professionals/')({
 
 import { Plug, Droplet, Fan, Hammer, PaintRoller, BrickWall, Umbrella, LayoutGrid, Box, Lock, Bug, Users, Home } from 'lucide-react';
 
-const TRADES = [
-  { label: 'All', icon: Home },
-  { label: 'Electrical repair & installation', icon: Plug },
-  { label: 'Plumbing repair & installation', icon: Droplet },
-  { label: 'AC & appliance repair/installation', icon: Fan },
-  { label: 'Carpentry & custom furniture', icon: Hammer },
-  { label: 'Painting & wall finishing', icon: PaintRoller },
-  { label: 'Masonry & plastering', icon: BrickWall },
-  { label: 'Waterproofing', icon: Umbrella },
-  { label: 'Tiling & flooring', icon: LayoutGrid },
-  { label: 'False ceiling & POP work', icon: Box },
-  { label: 'Home automation & smart locks', icon: Lock },
-  { label: 'Pest control', icon: Bug },
-  { label: 'General labour / helper', icon: Users },
-];
-
-const CATEGORY_TRADES: Record<string, string[]> = {
-  build: ['Carpentry & custom furniture', 'Masonry & plastering', 'False ceiling & POP work'],
-  renovate: ['Painting & wall finishing', 'Tiling & flooring', 'Waterproofing'],
-  fix: ['Plumbing repair & installation', 'Electrical repair & installation', 'AC & appliance repair/installation'],
-};
+const TRADES = services;
+const CATEGORY_TRADES: Record<string,string[]> = {build:['carpentry','renovation'],renovate:['renovation','painting','flooring'],fix:['plumbing','electrical','appliances']};
 
 function ProfessionalsPage() {
   const { user } = useAuth();
@@ -92,13 +74,13 @@ function ProfessionalsPage() {
           ? pro.reviews.reduce((acc: number, rev: any) => acc + (rev.rating || 0), 0) / pro.reviews.length
           : dummy?.rating || pro.rating || 0;
           
-        const lowestGigPrice = pro.gigs && pro.gigs.length > 0
-          ? Math.min(...pro.gigs.map((g: any) => g.starting_price || 0))
+        const lowestGigPrice = pro.gigs && pro.gigs.filter((g: any)=>g.is_published).length > 0
+          ? Math.min(...pro.gigs.filter((g: any)=>g.is_published).map((g: any) => g.starting_price || 0))
           : dummy?.price || Infinity;
           
         return {
           ...pro,
-          trade: dummy?.trade || pro.trade, // Override trade with the perfectly matched dummy trade
+          trade: pro.trade, // Override trade with the perfectly matched dummy trade
           image: dummy?.image,
           portfolio: dummy?.portfolio,
           computedRating,
@@ -107,14 +89,7 @@ function ProfessionalsPage() {
       });
       
       // 3. Apply category filter in JS
-      if (category && category !== 'All') {
-        if (CATEGORY_TRADES[category]) {
-          filtered = filtered.filter(p => CATEGORY_TRADES[category].includes(p.trade));
-        } else {
-          filtered = filtered.filter(p => p.trade === category);
-        }
-      }
-      
+      filtered = filtered.filter(p => matchesService(p.trade, category));
       // 4. Apply location filter in JS
       if (location) {
         filtered = filtered.filter(p => p.city.toLowerCase().includes(location.toLowerCase()));
@@ -217,20 +192,20 @@ function ProfessionalsPage() {
       <SiteHeader />
       {/* Filters Bar */}
       <div className="shrink-0 z-30 bg-background border-b border-border shadow-sm pt-4">
-        <div className="flex items-center gap-6 px-5 pb-3 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="flex items-center gap-2 px-5 pb-4 overflow-x-auto no-scrollbar scroll-smooth">
           {TRADES.map((t) => {
             const Icon = t.icon;
-            const isActive = (!category && t.label === 'All') || category === t.label;
+            const isActive = (!category && !t.id) || category === t.id;
             return (
               <button
                 key={t.label}
-                onClick={() => navigate({ search: (prev: any) => ({ ...prev, category: t.label === 'All' ? undefined : t.label }) })}
-                className={`group flex shrink-0 flex-col items-center gap-2 border-b-2 transition-all duration-300 pb-2 hover:border-foreground/30 ${
-                  isActive ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground'
+                onClick={() => navigate({ search: (prev: any) => ({ ...prev, category: t.id || undefined }) })}
+                className={`group flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 transition-all duration-200 ${
+                  isActive ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
-                <Icon className={`size-6 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:text-foreground'}`} />
-                <span className={`text-xs whitespace-nowrap transition-colors duration-300 ${isActive ? 'font-semibold' : 'font-medium group-hover:text-foreground'}`}>
+                <Icon className={`size-4 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:text-foreground'}`} />
+                <span className={`text-sm whitespace-nowrap transition-colors duration-300 ${isActive ? 'font-semibold' : 'font-medium group-hover:text-foreground'}`}>
                   {t.label}
                 </span>
               </button>
@@ -265,7 +240,7 @@ function ProfessionalsPage() {
         {/* Karighars List */}
         <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Over {professionals.length}+ professionals</h1>
+            <h1 className="text-xl font-semibold">{professionals.length} Karighar{professionals.length === 1 ? '' : 's'} matching your search</h1>
           </div>
 
           <AnimatePresence mode="wait">
@@ -276,7 +251,7 @@ function ProfessionalsPage() {
             ) : professionals.length === 0 ? (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="mt-16 text-center text-muted-foreground">
                 <p className="text-lg font-semibold">{getEmptyMessage()}</p>
-                <p className="text-sm mt-2">Try adjusting your filters</p>
+                <p className="text-sm mt-2">No exact matches for these filters. Try all services or a wider area.</p><Button variant="outline" className="mt-5" onClick={()=>navigate({search:{}})}>Show all Karighars</Button>
               </motion.div>
             ) : (
               <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
@@ -289,15 +264,16 @@ function ProfessionalsPage() {
                     
                     <div className="relative aspect-[4/3] sm:aspect-square w-full overflow-hidden rounded-xl bg-muted shadow-sm group-hover:shadow-md transition-all duration-400">
                       <img 
-                        src={pro.image || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`} 
+                        src={pro.image || dummyProfessionals[0].portfolio[0]} 
                         alt={pro.business} 
                         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
                       />
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveMutation.mutate(pro.id); }}
-                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2.5 transition-all duration-300 bg-background/50 backdrop-blur-md hover:bg-red-50 hover:scale-110 active:scale-95"
+                        aria-label={savedIds.includes(pro.id)?"Remove from shortlist":"Save to shortlist"}
+                        className="absolute right-3 top-3 z-20 shrink-0 rounded-full p-2.5 transition-all duration-300 bg-background/50 backdrop-blur-md hover:bg-destructive/10 hover:scale-110 active:scale-95"
                       >
-                        <Heart className={`size-4 transition-colors ${savedIds.includes(pro.id) ? 'fill-red-500 text-red-500' : 'text-foreground/80 hover:text-red-500'}`} />
+                        <Heart className={`size-4 transition-colors ${savedIds.includes(pro.id) ? 'fill-destructive text-destructive' : 'text-foreground/80 hover:text-destructive'}`} />
                       </button>
                     </div>
 
@@ -312,7 +288,7 @@ function ProfessionalsPage() {
                       <p className="text-sm text-muted-foreground truncate">{pro.city || 'Mumbai'}</p>
                       <p className="text-sm text-muted-foreground truncate">{pro.trade}</p>
                       <p className="mt-1 text-sm font-medium border-b border-transparent group-hover:border-foreground max-w-fit transition-colors">
-                        <span className="font-semibold text-foreground">₹{pro.lowestGigPrice !== Infinity ? pro.lowestGigPrice.toLocaleString('en-IN') : 'TBD'}</span> starting price
+                        <span className="font-semibold text-foreground">{pro.lowestGigPrice !== Infinity ? `₹${pro.lowestGigPrice.toLocaleString('en-IN')} onwards` : 'Request pricing'}</span>
                       </p>
                     </div>
                   </article>
