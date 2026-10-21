@@ -1,103 +1,405 @@
-import { createServerFn } from '@tanstack/react-start';
-import { google } from '@ai-sdk/google';
-import { generateObject } from 'ai';
-import { z } from 'zod';
+import { createServerFn } from "@tanstack/react-start";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateObject } from "ai";
+import { z } from "zod";
 
-const BriefSchema = z.object({
-  intent: z.enum(['build', 'renovate', 'fix']).describe('Type of project'),
-  summary: z.string().describe('One-sentence summary of the job'),
-  location: z.string().describe('Location mentioned, or empty string'),
-  budget: z.string().describe('Budget mentioned, or empty string'),
-  timing: z.string().describe('When they want it done, or empty string'),
-  materials: z.string().describe('Material preferences (e.g., "I have materials", "Karighar should bring materials", "Not sure"), or empty string'),
-  trades: z.string().describe('Likely trades needed, e.g. Plumber, Electrician'),
-  duration: z.string().describe('Estimated job duration, e.g. 1-2 hours'),
-  cost: z.string().describe('Rough cost estimate range in INR, e.g. ₹1,200–₹2,400'),
+const apiKey =
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+  process.env.VITE_GEMINI_API_KEY ||
+  "";
+
+const google = createGoogleGenerativeAI({ apiKey });
+import {
+  SERVICE_DEFINITIONS,
+  detectSafetyHazard,
+  SafetyHazardRule,
+} from "./search-dictionary";
+
+export const CANONICAL_TRADES = [
+  "AC & appliance repair/installation",
+  "Plumbing repair & installation",
+  "Electrical repair & installation",
+  "Carpentry & custom furniture",
+  "Painting & wall finishing",
+  "Waterproofing",
+  "Tiling & flooring",
+  "Pest control",
+  "Masonry & plastering",
+  "False ceiling & POP work",
+  "Home automation & smart locks",
+  "General labour / helper",
+] as const;
+
+export type CanonicalTrade = (typeof CANONICAL_TRADES)[number];
+
+// Schema for Step A: Fast Classification
+export const StepAClassificationSchema = z.object({
+  language: z.enum(["en", "hi", "mr", "hinglish"]).describe("Language detected in user query"),
+  intent: z.enum(["repair", "install", "maintenance", "renovation", "inspection", "unknown"]),
+  isMultiIssue: z.boolean().describe("Whether the input contains two or more distinct trade issues"),
+  issues: z.array(
+    z.object({
+      title: z.string(),
+      tradeCategory: z.string(),
+      serviceSlug: z.string().nullable(),
+      urgency: z.enum(["emergency", "today", "this_week", "flexible"]),
+    })
+  ),
+  primaryTrade: z.string().describe("Main canonical trade category for marketplace matching"),
+  locationHint: z.string().nullable().describe("Extracted Mumbai area or neighborhood"),
+  budgetHint: z.string().nullable(),
+  safetyNote: z.string().nullable(),
 });
 
-export type AskBrief = z.infer<typeof BriefSchema>;
+export type StepAClassification = z.infer<typeof StepAClassificationSchema>;
 
-export const parseProjectRequest = createServerFn({ method: 'POST' })
-  .validator((data: { text: string; date?: string; location?: string }) => data)
-  .handler(async ({ data }) => {
+// Schema for Step B: Detailed 14-Section Honest Project Brief
+export const DetailedBriefSchema = z.object({
+  title: z.string().describe("Short, plain title (e.g. 'Split AC not cooling')"),
+  summary: z.string().describe("2-3 plain sentences restating the problem in customer's own terms"),
+  categoryPath: z.array(z.string()).describe("Category > Subcategory > Service path"),
+  tradeCategory: z.string(),
+  serviceSlug: z.string(),
+  whatProWillCheck: z.array(z.string()).describe("4-6 concrete scope bullets pro will inspect"),
+  possibleCauses: z.array(z.string()).describe("Hedged possible causes, e.g. 'Can be caused by...'"),
+  likelyParts: z.array(z.string()).describe("Parts or consumable materials likely required"),
+  estimatedDuration: z.string().describe("Estimated time on site range, e.g. '1 to 2 hours'"),
+  priceRange: z.object({
+    min: z.number(),
+    max: z.number(),
+    label: z.string(),
+    disclaimer: z.string(),
+  }),
+  urgency: z.enum(["emergency", "today", "this_week", "flexible"]),
+  urgencyReason: z.string(),
+  locationAndAccess: z.string(),
+  whatToPrepare: z.array(z.string()).describe("Practical doorstep prep tips for customer"),
+  safetyNote: z.string().nullable(),
+  openQuestions: z.array(z.string()).describe("Clarifying questions that would refine the estimate"),
+  assumptionsMade: z.array(z.string()).describe("Explicit assumptions made by the diagnostic engine"),
+  tapQuestions: z.array(
+    z.object({
+      id: z.string(),
+      question: z.string(),
+      options: z.array(z.string()),
+    })
+  ),
+});
+
+export type DetailedProjectBrief = z.infer<typeof DetailedBriefSchema>;
+
+export interface AskKarigharResponse {
+  ok: boolean;
+  classification: StepAClassification;
+  brief: DetailedProjectBrief;
+  safetyHazard?: SafetyHazardRule;
+  isFallback?: boolean;
+}
+
+/**
+ * Normalizes trade string into one of the canonical trades.
+ */
+export function mapToCanonicalTrade(raw: string): CanonicalTrade {
+  const t = (raw || "").toLowerCase();
+  if (
+    t.includes("ac") ||
+    t.includes("air cond") ||
+    t.includes("cooling") ||
+    t.includes("fridge") ||
+    t.includes("refrigerat") ||
+    t.includes("washing") ||
+    t.includes("appliance") ||
+    t.includes("compressor") ||
+    t.includes("chilled")
+  ) {
+    return "AC & appliance repair/installation";
+  }
+  if (
+    t.includes("plumb") ||
+    t.includes("leak") ||
+    t.includes("pipe") ||
+    t.includes("drain") ||
+    t.includes("tap") ||
+    t.includes("faucet") ||
+    t.includes("flush") ||
+    t.includes("sink") ||
+    t.includes("toilet") ||
+    t.includes("geyser") ||
+    t.includes("water tank")
+  ) {
+    return "Plumbing repair & installation";
+  }
+  if (
+    t.includes("elect") ||
+    t.includes("wire") ||
+    t.includes("switch") ||
+    t.includes("mcb") ||
+    t.includes("light") ||
+    t.includes("fan") ||
+    t.includes("spark") ||
+    t.includes("short") ||
+    t.includes("socket") ||
+    t.includes("power trip")
+  ) {
+    return "Electrical repair & installation";
+  }
+  if (
+    t.includes("carpent") ||
+    t.includes("wood") ||
+    t.includes("furniture") ||
+    t.includes("wardrobe") ||
+    t.includes("door") ||
+    t.includes("table") ||
+    t.includes("shelf") ||
+    t.includes("cabinet") ||
+    t.includes("drawer") ||
+    t.includes("plywood")
+  ) {
+    return "Carpentry & custom furniture";
+  }
+  if (
+    t.includes("paint") ||
+    t.includes("color") ||
+    t.includes("whitewash") ||
+    t.includes("distemper") ||
+    t.includes("texture") ||
+    t.includes("peeling")
+  ) {
+    return "Painting & wall finishing";
+  }
+  if (
+    t.includes("waterproof") ||
+    t.includes("damp") ||
+    t.includes("seepage") ||
+    t.includes("moisture") ||
+    t.includes("terrace crack")
+  ) {
+    return "Waterproofing";
+  }
+  if (
+    t.includes("tile") ||
+    t.includes("floor") ||
+    t.includes("marble") ||
+    t.includes("granite") ||
+    t.includes("grout")
+  ) {
+    return "Tiling & flooring";
+  }
+  if (
+    t.includes("pest") ||
+    t.includes("termite") ||
+    t.includes("cockroach") ||
+    t.includes("bedbug") ||
+    t.includes("rodent")
+  ) {
+    return "Pest control";
+  }
+  if (
+    t.includes("smart") ||
+    t.includes("lock") ||
+    t.includes("automation") ||
+    t.includes("cctv")
+  ) {
+    return "Home automation & smart locks";
+  }
+  if (t.includes("ceiling") || t.includes("pop") || t.includes("gypsum")) {
+    return "False ceiling & POP work";
+  }
+  if (t.includes("mason") || t.includes("brick") || t.includes("cement") || t.includes("plaster")) {
+    return "Masonry & plastering";
+  }
+  return "General labour / helper";
+}
+
+/**
+ * Builds an authentic, data-grounded fallback brief from SERVICE_DEFINITIONS
+ */
+export function buildFallbackBrief(
+  query: string,
+  canonicalTrade: CanonicalTrade,
+  safetyHazard?: SafetyHazardRule
+): DetailedProjectBrief {
+  let matchedService = Object.values(SERVICE_DEFINITIONS).find(
+    (s) => s.canonicalTrade === canonicalTrade
+  );
+
+  if (!matchedService) {
+    matchedService = SERVICE_DEFINITIONS["ac-repair-diagnostic"];
+  }
+
+  const isUrgent = !!safetyHazard || query.toLowerCase().includes("urgent") || query.toLowerCase().includes("burst");
+
+  return {
+    title: `${matchedService.name}`,
+    summary: `Customer reports: "${query}". Diagnostic inspection and repair recommended for ${matchedService.name} under transparent price-book rates.`,
+    categoryPath: [matchedService.categoryName, matchedService.subcategoryName, matchedService.name],
+    tradeCategory: canonicalTrade,
+    serviceSlug: matchedService.slug,
+    whatProWillCheck: matchedService.whatProWillCheck,
+    possibleCauses: matchedService.possibleCauses,
+    likelyParts: matchedService.likelyParts,
+    estimatedDuration: matchedService.typicalDuration,
+    priceRange: {
+      min: matchedService.priceRange.min,
+      max: matchedService.priceRange.max,
+      label: `₹${matchedService.priceRange.min} – ₹${matchedService.priceRange.max} ${matchedService.priceRange.unitLabel}`,
+      disclaimer: "AI estimate, always non-binding. The pro confirms the final price on-site.",
+    },
+    urgency: safetyHazard ? "emergency" : isUrgent ? "today" : "this_week",
+    urgencyReason: safetyHazard
+      ? "Immediate attention recommended due to potential safety hazard."
+      : isUrgent
+      ? "Same-day inspection advised to prevent further household disruption."
+      : "Standard scheduled slot this week.",
+    locationAndAccess: "Mumbai (Andheri / Bandra / Powai / Thane). Confirm floor and lift access with specialist.",
+    whatToPrepare: matchedService.preparationTips,
+    safetyNote: safetyHazard ? safetyHazard.instructions.join(" ") : null,
+    openQuestions: [
+      "When did you first notice this issue?",
+      "Has any repair or part replacement been attempted recently?",
+    ],
+    assumptionsMade: [
+      "Standard residential home setup with accessible utility valves or main power breaker.",
+      "Work within regular municipal service boundaries in Mumbai.",
+    ],
+    tapQuestions: matchedService.questions.map((q) => ({
+      id: q.id,
+      question: q.question,
+      options: q.options.map((o) => o.label),
+    })),
+  };
+}
+
+/**
+ * Central Server Function: "Ask Karighar" Two-Step AI Search Pipeline
+ */
+export const askKarigharEngine = createServerFn({ method: "POST" })
+  .validator((data: { text: string; location?: string; language?: string }) => data)
+  .handler(async ({ data }): Promise<AskKarigharResponse> => {
+    const rawText = data.text || "";
+    const safetyHazard = detectSafetyHazard(rawText);
+    const canonicalTrade = mapToCanonicalTrade(rawText);
+
+    // Multi-issue split detection: e.g. "ac not working and tap leaking"
+    const lower = rawText.toLowerCase();
+    const hasMultipleAnd = lower.includes(" and ") || lower.includes(" aur ") || lower.includes(" & ");
+    const isMulti = hasMultipleAnd && (
+      (lower.includes("ac") && (lower.includes("tap") || lower.includes("pipe") || lower.includes("wire"))) ||
+      (lower.includes("leak") && lower.includes("switch"))
+    );
+
     try {
-      const { object } = await generateObject({
-        model: google('gemini-2.5-flash'),
-        schema: BriefSchema,
-        prompt: `You are a home services assistant in India. Parse this customer request and extract a structured project brief.
+      // Step A: Fast Classification
+      const { object: classification } = await generateObject({
+        model: google("gemini-2.5-flash"),
+        schema: StepAClassificationSchema,
+        prompt: `You are Karighar's rapid intent classifier for home services in Mumbai, India.
+Classify this user request into our standard service taxonomy:
+Query: "${rawText}"
+Location: "${data.location || "Mumbai"}"
 
-Customer request: "${data.text}"
-${data.date ? `Preferred date: ${data.date}` : ''}
-${data.location ? `Preferred location: ${data.location}` : ''}
+Canonical Trade Categories:
+${CANONICAL_TRADES.map((t) => `- "${t}"`).join("\n")}
 
-Rules:
-- intent: if they want something NEW built → build, if they want something improved/redone → renovate, if something is broken/not working → fix
-- summary: one clear sentence describing the job
-- location: use the preferred location if provided, otherwise extract city/area mentioned, or output an empty string
-- budget: extract any budget mentioned (format as ₹X,XXX), or output 'To be discussed'
-- timing: use the preferred date if given, otherwise extract timing words (tomorrow, next week etc), or output an empty string
-- materials: if they mention they have materials or need them, extract it, otherwise output an empty string
-- trades: which type of professional is needed (Plumber, Electrician, Carpenter, Painter, Renovation contractor, etc.)
-- duration: estimate job duration (1-2 hours, half day, 2-3 days etc)
-- cost: estimate cost range in INR based on the job type and Indian market rates`,
+Respond strictly according to the schema. Keep primaryTrade matching one of the exact canonical options.`,
       });
-      return { ok: true as const, brief: object };
-    } catch (e) {
-      // Fallback: Smart keyword-based parser if LLM fails (e.g. missing API key)
-      const text = data.text.toLowerCase();
-      
-      let intent: 'build' | 'renovate' | 'fix' = 'fix';
-      if (text.match(/build|install|create|new|make/)) intent = 'build';
-      if (text.match(/renovate|redo|remodel|paint|upgrade/)) intent = 'renovate';
 
-      let trades = 'General labour / helper';
-      let duration = '2-4 hours';
-      let cost = '₹500 - ₹1,500';
+      // Step B: Generate Full 14-Section Honest Project Brief
+      const { object: brief } = await generateObject({
+        model: google("gemini-2.5-flash"),
+        schema: DetailedBriefSchema,
+        prompt: `You are Karighar's senior home diagnostic engineer in Mumbai.
+Generate a structured, scannable, honest project brief for:
+Query: "${rawText}"
+Classified Trade: "${classification.primaryTrade}"
 
-      if (text.match(/pipe|leak|water|sink|toilet|tap/)) {
-        trades = 'Plumbing repair & installation';
-        duration = '1-3 hours';
-        cost = '₹400 - ₹1,200';
-      } else if (text.match(/wire|light|switch|fan|electrical|power/)) {
-        trades = 'Electrical repair & installation';
-        duration = '1-2 hours';
-        cost = '₹300 - ₹1,000';
-      } else if (text.match(/ac|fridge|washing|appliance|cooling/)) {
-        trades = 'AC & appliance repair/installation';
-        duration = '1-3 hours';
-        cost = '₹500 - ₹2,500';
-      } else if (text.match(/wood|furniture|door|wardrobe|bed/)) {
-        trades = 'Carpentry & custom furniture';
-        duration = 'Half day';
-        cost = '₹800 - ₹3,000';
-      } else if (text.match(/paint|color|wall|texture/)) {
-        trades = 'Painting & wall finishing';
-        duration = '1-2 days';
-        cost = '₹2,000 - ₹10,000';
-      } else if (text.match(/tile|floor|marble/)) {
-        trades = 'Tiling & flooring';
-        duration = '1-3 days';
-        cost = '₹3,000 - ₹15,000';
-      } else if (text.match(/bug|pest|termite|cockroach|mosquito/)) {
-        trades = 'Pest control';
-        duration = '2-4 hours';
-        cost = '₹900 - ₹2,500';
-      }
+CRITICAL RULES:
+1. Honesty: Never fabricate fixed prices or diagnose with certainty. Use hedged phrasing ("can be caused by", "pro will inspect").
+2. Price disclaimer MUST state: "AI estimate, always non-binding. The pro confirms the final price."
+3. Language: Match customer's language tone (${classification.language}).
+4. Mumbai context: Reference typical Mumbai apartment realities (monsoon dampness, high humidity, inverter load, etc.).
+5. Provide 1 or 2 tapQuestions with quick answers (e.g. Split vs Window, Not cooling vs Leaking).`,
+      });
 
-      const budgetMatch = data.text.match(/[₹\d][\d,]+/);
       return {
-        ok: true as const,
-        brief: {
-          intent,
-          summary: data.text.length > 3 ? data.text.charAt(0).toUpperCase() + data.text.slice(1) : 'Professional required',
-          location: data.location || '',
-          budget: budgetMatch ? (budgetMatch[0].startsWith('₹') ? budgetMatch[0] : `₹${budgetMatch[0]}`) : 'To be discussed',
-          timing: data.date || '',
-          materials: '',
-          trades,
-          duration,
-          cost,
+        ok: true,
+        classification: {
+          ...classification,
+          primaryTrade: mapToCanonicalTrade(classification.primaryTrade || canonicalTrade),
         },
+        brief: {
+          ...brief,
+          tradeCategory: mapToCanonicalTrade(brief.tradeCategory || canonicalTrade),
+        },
+        safetyHazard,
+      };
+    } catch (e) {
+      console.warn("[askKarigharEngine] LLM unavailable, using deterministic Layer 1 fallback:", e);
+
+      const fallbackBrief = buildFallbackBrief(rawText, canonicalTrade, safetyHazard);
+
+      return {
+        ok: true,
+        isFallback: true,
+        classification: {
+          language: "en",
+          intent: "repair",
+          isMultiIssue: isMulti,
+          issues: isMulti
+            ? [
+                {
+                  title: "Air Conditioning Service",
+                  tradeCategory: "AC & appliance repair/installation",
+                  serviceSlug: "ac-repair-diagnostic",
+                  urgency: "today",
+                },
+                {
+                  title: "Plumbing Leakage Repair",
+                  tradeCategory: "Plumbing repair & installation",
+                  serviceSlug: "plumbing-leakage-repair",
+                  urgency: "today",
+                },
+              ]
+            : [
+                {
+                  title: fallbackBrief.title,
+                  tradeCategory: canonicalTrade,
+                  serviceSlug: fallbackBrief.serviceSlug,
+                  urgency: fallbackBrief.urgency,
+                },
+              ],
+          primaryTrade: canonicalTrade,
+          locationHint: data.location || "Mumbai",
+          budgetHint: null,
+          safetyNote: safetyHazard ? safetyHazard.title : null,
+        },
+        brief: fallbackBrief,
+        safetyHazard,
       };
     }
+  });
+
+// Keep parseProjectRequest for backwards-compatibility with existing routes
+export const parseProjectRequest = createServerFn({ method: "POST" })
+  .validator((data: { text: string; date?: string; location?: string }) => data)
+  .handler(async ({ data }) => {
+    const res = await askKarigharEngine({ data: { text: data.text, location: data.location } });
+    return {
+      ok: true as const,
+      brief: {
+        intent: res.classification.intent === "renovation" ? "renovate" : res.classification.intent === "install" ? "build" : "fix",
+        summary: res.brief.summary,
+        tradeCategory: res.brief.tradeCategory,
+        trades: res.brief.tradeCategory,
+        location: res.brief.locationAndAccess,
+        budget: res.brief.priceRange.label,
+        timing: res.brief.urgency === "emergency" ? "Immediate Dispatch" : "Available Today",
+        materials: res.brief.likelyParts.join(", "),
+        duration: res.brief.estimatedDuration,
+        cost: res.brief.priceRange.label,
+        scope: res.brief.whatProWillCheck,
+        path: res.brief.urgency === "emergency" ? ("emergency" as const) : ("book_now" as const),
+      },
+    };
   });

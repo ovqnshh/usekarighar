@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PageTransition } from "@/components/page-transition";
 import { Toaster } from "@/components/ui/sonner";
 import { ReactLenis } from 'lenis/react';
+import { AdminPanel } from "@/components/admin-panel";
+import { I18nProvider } from "@/lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -80,10 +82,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Karighar — Home projects, made clear" },
+      { title: "Karighar" },
       { name: "description", content: "Describe your home project and find trusted local professionals." },
       { name: "author", content: "Karighar" },
-      { property: "og:title", content: "Karighar — Home projects, made clear" },
+      { property: "og:title", content: "Karighar" },
       { property: "og:description", content: "Describe your home project and find trusted local professionals." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -95,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
     ],
   }),
@@ -125,10 +127,13 @@ function RootComponent() {
   return (
     <ReactLenis root>
       <QueryClientProvider client={queryClient}>
+        <I18nProvider>
         <PageTransition>
           <Outlet />
         </PageTransition>
+        <AdminPanel />
         <Toaster richColors position="top-center" />
+        </I18nProvider>
       </QueryClientProvider>
     </ReactLenis>
   );

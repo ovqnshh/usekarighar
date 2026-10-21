@@ -11,16 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
 import { Route as MyProjectsRouteImport } from './routes/my-projects'
+import { Route as PartnerRouteImport } from './routes/partner'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProDashboardRouteImport } from './routes/pro-dashboard'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
@@ -28,6 +33,7 @@ import { Route as HelpArticleIdRouteImport } from './routes/help.$articleId'
 import { Route as HelpContactRouteImport } from './routes/help.contact'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -37,6 +43,16 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -54,9 +70,19 @@ const MyProjectsRoute = MyProjectsRouteImport.update({
   path: '/my-projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnerRoute = PartnerRouteImport.update({
+  id: '/partner',
+  path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProDashboardRoute = ProDashboardRouteImport.update({
@@ -87,6 +113,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ShortlistRoute = ShortlistRouteImport.update({
   id: '/shortlist',
   path: '/shortlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
@@ -124,6 +155,11 @@ const ProfessionalsIdRoute = ProfessionalsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProfessionalsRoute,
 } as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/services/',
+  path: '/services/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   id: '/projects/$id',
   path: '/projects/$id',
@@ -132,16 +168,21 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help/$articleId': typeof HelpArticleIdRoute
@@ -149,19 +190,25 @@ export interface FileRoutesByFullPath {
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/help/$articleId': typeof HelpArticleIdRoute
@@ -169,22 +216,28 @@ export interface FileRoutesByTo {
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help': typeof HelpIndexRoute
   '/professionals': typeof ProfessionalsIndexRoute
+  '/services': typeof ServicesIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
   '/my-projects': typeof MyProjectsRoute
+  '/partner': typeof PartnerRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/help/$articleId': typeof HelpArticleIdRoute
@@ -192,22 +245,28 @@ export interface FileRoutesById {
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/admin'
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/partner'
     | '/pricing'
+    | '/privacy'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/terms'
     | '/account'
     | '/dashboard'
     | '/help/$articleId'
@@ -215,19 +274,25 @@ export interface FileRouteTypes {
     | '/professionals/$id'
     | '/help/'
     | '/professionals/'
+    | '/services/'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/admin'
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/partner'
     | '/pricing'
+    | '/privacy'
     | '/pro-dashboard'
     | '/project'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/terms'
     | '/account'
     | '/dashboard'
     | '/help/$articleId'
@@ -235,21 +300,27 @@ export interface FileRouteTypes {
     | '/professionals/$id'
     | '/help'
     | '/professionals'
+    | '/services'
     | '/projects/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
+    | '/admin'
     | '/auth'
     | '/become-a-pro'
     | '/my-projects'
+    | '/partner'
     | '/pricing'
+    | '/privacy'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/terms'
     | '/_authenticated/account'
     | '/_authenticated/dashboard'
     | '/help/$articleId'
@@ -257,25 +328,32 @@ export interface FileRouteTypes {
     | '/professionals/$id'
     | '/help/'
     | '/professionals/'
+    | '/services/'
     | '/_authenticated/projects/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BecomeAProRoute: typeof BecomeAProRoute
   MyProjectsRoute: typeof MyProjectsRoute
+  PartnerRoute: typeof PartnerRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProDashboardRoute: typeof ProDashboardRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
   RenovationPlannerRoute: typeof RenovationPlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
+  TermsRoute: typeof TermsRoute
   HelpArticleIdRoute: typeof HelpArticleIdRoute
   HelpContactRoute: typeof HelpContactRoute
   HelpIndexRoute: typeof HelpIndexRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +370,20 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -315,11 +407,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pro-dashboard': {
@@ -362,6 +468,13 @@ declare module '@tanstack/react-router' {
       path: '/shortlist'
       fullPath: '/shortlist'
       preLoaderRoute: typeof ShortlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/account': {
@@ -413,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfessionalsIdRouteImport
       parentRoute: typeof ProfessionalsRoute
     }
+    '/services/': {
+      id: '/services/'
+      path: '/services'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/projects/$id': {
       id: '/_authenticated/projects/$id'
       path: '/projects/$id'
@@ -455,19 +575,25 @@ const ProfessionalsRouteWithChildren = ProfessionalsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BecomeAProRoute: BecomeAProRoute,
   MyProjectsRoute: MyProjectsRoute,
+  PartnerRoute: PartnerRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   ProDashboardRoute: ProDashboardRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
   RenovationPlannerRoute: RenovationPlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
+  TermsRoute: TermsRoute,
   HelpArticleIdRoute: HelpArticleIdRoute,
   HelpContactRoute: HelpContactRoute,
   HelpIndexRoute: HelpIndexRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

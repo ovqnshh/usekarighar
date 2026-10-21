@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ImagePlus, Loader2, Sparkles, X } from "lucide-react";
+import { ImagePlus, Loader2, Sparkles, X, ChevronRight, Check } from "lucide-react";
 import { useState } from "react";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ function Planner() {
     const next = await Promise.all([...files].filter((f) => f.type.startsWith("image/")).map(resize));
     setImages((cur) => [...cur, ...next].slice(0, 4));
   }
+
   async function run() {
     setLoading(true); setError(""); setPlan(null);
     try {
@@ -58,48 +59,161 @@ function Planner() {
 
   return (
     <PageShell>
-      <main className="mx-auto max-w-5xl px-5 py-10 lg:px-10">
-        <p className="flex items-center gap-2 text-sm font-semibold text-primary"><Sparkles className="size-4" /> AI Renovation Planner</p>
-        <h1 className="mt-2 text-4xl font-bold md:text-5xl">Show us your room.</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">Upload up to 4 photos and we’ll suggest a tailored plan — scope, materials and things to watch out for.</p>
-
-        <div className="mt-8 rounded-3xl border border-border p-5 shadow-float md:p-7">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {images.map((src, i) => (
-              <div key={i} className="relative overflow-hidden rounded-2xl">
-                <img src={src} alt={`Room photo ${i + 1}`} className="aspect-square w-full object-cover" />
-                <button onClick={() => setImages((c) => c.filter((_, j) => j !== i))} aria-label="Remove photo" className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background shadow-float"><X className="size-4" /></button>
-              </div>
-            ))}
-            {images.length < 4 ? (
-              <label className="grid aspect-square cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border text-center text-sm text-muted-foreground hover:bg-muted">
-                <span><ImagePlus className="mx-auto mb-2 size-6" />Add photos</span>
-                <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void add(e.target.files); e.target.value = ""; }} />
-              </label>
-            ) : null}
-          </div>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything we should know? e.g. ‘Want a modern look, budget ₹3 lakh, 2BHK in Pune’" className="mt-5 min-h-20 rounded-xl" />
-          <Button onClick={run} disabled={!images.length || loading} className="mt-5 h-12 w-full rounded-xl text-base">
-            {loading ? <><Loader2 className="animate-spin" /> Studying your room…</> : <><Sparkles /> Suggest a renovation plan</>}
-          </Button>
-          {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
+      <main className="mx-auto max-w-4xl px-5 py-12 lg:px-8">
+        {/* Header */}
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Sparkles className="size-3.5" strokeWidth={1.5} />
+            AI Project Scoping
+          </span>
+          <h1 className="mt-3 font-display text-3xl md:text-5xl font-semibold text-foreground">
+            Plan your room renovation
+          </h1>
+          <p className="mt-2 text-base text-muted-foreground max-w-xl leading-relaxed">
+            Upload up to 4 photos of your room. Our assistant will identify trades, draft a work scope, and estimate material costs.
+          </p>
         </div>
 
-        {plan ? (
-          <section className="mt-10 space-y-8" aria-live="polite">
-            <div><p className="text-sm font-semibold text-primary">{plan.room}</p><h2 className="mt-1 text-3xl font-bold">Your renovation plan</h2><p className="mt-3 text-muted-foreground">{plan.summary}</p></div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[["Estimated cost", plan.cost_range], ["Estimated duration", plan.duration], ["Likely trades", plan.trades.join(", ")]].map(([l, v]) => (
-                <div key={l} className="rounded-2xl bg-secondary p-4"><p className="text-xs font-semibold uppercase text-muted-foreground">{l}</p><p className="mt-1 font-semibold">{v}</p></div>
+        {/* Upload Card */}
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-warm-xs">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {images.map((src, i) => (
+              <div key={i} className="relative overflow-hidden rounded-xl border border-border aspect-square">
+                <img src={src} alt={`Room photo ${i + 1}`} className="size-full object-cover" />
+                <button
+                  onClick={() => setImages((c) => c.filter((_, j) => j !== i))}
+                  aria-label="Remove photo"
+                  className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/80 shadow-warm-xs backdrop-blur-sm transition-transform hover:scale-110"
+                >
+                  <X className="size-3.5" strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+            {images.length < 4 && (
+              <label className="group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-4 text-center transition-all hover:border-primary/40 hover:bg-primary/5">
+                <ImagePlus className="size-6 text-muted-foreground group-hover:text-primary transition-colors mb-2" strokeWidth={1.5} />
+                <span className="text-xs font-medium text-foreground">Add photo</span>
+                <span className="text-[10px] text-muted-foreground mt-0.5">{4 - images.length} remaining</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => { void add(e.target.files); e.target.value = ""; }}
+                />
+              </label>
+            )}
+          </div>
+
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Tell us any specifics: e.g. ‘Modern kitchen cabinets, budget ₹2.5 lakh, 2BHK in Thane’"
+            className="mt-5 min-h-[90px] rounded-xl"
+          />
+
+          <Button
+            onClick={run}
+            disabled={!images.length || loading}
+            className="mt-5 h-12 w-full rounded-xl text-sm font-semibold shadow-warm transition-all"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Analysing room details…
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 size-4" strokeWidth={1.5} />
+                Generate Renovation Plan
+              </>
+            )}
+          </Button>
+
+          {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+        </div>
+
+        {/* Resulting Plan */}
+        {plan && (
+          <section className="mt-12 space-y-8 animate-in fade-in duration-300" aria-live="polite">
+            <div className="border-b border-border pb-6">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">{plan.room}</span>
+              <h2 className="mt-1 font-display text-2xl md:text-3xl font-semibold text-foreground">Your Tailored Plan</h2>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{plan.summary}</p>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                ["Estimated Cost", plan.cost_range],
+                ["Estimated Duration", plan.duration],
+                ["Required Trades", plan.trades.join(", ")],
+              ].map(([l, v]) => (
+                <div key={l} className="rounded-xl border border-border bg-surface-subtle p-5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{l}</p>
+                  <p className="mt-1.5 font-display text-lg font-semibold text-foreground">{v}</p>
+                </div>
               ))}
             </div>
-            <div><h3 className="text-xl font-semibold">Scope of work</h3><ol className="mt-3 space-y-3">{plan.scope.map((s, i) => <li key={i} className="rounded-2xl border border-border p-4"><p className="font-semibold">{i + 1}. {s.title}</p><p className="mt-1 text-sm text-muted-foreground">{s.detail}</p></li>)}</ol></div>
-            <div><h3 className="text-xl font-semibold">Materials</h3><div className="mt-3 overflow-hidden rounded-2xl border border-border">{plan.materials.map((m, i) => <div key={i} className="grid gap-1 border-b border-border p-4 last:border-0 sm:grid-cols-[1fr_2fr_auto] sm:gap-4"><p className="font-semibold">{m.item}</p><p className="text-sm text-muted-foreground">{m.suggestion}</p><p className="text-sm font-semibold">{m.estimate}</p></div>)}</div></div>
-            <div><h3 className="text-xl font-semibold">Things to consider</h3><ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">{plan.considerations.map((c, i) => <li key={i}>{c}</li>)}</ul></div>
-            <p className="text-xs text-muted-foreground">These are AI estimates, not guarantees. A professional will confirm scope and cost after a site visit.</p>
-            <Button asChild className="h-12 rounded-xl px-6"><Link to="/professionals">Find professionals for this</Link></Button>
+
+            {/* Scope of Work */}
+            <div>
+              <h3 className="font-display text-xl font-semibold text-foreground mb-4">Recommended Scope</h3>
+              <div className="space-y-3">
+                {plan.scope.map((s, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-warm-xs">
+                    <p className="text-sm font-semibold text-foreground">
+                      {i + 1}. {s.title}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{s.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Materials Breakdown */}
+            <div>
+              <h3 className="font-display text-xl font-semibold text-foreground mb-4">Materials & Finishes</h3>
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-warm-xs">
+                {plan.materials.map((m, i) => (
+                  <div
+                    key={i}
+                    className="grid gap-2 border-b border-border p-4 last:border-0 sm:grid-cols-[1.5fr_2fr_1fr] sm:items-center sm:gap-4 text-xs"
+                  >
+                    <p className="font-medium text-foreground">{m.item}</p>
+                    <p className="text-muted-foreground">{m.suggestion}</p>
+                    <p className="font-semibold text-foreground sm:text-right">{m.estimate}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Things to Consider */}
+            <div className="rounded-xl border border-border bg-surface-subtle p-6">
+              <h3 className="font-display text-lg font-semibold text-foreground mb-3">Key Considerations</h3>
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                {plan.considerations.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-primary font-semibold">•</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                Estimates are generated by AI and may vary based on exact room dimensions and materials chosen.
+              </p>
+              <Button asChild className="rounded-xl shrink-0" size="lg">
+                <Link to="/professionals">
+                  Find professionals for this
+                  <ChevronRight className="ml-1 size-4" />
+                </Link>
+              </Button>
+            </div>
           </section>
-        ) : null}
+        )}
       </main>
     </PageShell>
   );

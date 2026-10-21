@@ -1,12 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Brand } from "@/components/karighar-shell";
 import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Wrench, Plug, Droplet, Paintbrush, Hammer, Snowflake, HardHat, ShieldCheck, Bug, Users, Home, ImagePlus, Shield, Clock, Package, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/become-a-pro")({
+  head: () => ({
+    meta: [
+      { title: 'Join as a Verified Karighar Partner — Karighar' },
+      { name: 'description', content: 'Karighar verified home services platform.' },
+    ],
+  }),
   component: BecomeAProPage,
 });
 
@@ -126,12 +133,7 @@ function BecomeAProPage() {
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20">
       {/* Top Header */}
       <header className="flex h-20 items-center px-6 lg:px-10 justify-between shrink-0">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground group-hover:bg-primary/90 transition-colors">
-            <Wrench className="size-5" />
-          </div>
-          <span className="font-display text-xl font-bold tracking-tight">Karighar</span>
-        </Link>
+        <Brand />
         <div className="flex items-center gap-4">
           <span className="text-sm font-semibold hover:bg-muted px-4 py-2 rounded-full cursor-pointer transition-colors hidden sm:block">Questions?</span>
           <Button variant="outline" className="rounded-full font-semibold px-4 hidden sm:flex">Save & exit</Button>
@@ -147,7 +149,7 @@ function BecomeAProPage() {
                 Set up your<br />Karighar profile
               </h1>
               <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
-                It's easy to create a great professional profile â€“ let's start by choosing your trade.
+                It's easy to create a great professional profile — let's start by choosing your trade.
               </p>
               
               {!user && (
@@ -434,7 +436,7 @@ function BecomeAProPage() {
               <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="font-semibold text-lg">Identity verification</h3>
-                  {isVerified && <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Verified</span>}
+                  {isVerified && <span className="bg-success-soft text-success rounded-full text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Verified</span>}
                 </div>
                 <p className="text-muted-foreground text-sm mb-6">{isVerified ? "Your identity is verified" : "Required to publish"}</p>
                 
@@ -475,7 +477,7 @@ function BecomeAProPage() {
                     Verify
                   </Button>
                 ) : (
-                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Confirmed</span>
+                  <span className="bg-success-soft text-success rounded-full text-xs font-semibold px-2.5 py-0.5 rounded flex items-center gap-1"><ShieldCheck className="size-3" /> Confirmed</span>
                 )}
               </div>
             </div>
@@ -488,7 +490,7 @@ function BecomeAProPage() {
         {/* Progress Bar (Airbnb style at top of footer) */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-muted">
           <div 
-            className="h-full bg-foreground transition-all duration-500 ease-out" 
+            className="h-full bg-primary transition-all duration-500 ease-out" 
             style={{ width: `${(step / 7) * 100}%` }}
           />
         </div>
@@ -510,7 +512,7 @@ function BecomeAProPage() {
               <Button 
                 onClick={nextStep} 
                 disabled={!user}
-                className="bg-[#E51D53] hover:bg-[#d4174a] text-white px-8 h-12 rounded-lg font-semibold text-base"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm px-8 h-12 rounded-lg font-semibold text-base"
               >
                 Get started
               </Button>
@@ -518,7 +520,7 @@ function BecomeAProPage() {
               <Button 
                 onClick={handleSubmit}
                 disabled={loading || !formData.name || !formData.city || !isVerified || !isPhoneVerified}
-                className="bg-[#E51D53] hover:bg-[#d4174a] text-white px-8 h-12 rounded-lg font-semibold text-base"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm px-8 h-12 rounded-lg font-semibold text-base"
               >
                 {loading ? "Publishing..." : "Publish profile"}
               </Button>
