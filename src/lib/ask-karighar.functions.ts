@@ -403,3 +403,18 @@ export const parseProjectRequest = createServerFn({ method: "POST" })
       },
     };
   });
+
+
+export type { AskBrief } from "./project-brief";
+
+export const suggestProjectIdeas = createServerFn({ method: "POST" })
+  .validator((data: { text: string }) => data)
+  .handler(async () => {
+    return {
+      ideas: [
+        "AC servicing & cooling check in Mumbai",
+        "Bathroom concealed pipe leakage repair",
+        "Full apartment painting & wall waterproofing",
+      ],
+    };
+  });
