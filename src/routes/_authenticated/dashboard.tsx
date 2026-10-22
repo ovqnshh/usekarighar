@@ -70,13 +70,13 @@ function Dashboard() {
 }
 
 const NAV_TABS = [
-  { id: "today", label: "Job Requests", icon: Zap },
-  { id: "orders", label: "Orders & History", icon: FileText },
-  { id: "analytics", label: "Earnings & Analytics", icon: TrendingUp },
-  { id: "services", label: "Services & Gigs", icon: Wrench },
-  { id: "calendar", label: "Availability & Rules", icon: CalendarDays },
+  { id: "today", label: "Requests", icon: Zap },
+  { id: "orders", label: "Orders", icon: FileText },
+  { id: "analytics", label: "Earnings", icon: TrendingUp },
+  { id: "services", label: "Services", icon: Wrench },
+  { id: "calendar", label: "Availability", icon: CalendarDays },
   { id: "messages", label: "Messages", icon: MessageSquare },
-  { id: "team", label: "Agency Team", icon: Users },
+  { id: "team", label: "Team", icon: Users },
 ];
 
 function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
@@ -96,17 +96,23 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
 
-      {/* ─── Top Command Header (Clean & Spacious) ───────────────────── */}
+      {/* ─── Top Command Header (Clean, Centered & Refined) ───────────── */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-10">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto gap-4">
 
-          {/* Left: Clean Brand Logo */}
-          <div className="flex items-center shrink-0">
+          {/* Left: Clean Brand Logo + Subtle Pro Studio Badge */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <Brand />
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+              Pro Studio
+            </span>
           </div>
 
-          {/* Center: Desktop Nav Tabs (Clean, uncluttered) */}
-          <nav className="hidden md:flex items-center gap-1 relative" aria-label="Pro navigation">
+          {/* Center: Sleek Centered Segmented Control (Compact pill dock, never fills the bar) */}
+          <nav
+            className="hidden lg:flex items-center p-1 rounded-full bg-surface-subtle/80 border border-border/80 shadow-warm-xs gap-0.5"
+            aria-label="Pro navigation"
+          >
             {NAV_TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -114,19 +120,22 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-2 text-xs font-semibold transition-colors rounded-lg ${
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors rounded-full ${
                     isActive
-                      ? "text-primary bg-primary/8 font-bold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-surface-subtle"
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
                   }`}
                 >
-                  <Icon className="size-4" strokeWidth={1.5} />
+                  <Icon
+                    className={`size-3.5 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                    strokeWidth={isActive ? 2 : 1.75}
+                  />
                   <span>{tab.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="pro-nav-pill"
-                      className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute inset-0 bg-background rounded-full shadow-warm-xs border border-border/70 -z-10"
+                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
                 </button>
@@ -134,18 +143,18 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
             })}
           </nav>
 
-          {/* Right: Customer View Link + Online Switch + Avatar */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: Storefront Link + Online Switch + Profile Avatar */}
+          <div className="flex items-center gap-2.5 shrink-0">
 
             {/* View Live Customer Profile */}
             <Link
               to="/professionals/$id"
               params={{ id: proSlug }}
               target="_blank"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-surface-subtle transition-colors text-foreground shadow-warm-xs"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-border bg-card hover:bg-surface-subtle transition-colors text-foreground shadow-warm-xs"
             >
               <Eye className="size-3.5 text-primary" />
-              <span>Customer View</span>
+              <span className="hidden sm:inline">Storefront</span>
               <ArrowUpRight className="size-3 text-muted-foreground" />
             </Link>
 
@@ -155,14 +164,14 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
                 setIsOnline(!isOnline);
                 toast.success(isOnline ? "Status set to Offline / In-Job" : "Status set to Online — Accepting Dispatches!");
               }}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                 isOnline
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
                   : "bg-surface-subtle text-muted-foreground border-border"
               }`}
             >
               <span className={`size-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
-              {isOnline ? "Live for Visits" : "Offline"}
+              <span className="hidden sm:inline">{isOnline ? "Live for Visits" : "Offline"}</span>
             </button>
 
             {/* Profile Dropdown */}
@@ -247,8 +256,8 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
         {activeTab === "team" && <AgencyTeamTab pro={pro} />}
       </main>
 
-      {/* ─── Mobile Bottom Nav ──────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border flex justify-around items-center px-2 h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      {/* ─── Mobile / Tablet Bottom Nav ─────────────────────────────── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border flex overflow-x-auto no-scrollbar items-center px-2 h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
         {NAV_TABS.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -256,12 +265,12 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex flex-col items-center justify-center py-1 flex-1 transition-colors ${
+              className={`flex flex-col items-center justify-center py-1 min-w-[54px] flex-1 transition-colors ${
                 isActive ? "text-primary font-bold" : "text-muted-foreground"
               }`}
             >
-              <Icon className="size-5" strokeWidth={isActive ? 2 : 1.5} />
-              <span className="text-[10px] mt-0.5">{t.label.split(" ")[0]}</span>
+              <Icon className="size-4" strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[10px] mt-0.5 whitespace-nowrap">{t.label}</span>
             </button>
           );
         })}
