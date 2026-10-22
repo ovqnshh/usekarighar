@@ -591,7 +591,7 @@ function TodayTab({ pro, isOnline }: { pro: ProRow; isOnline: boolean }) {
    TAB 2: MY SERVICES & GIG CUSTOMIZATION (FULL ADMIN CONTROL)
    ═══════════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════════════════════════════════════
-   TAB 2: AIRBNB-STYLE GIG & SERVICE STUDIO (FULL PRO CUSTOMIZATION)
+   TAB 2: CRAFT SERVICES & GIG STUDIO (FULL PRO CUSTOMIZATION)
    ═══════════════════════════════════════════════════════════════════════ */
 
 const CRAFT_CATEGORIES = [
@@ -862,11 +862,11 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
               Services & Price-Book Studio
             </h1>
             <Badge variant="success" className="text-xs">
-              Airbnb-Grade Customization
+              Tailored Storefront Studio
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
-            Create rich, customized service listings just like an Airbnb experience: add verified photo galleries, transparent pricing, custom add-ons, and guarantees live on your storefront.
+            Create rich, tailored service listings for your craft: showcase verified photo galleries, transparent pricing, custom add-ons, and guarantees live on your storefront.
           </p>
         </div>
 
@@ -909,13 +909,13 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs sm:text-sm px-5 py-2.5 gap-2 shadow-warm"
             >
               <Plus className="size-4" />
-              + Create New Listing
+              Create New Listing
             </Button>
           </div>
         )}
       </div>
 
-      {/* ─── AIRBNB-STYLE LISTING STUDIO ───────────────────────── */}
+      {/* ─── CRAFT LISTING STUDIO ───────────────────────── */}
       {editingId ? (
         <div className="space-y-6">
 
@@ -1057,7 +1057,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                     <div>
                       <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
                         <Camera className="size-5 text-primary" />
-                        Airbnb-Style Photo Showcase
+                        Artisan Photo Showcase
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         High-quality craft photography establishes trust and showcases your verified field transformations.
@@ -1273,7 +1273,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                     </div>
                   </div>
 
-                  {/* Custom Add-ons Builder (Airbnb Style) */}
+                  {/* Custom Add-ons Builder */}
                   <div className="space-y-3 pt-4 border-t border-border">
                     <div className="flex items-center justify-between">
                       <div>
@@ -1516,7 +1516,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
 
             </Card>
 
-            {/* Right Column: Airbnb Live Customer View Preview Card */}
+            {/* Right Column: Live Customer View Preview Card */}
             {previewMode && (
               <div className="sticky top-24 space-y-4">
                 <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground px-1">
@@ -1728,7 +1728,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                   No services published on your storefront yet
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-                  Create your first Airbnb-style listing with photos, verified inclusions, and pricing to immediately receive doorstep dispatches in Mumbai.
+                  Create your first tailored service listing with photos, verified inclusions, and pricing to immediately receive doorstep dispatches in Mumbai.
                 </p>
                 <Button
                   onClick={() => {

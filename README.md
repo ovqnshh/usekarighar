@@ -1,14 +1,12 @@
 # Karighar: Build, Renovate, Fix
 
-can we build karighar? i want it like similar to airbnb style themeed ui and working like urbanclap
-
 Build the customer-facing web app for Karighar, mobile-first and fully responsive.
 
-Brand feel: warm, trustworthy, craftsman-modern — think Airbnb's warmth crossed with a professional project-management tool. NOT a generic "handyman app" look. Primary accent color: a warm terracotta (#B5551D). Clean neutrals, generous whitespace, rounded cards, real hierarchy — avoid cluttered admin-panel aesthetics anywhere a customer or professional will spend time.
+Brand feel: warm, trustworthy, craftsman-modern — authentic artisan warmth crossed with a professional project-management tool. NOT a generic "handyman app" look. Primary accent color: a warm terracotta (#B5551D). Clean neutrals, generous whitespace, rounded cards, real hierarchy — avoid cluttered admin-panel aesthetics anywhere a customer or professional will spend time.
 
 Customer-side navigation is organised around three intents, not trade categories: Build (create something new), Renovate (improve something existing), Fix (repair or restore). A customer should never be required to know the professional category up front.
 
-Professional-side identity: professionals have real business storefronts — profile, portfolio, services ("Gigs"), pricing, reviews, verification badges — not anonymous worker listings. Think Airbnb host profile, not a gig-worker queue.
+Professional-side identity: professionals have real business storefronts — profile, portfolio, services ("Gigs"), pricing, reviews, verification badges — not anonymous worker listings. Think artisan master storefront, not a gig-worker queue.
 
 Pages / flows to include:
 1. Landing page — hero with the line "Tell Karighar what you want done. We'll help you figure out how to get it done," a large Ask Karighar input, and three big entry cards for Build / Renovate / Fix, each with a short example ("Custom wardrobe," "Bathroom renovation," "Leaking pipe").

@@ -487,7 +487,7 @@ function BecomeAProPage() {
 
       {/* Bottom Sticky Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 z-50">
-        {/* Progress Bar (Airbnb style at top of footer) */}
+        {/* Top Progress Bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-muted">
           <div 
             className="h-full bg-primary transition-all duration-500 ease-out" 
