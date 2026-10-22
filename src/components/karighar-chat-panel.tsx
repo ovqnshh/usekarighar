@@ -104,7 +104,6 @@ export function KarigharChatPanel({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const threadsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -134,29 +133,18 @@ export function KarigharChatPanel({
 
   const chips = fastReplyOptions || defaultFastReplies;
 
-  // Scroll solely the internal messages box to bottom without moving the page or window
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+  // Scroll strictly the internal messages box to bottom without moving the page or window
+  const scrollToBottom = () => {
     const el = messagesContainerRef.current;
     if (el) {
-      el.scrollTo({
-        top: el.scrollHeight,
-        behavior,
-      });
+      el.scrollTop = el.scrollHeight;
     }
   };
 
   // Auto-scroll to bottom on thread change or new message inside the chat box ONLY!
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom("smooth");
-    }, 40);
-    return () => clearTimeout(timer);
+    scrollToBottom();
   }, [activeThread?.messages.length, activeThread?.projectId]);
-
-  // Initial mount scroll without smooth animation delay
-  useEffect(() => {
-    scrollToBottom("auto");
-  }, []);
 
   // Isolate mouse wheel events so scrolling chat never bubbles or scrolls the outer page
   useEffect(() => {
@@ -496,8 +484,6 @@ export function KarigharChatPanel({
                 );
               })
             )}
-
-            <div ref={messagesEndRef} />
           </div>
 
           {/* ─── Fast Reply Suggestions (Inserts into textbox for edits!) ─── */}

@@ -86,6 +86,18 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
   const [isOnline, setIsOnline] = useState(true);
   const navigate = useNavigate();
 
+  const handleTabChange = (tabId: string) => {
+    if (typeof window !== "undefined") {
+      const scrollY = window.scrollY;
+      setActiveTab(tabId);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
   async function handleLogout() {
     await supabase.auth.signOut();
     toast.success("Signed out of Karighar Pro");
@@ -120,7 +132,7 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors rounded-full ${
                     isActive
                       ? "text-foreground font-semibold"
@@ -248,9 +260,9 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
 
       {/* ─── Main Content Tabs ───────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-32 md:pb-16">
-        {activeTab === "today" && <TodayTab pro={pro} isOnline={isOnline} onNavigateTab={setActiveTab} />}
-        {activeTab === "orders" && <OrderHistoryTab pro={pro} onNavigateTab={setActiveTab} />}
-        {activeTab === "analytics" && <EarningsAnalyticsTab pro={pro} onNavigateTab={setActiveTab} />}
+        {activeTab === "today" && <TodayTab pro={pro} isOnline={isOnline} onNavigateTab={handleTabChange} />}
+        {activeTab === "orders" && <OrderHistoryTab pro={pro} onNavigateTab={handleTabChange} />}
+        {activeTab === "analytics" && <EarningsAnalyticsTab pro={pro} onNavigateTab={handleTabChange} />}
         {activeTab === "services" && <MyServicesTab pro={pro} />}
         {activeTab === "calendar" && <AvailabilityRulesTab pro={pro} />}
         {activeTab === "messages" && <MessagesTab pro={pro} />}
@@ -265,7 +277,7 @@ function ProDashboard({ pro, user }: { pro: ProRow; user: any }) {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id)}
+              onClick={() => handleTabChange(t.id)}
               className={`flex flex-col items-center justify-center py-1 min-w-[54px] flex-1 transition-colors ${
                 isActive ? "text-primary font-bold" : "text-muted-foreground"
               }`}

@@ -174,6 +174,18 @@ function MyProjectsPage() {
     });
   }, [projects, messages, user?.id]);
 
+  const handleTabChange = (tab: 'visits' | 'messages' | 'quotes') => {
+    if (typeof window !== 'undefined') {
+      const scrollY = window.scrollY;
+      setActiveTab(tab);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
   const handleSendMessage = async (projectId: string, content: string, receiverId?: string | null) => {
     if (!user) return;
     const { error } = await supabase.from('messages').insert({
@@ -264,7 +276,8 @@ function MyProjectsPage() {
         <div className="pt-6 pb-6">
           <div className="inline-flex items-center p-1 rounded-full bg-surface-subtle border border-border shadow-warm-xs gap-1">
             <button
-              onClick={() => setActiveTab('visits')}
+              type="button"
+              onClick={() => handleTabChange('visits')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 activeTab === 'visits'
                   ? 'bg-background text-foreground shadow-sm'
@@ -279,7 +292,8 @@ function MyProjectsPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('messages')}
+              type="button"
+              onClick={() => handleTabChange('messages')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 activeTab === 'messages'
                   ? 'bg-background text-foreground shadow-sm'
@@ -297,7 +311,8 @@ function MyProjectsPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('quotes')}
+              type="button"
+              onClick={() => handleTabChange('quotes')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 activeTab === 'quotes'
                   ? 'bg-background text-foreground shadow-sm'

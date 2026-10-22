@@ -483,7 +483,6 @@
   scrollbar-width: thin !important;
   scrollbar-color: hsl(var(--muted-foreground) / 0.28) transparent !important;
   overscroll-behavior-y: contain !important;
-  scroll-behavior: smooth;
 }
 .chat-scroll::-webkit-scrollbar {
   display: block !important;
