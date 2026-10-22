@@ -20,7 +20,6 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/karighar-api";
-import { professionals as dummyProfessionals } from "@/lib/karighar-data";
 import {
   askKarigharEngine,
   DetailedProjectBrief,
@@ -171,53 +170,22 @@ function ProfessionalsPage() {
       const { data, error } = await supabase.from("professionals").select("*, gigs(*)");
       if (error && error.code !== "PGRST116") throw error;
 
-      // Merge Supabase records with verified seed pool
       const combined = [...(data || [])];
-      for (const dummy of dummyProfessionals) {
-        if (!combined.some((p: any) => p.slug === dummy.id || p.id === dummy.id)) {
-          combined.push({
-            id: dummy.id,
-            slug: dummy.id,
-            name: dummy.name,
-            business: dummy.business,
-            trade: dummy.trade,
-            city: dummy.city,
-            bio: `${dummy.experience} specialist in ${dummy.trade}. Verified with SafePay protection in Mumbai.`,
-            experience: dummy.experience,
-            rating: dummy.rating,
-            reviews: dummy.reviews,
-            projects_count: dummy.projects,
-            image: dummy.image,
-            portfolio: dummy.portfolio,
-            badges: dummy.badges,
-            availability: dummy.availability,
-            price: dummy.price,
-            gigs: [
-              {
-                id: `${dummy.id}-gig-1`,
-                name: "Diagnostic Doorstep Visit",
-                starting_price: dummy.price,
-              } as any,
-            ],
-          } as any);
-        }
-      }
 
       let filtered = combined.map((pro: any) => {
-        const dummy = dummyProfessionals.find((d) => d.id === pro.slug || d.id === pro.id);
         const computedRating =
           pro.reviews && Array.isArray(pro.reviews) && pro.reviews.length > 0
             ? pro.reviews.reduce((acc: number, rev: any) => acc + (rev.rating || 0), 0) / pro.reviews.length
-            : dummy?.rating || pro.rating || 4.85;
+            : pro.rating || 0;
         const lowestGigPrice =
           pro.gigs && pro.gigs.length > 0
             ? Math.min(...pro.gigs.map((g: any) => g.starting_price || 0))
-            : dummy?.price || pro.price || 499;
+            : pro.price || pro.hourly_rate || 499;
 
         // "Why matched" summary line generator
-        const whyMatched = `${pro.trade.split("&")[0].trim()} specialist · serves ${
-          pro.city.split(",")[0]
-        } · ${pro.availability || "available today"} · verified credentials`;
+        const tradeTitle = (pro.trade || "Specialist").split("&")[0].trim();
+        const cityTitle = (pro.city || "Mumbai").split(",")[0];
+        const whyMatched = `${tradeTitle} specialist · serves ${cityTitle} · ${pro.availability || "available"} · verified credentials`;
 
         return {
           ...pro,

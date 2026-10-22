@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { calculateQuote, type PricingMode } from "@/lib/catalog";
-import { professionals } from "@/lib/karighar-data";
 import { useAuth } from "@/lib/karighar-api";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -170,11 +169,20 @@ function ServicesCatalogPage() {
   });
   const [doorstepGateInstructions, setDoorstepGateInstructions] = useState("");
 
+  // Query real professionals from Supabase
+  const { data: dbPros = [] } = useQuery({
+    queryKey: ["services-catalog-professionals"],
+    queryFn: async () => {
+      const { data } = await supabase.from("professionals").select("*");
+      return data || [];
+    },
+  });
+
   // Matched Pro for the Selected Service
   const matchedPro = useMemo(() => {
-    const found = professionals.find((p) => p.id === selectedService.proSlug);
-    return found || professionals[0];
-  }, [selectedService]);
+    const found = dbPros.find((p: any) => p.slug === selectedService.proSlug || p.trade?.toLowerCase().includes(selectedService.category.toLowerCase()));
+    return found || dbPros[0] || null;
+  }, [selectedService, dbPros]);
 
   // Saved user addresses from Account
   const savedUserAddresses = useMemo(() => {
@@ -405,7 +413,7 @@ function ServicesCatalogPage() {
             </h2>
             {CURATED_SERVICES.map((s) => {
               const isSelected = selectedService.id === s.id;
-              const proForService = professionals.find((p) => p.id === s.proSlug) || professionals[0];
+              const proForService = dbPros.find((p: any) => p.slug === s.proSlug || p.trade?.toLowerCase().includes(s.category.toLowerCase())) || dbPros[0];
 
               return (
                 <div
@@ -494,34 +502,43 @@ function ServicesCatalogPage() {
               </div>
 
               {/* Matched Pro Summary Card */}
-              <div className="p-3.5 rounded-xl bg-surface-subtle border border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={matchedPro.image}
-                    alt={matchedPro.name}
-                    className="size-11 rounded-xl object-cover border border-border"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-foreground block">{matchedPro.name}</span>
-                    <p className="text-[11px] text-muted-foreground">
-                      {matchedPro.business} · {matchedPro.city}
-                    </p>
-                    <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold mt-0.5">
-                      <Star className="size-3 fill-amber-400 text-amber-500" />
-                      <span>{matchedPro.rating}</span>
-                      <span className="text-muted-foreground font-normal">({matchedPro.reviews} verified reviews)</span>
+              {matchedPro ? (
+                <div className="p-3.5 rounded-xl bg-surface-subtle border border-border flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={matchedPro.image || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=120&q=80&auto=format&fit=crop"}
+                      alt={matchedPro.name}
+                      className="size-11 rounded-xl object-cover border border-border"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">{matchedPro.name}</span>
+                      <p className="text-[11px] text-muted-foreground">
+                        {matchedPro.business} · {matchedPro.city || "Mumbai"}
+                      </p>
+                      <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold mt-0.5">
+                        <Star className="size-3 fill-amber-400 text-amber-500" />
+                        <span>{matchedPro.rating || "0.0"}</span>
+                        <span className="text-muted-foreground font-normal">({matchedPro.projects_count || 0} jobs)</span>
+                      </div>
                     </div>
                   </div>
+                  <Link
+                    to="/professionals/$id"
+                    params={{ id: matchedPro.id }}
+                    className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5"
+                    title="View complete artisan profile"
+                  >
+                    Profile <ArrowUpRight className="size-3" />
+                  </Link>
                 </div>
-                <Link
-                  to="/professionals/$id"
-                  params={{ id: matchedPro.id }}
-                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5"
-                  title="View complete artisan profile"
-                >
-                  Profile <ArrowUpRight className="size-3" />
-                </Link>
-              </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-surface-subtle border border-border flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">Verified Karighar Dispatch</span>
+                    <p className="text-[11px] text-muted-foreground">Assigned to an active verified professional upon dispatch</p>
+                  </div>
+                </div>
+              )}
 
               {/* What's included */}
               <div className="py-2 border-b border-border space-y-2">

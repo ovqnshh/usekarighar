@@ -12,7 +12,6 @@ import {
   SafetyHazardRule,
   ServiceDefinition,
 } from "./search-dictionary";
-import { professionals } from "./karighar-data";
 
 export type SuggestionType = "problem" | "service" | "category" | "pro" | "recent";
 
@@ -216,29 +215,11 @@ export function querySearchIndex(rawQuery: string): SearchIndexResult {
     }
   }
 
-  // 4. Match Professionals & Storefront names
-  for (const pro of professionals) {
-    const proText = `${pro.name} ${pro.business} ${pro.trade}`.toLowerCase();
-    if (queryTokens.some((t) => proText.includes(t))) {
-      matchedPros.push({
-        id: `pro-${pro.id}`,
-        type: "pro",
-        title: pro.business,
-        subtitle: `${pro.name} • ${pro.trade} (${pro.rating} ★)`,
-        matchedTrade: pro.trade,
-        proId: pro.id,
-        iconName: "ShieldCheck",
-        queryToRun: `${pro.business}`,
-      });
-    }
-  }
-
   // Combine suggestions up to 8 items total, prioritized
   const combined: SearchSuggestion[] = [
     ...matchedProblems.slice(0, 4),
-    ...matchedServices.slice(0, 2),
-    ...matchedCategories.slice(0, 1),
-    ...matchedPros.slice(0, 2),
+    ...matchedServices.slice(0, 3),
+    ...matchedCategories.slice(0, 2),
   ].slice(0, 8);
 
   // If no exact match, fallback to popular or broad category

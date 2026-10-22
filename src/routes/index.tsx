@@ -30,7 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { professionals } from "@/lib/karighar-data";
+import { useQuery } from "@tanstack/react-query";
 import { useShortlist } from "@/lib/shortlist";
 import { Link } from "@tanstack/react-router";
 import { parseProjectRequest, DetailedProjectBrief } from "@/lib/ask-karighar.functions";
@@ -307,11 +307,19 @@ function HomePage() {
   const [postLoading, setPostLoading] = useState(false);
   const [brief, setBrief] = useState<any | null>(null);
 
+  const { data: dbPros = [] } = useQuery({
+    queryKey: ["home-featured-professionals"],
+    queryFn: async () => {
+      const { data } = await supabase.from("professionals").select("*, gigs(*)");
+      return data || [];
+    },
+  });
+
   const matchedPros = useMemo(() => {
-    if (!brief?.tradeCategory) return [];
+    if (!brief?.tradeCategory) return dbPros.slice(0, 3);
     const cat = brief.tradeCategory.toLowerCase();
-    const list = professionals.filter((p) => {
-      const proTrade = p.trade.toLowerCase();
+    const list = dbPros.filter((p: any) => {
+      const proTrade = (p.trade || "").toLowerCase();
       return (
         proTrade === cat ||
         proTrade.includes(cat) ||
@@ -319,8 +327,8 @@ function HomePage() {
         (brief.trades && proTrade.includes(brief.trades.toLowerCase()))
       );
     });
-    return list.length > 0 ? list : professionals.slice(0, 3);
-  }, [brief]);
+    return list.length > 0 ? list : dbPros.slice(0, 3);
+  }, [brief, dbPros]);
 
   // Quick Direct Booking Modal on Home
   const [bookingPro, setBookingPro] = useState<any | null>(null);
@@ -798,73 +806,97 @@ function HomePage() {
             toLabel="View all Karighars"
           />
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {professionals.slice(0, 3).map((p) => (
-              <article
-                key={p.id}
-                onClick={() => navigate({ to: '/professionals/$id', params: { id: p.id } })}
-                className="group rounded-2xl border border-border bg-card p-5 shadow-warm-xs hover:border-primary/40 hover:shadow-warm transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  {/* Lead with best work photo */}
-                  <div className="relative overflow-hidden rounded-xl mb-4 aspect-[16/10]">
-                    <img
-                      src={p.portfolio[0]}
-                      alt={`${p.business} work`}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute top-2.5 right-2.5">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggle(p.id);
-                        }}
-                        className="rounded-full bg-background/85 p-2 text-foreground/80 backdrop-blur-sm hover:text-primary transition-colors"
-                        title={has(p.id) ? "Remove from Shortlist" : "Save to Shortlist"}
-                      >
-                        <Heart className={`size-4 ${has(p.id) ? "fill-primary text-primary" : ""}`} />
-                      </button>
+          {dbPros.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center">
+              <p className="text-base font-medium text-foreground">No artisans registered yet in this area.</p>
+              <p className="text-sm text-muted-foreground mt-1">Be the first verified master craftsman to list services on Karighar.</p>
+              <div className="mt-4">
+                <Button onClick={() => navigate({ to: '/auth', search: { role: 'pro' } })} className="rounded-full shadow-warm">
+                  Join as a Verified Karighar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dbPros.slice(0, 3).map((p: any) => (
+                <article
+                  key={p.id}
+                  onClick={() => navigate({ to: '/professionals/$id', params: { id: p.id } })}
+                  className="group rounded-2xl border border-border bg-card p-5 shadow-warm-xs hover:border-primary/40 hover:shadow-warm transition-all flex flex-col justify-between cursor-pointer"
+                >
+                  <div>
+                    {/* Lead with best work photo */}
+                    <div className="relative overflow-hidden rounded-xl mb-4 aspect-[16/10] bg-muted">
+                      {p.portfolio && p.portfolio.length > 0 ? (
+                        <img
+                          src={p.portfolio[0]}
+                          alt={`${p.business} work`}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : p.image ? (
+                        <img
+                          src={p.image}
+                          alt={`${p.business} work`}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                          Verified Karighar Workshop
+                        </div>
+                      )}
+                      <div className="absolute top-2.5 right-2.5">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggle(p.id);
+                          }}
+                          className="rounded-full bg-background/85 p-2 text-foreground/80 backdrop-blur-sm hover:text-primary transition-colors"
+                          title={has(p.id) ? "Remove from Shortlist" : "Save to Shortlist"}
+                        >
+                          <Heart className={`size-4 ${has(p.id) ? "fill-primary text-primary" : ""}`} />
+                        </button>
+                      </div>
+                      <span className="absolute bottom-2.5 left-2.5 rounded-md bg-black/75 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                        {p.city || "Mumbai"}
+                      </span>
                     </div>
-                    <span className="absolute bottom-2.5 left-2.5 rounded-md bg-black/75 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-                      {p.city}
-                    </span>
-                  </div>
 
-                  {/* Specialist Face & Credentials */}
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      className="size-11 rounded-full object-cover border border-border shrink-0"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-base text-foreground leading-snug group-hover:text-primary transition-colors">
-                        {p.business}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">{p.name} · {p.experience}</p>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs">
-                        <span className="flex items-center gap-1 font-semibold text-foreground">
-                          <Star className="size-3.5 fill-primary text-primary" /> {p.rating}
-                        </span>
-                        <span className="text-muted-foreground">({p.reviews} verified jobs)</span>
+                    {/* Specialist Face & Credentials */}
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={p.image || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=120&q=80&auto=format&fit=crop"}
+                        alt={p.name}
+                        className="size-11 rounded-full object-cover border border-border shrink-0"
+                      />
+                      <div>
+                        <h3 className="font-semibold text-base text-foreground leading-snug group-hover:text-primary transition-colors">
+                          {p.business || p.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">{p.name} · {p.experience || "Verified Artisan"}</p>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs">
+                          <span className="flex items-center gap-1 font-semibold text-foreground">
+                            <Star className="size-3.5 fill-primary text-primary" /> {p.rating || "0.0"}
+                          </span>
+                          <span className="text-muted-foreground">({p.projects_count || 0} verified jobs)</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] uppercase text-muted-foreground block">Starting from</span>
-                    <span className="font-bold text-foreground text-sm font-mono">₹{p.price}</span>
+                  <div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase text-muted-foreground block">Starting from</span>
+                      <span className="font-bold text-foreground text-sm font-mono">₹{p.price || p.hourly_rate || 499}</span>
+                    </div>
+                    <Button size="sm" className="font-semibold text-xs shadow-warm-xs pointer-events-none group-hover:bg-primary/90">
+                      View Storefront
+                    </Button>
                   </div>
-                  <Button size="sm" className="font-semibold text-xs shadow-warm-xs pointer-events-none group-hover:bg-primary/90">
-                    View Storefront
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── 3A.2 Feature 7: How A Service Visit Works (Educational) ── */}

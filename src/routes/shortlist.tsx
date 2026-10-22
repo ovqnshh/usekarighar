@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Heart, Star } from "lucide-react";
 import { PageShell, TrustBadge } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
-import { professionals as mockProfessionals } from "@/lib/karighar-data";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/karighar-api";
@@ -43,7 +42,6 @@ function Shortlist() {
       const { data } = await supabase.from('professionals').select('*').in('id', savedIds);
       
       return (data || []).map((p: any) => {
-        const dummy = mockProfessionals.find(d => d.id === p.slug) || {};
         return {
           id: p.id,
           slug: p.slug,
@@ -51,14 +49,14 @@ function Shortlist() {
           business: p.business,
           trade: p.trade,
           city: p.city,
-          rating: p.rating,
-          reviews: p.reviews,
-          projects: p.projects_count,
-          experience: p.experience,
-          image: (dummy as any).image || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${p.id}`,
-          price: (dummy as any).price || 500,
-          availability: (dummy as any).availability || "Available now",
-          badges: (dummy as any).badges || [],
+          rating: p.rating || 0,
+          reviews: p.reviews || 0,
+          projects: p.projects_count || 0,
+          experience: p.experience || "Verified Artisan",
+          image: p.image || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${p.id}`,
+          price: p.price || p.hourly_rate || 500,
+          availability: p.availability || "Available",
+          badges: p.badges || [],
         };
       });
     },

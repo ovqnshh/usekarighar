@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { BeforeAfterSlider } from '@/components/before-after-slider';
-import { professionals as dummyProfessionals, projectImages } from '@/lib/karighar-data';
+import { projectImages } from '@/lib/karighar-data';
 
 import arjunPortrait from '@/assets/arjun-portrait.jpg';
 import meeraPortrait from '@/assets/meera-portrait.jpg';
@@ -192,28 +192,12 @@ const professionalQueryOptions = (slug: string) => queryOptions({
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    const dummy = dummyProfessionals.find(p => p.id === slug || (data && p.id === data.slug));
-    const pro = data || (dummy ? {
-      id: dummy.id,
-      slug: dummy.id,
-      name: dummy.name,
-      business: dummy.business,
-      trade: dummy.trade,
-      city: dummy.city,
-      rating: dummy.rating,
-      reviews: dummy.reviews,
-      projects_count: dummy.projects,
-      bio: `Master craftsman with ${dummy.experience} in ${dummy.trade}. Verified on Karighar with SafePay escrow protection in ${dummy.city}.`,
-      experience: dummy.experience,
-      hourly_rate: dummy.price,
-      gigs: [],
-    } : null);
-
+    const pro = data;
     if (!pro) return null;
 
     let dbReviews: any[] = [];
-    let projectsCount = pro.projects_count ?? dummy?.projects ?? 0;
-    let verifications: any[] = (dummy?.badges || []).map(b => ({ type: b, status: 'verified' }));
+    let projectsCount = pro.projects_count ?? 0;
+    let verifications: any[] = [];
     let availability: any[] = [];
     let scheduledProjects: any[] = [];
 
