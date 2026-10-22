@@ -101,7 +101,6 @@ export function KarigharChatPanel({
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isTypingSimulated, setIsTypingSimulated] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -230,9 +229,6 @@ export function KarigharChatPanel({
       await onSendMessage(activeThread.projectId, payload, receiverId);
       setInputText("");
       setPendingAttachment(null);
-      // Simulate quick typing response indicator for 1.8 seconds in demo
-      setIsTypingSimulated(true);
-      setTimeout(() => setIsTypingSimulated(false), 2400);
     } catch (err: any) {
       toast.error("Message delivery failed: " + err.message);
     } finally {
@@ -499,23 +495,6 @@ export function KarigharChatPanel({
                   </motion.div>
                 );
               })
-            )}
-
-            {/* Simulated Live Typing Indicator */}
-            {isTypingSimulated && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-1.5 bg-surface-subtle border border-border px-3 py-1.5 rounded-full w-fit text-xs text-muted-foreground shadow-xs"
-              >
-                <span className="text-[11px] font-medium">{activeThread.otherPartyName} is typing</span>
-                <span className="flex items-center gap-0.5 ml-1">
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-                  <span className="size-1.5 rounded-full bg-primary animate-bounce" />
-                </span>
-              </motion.div>
             )}
 
             <div ref={messagesEndRef} />
