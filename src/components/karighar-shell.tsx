@@ -3,7 +3,7 @@ import {
   Hammer, LogOut, Menu, Paintbrush, Wrench, LayoutGrid,
   Heart, Sparkles, LayoutDashboard, X, Home as HomeIcon,
   ChevronRight, Search, Globe, FolderOpen, User, MapPin, ChevronDown, Check,
-  Crosshair, Navigation, Loader2, Building, ShieldCheck
+  Crosshair, Navigation, Loader2, Building, ShieldCheck, MessageSquare
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import {
@@ -569,6 +569,12 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 text-sm">
                     <Link to="/my-projects">{t.myProjects}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 text-sm">
+                    <Link to="/my-projects" search={{ tab: "messages" }} className="flex items-center justify-between w-full">
+                      <span>Messages & Chats</span>
+                      <MessageSquare className="size-3.5 text-primary" />
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 text-sm">
                     <Link to="/account">{t.account}</Link>

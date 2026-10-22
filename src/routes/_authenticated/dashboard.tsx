@@ -26,6 +26,7 @@ import { Brand } from "@/components/karighar-shell";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
+import { KarigharChatPanel } from "@/components/karighar-chat-panel";
 import { CURATED_SERVICES, type CuratedService } from "../services.index";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -4009,7 +4010,7 @@ function MessagesTab({ pro }: { pro: ProRow }) {
     queryFn: async () => {
       try {
         const [projRes, quoteRes] = await Promise.all([
-          supabase.from("projects").select("id").eq("professional_id", pro.id),
+          supabase.from("projects").select("id, title, customer_id, location").eq("professional_id", pro.id),
           supabase.from("quotes").select("project_id").eq("professional_id", pro.id),
         ]);
 
@@ -4021,7 +4022,7 @@ function MessagesTab({ pro }: { pro: ProRow }) {
         let query = supabase
           .from("messages")
           .select("*, projects(id, title, customer_id, location)")
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: true });
 
         if (idList.length > 0 && pro.user_id) {
           query = query.or(`project_id.in.(${idList.join(",")}),sender_id.eq.${pro.user_id},receiver_id.eq.${pro.user_id}`);
@@ -4057,13 +4058,16 @@ function MessagesTab({ pro }: { pro: ProRow }) {
           projectId: msg.project_id,
           title: msg.projects?.title || "Customer Inquiry",
           location: msg.projects?.location || pro.city || "Mumbai",
-          customerId: msg.projects?.customer_id,
+          otherPartyName: "Mumbai Homeowner",
+          otherPartyRole: msg.projects?.title || "Diagnostic Visit",
+          otherPartyId: msg.projects?.customer_id || (msg.sender_id === user?.id ? msg.receiver_id : msg.sender_id),
           lastMessage: msg,
           unread: msg.receiver_id === user?.id && !msg.read,
           messages: [],
         });
       }
       grouped.get(msg.project_id).messages.push(msg);
+      grouped.get(msg.project_id).lastMessage = msg;
       if (msg.receiver_id === user?.id && !msg.read) {
         grouped.get(msg.project_id).unread = true;
       }
@@ -4073,197 +4077,39 @@ function MessagesTab({ pro }: { pro: ProRow }) {
     );
   }, [messages, user?.id, pro.city]);
 
-  const activeThread = activeProjectId ? threads.find((t) => t.projectId === activeProjectId) : threads[0];
-
-  const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!activeThread || !user) return;
-    const form = e.currentTarget;
-    const input = form.elements.namedItem("content") as HTMLInputElement;
-    if (!input.value.trim()) return;
-
-    const firstMsg = activeThread.messages[0];
-    const receiverId = activeThread.customerId || (firstMsg?.sender_id === user.id ? firstMsg?.receiver_id : firstMsg?.sender_id);
-    const content = input.value.trim();
-    input.value = "";
-
+  const handleSendMessage = async (projectId: string, content: string, receiverId?: string | null) => {
+    if (!user) return;
     const { error } = await supabase.from("messages").insert({
       sender_id: user.id,
       receiver_id: receiverId || null,
-      project_id: activeThread.projectId,
+      project_id: projectId,
       content,
       read: false,
     });
-
-    if (error) {
-      toast.error("Failed to send message: " + error.message);
-    } else {
-      qc.invalidateQueries({ queryKey: ["pro-messages", pro.id, pro.user_id] });
-    }
-  };
-
-  const sendQuickReply = async (text: string) => {
-    if (!activeThread || !user) return;
-    const firstMsg = activeThread.messages[0];
-    const receiverId = activeThread.customerId || (firstMsg?.sender_id === user.id ? firstMsg?.receiver_id : firstMsg?.sender_id);
-
-    const { error } = await supabase.from("messages").insert({
-      sender_id: user.id,
-      receiver_id: receiverId || null,
-      project_id: activeThread.projectId,
-      content: text,
-      read: false,
-    });
-
-    if (error) {
-      toast.error("Failed to send quick reply: " + error.message);
-    } else {
-      toast.success("Quick reply sent!");
-      qc.invalidateQueries({ queryKey: ["pro-messages", pro.id, pro.user_id] });
-    }
+    if (error) throw error;
+    qc.invalidateQueries({ queryKey: ["pro-messages", pro.id, pro.user_id] });
   };
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl sm:text-3xl font-semibold text-foreground">
-          Customer Inquiries
+          Customer Inquiries & Chat
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Direct messages sent through your storefront profile or project quotes.
+          Real-time conversations with Mumbai homeowners backed by Karighar SafePay Escrow protection.
         </p>
       </div>
 
-      <div className="border border-border rounded-2xl h-[650px] bg-card shadow-warm-xs flex overflow-hidden">
-
-        {/* Left Pane: Conversations */}
-        <div className="w-80 border-r border-border flex flex-col shrink-0 bg-surface-subtle/50">
-          <div className="p-4 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Conversations</span>
-            <span className="text-xs font-semibold text-primary">{threads.length} Active</span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto divide-y divide-border/60">
-            {threads.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted-foreground space-y-2">
-                <MessageSquare className="size-8 text-muted-foreground mx-auto" />
-                <p>No messages yet. When customers click "Message on Karighar" from your profile, it opens here.</p>
-              </div>
-            ) : (
-              threads.map((t) => (
-                <div
-                  key={t.projectId}
-                  onClick={() => setActiveProjectId(t.projectId)}
-                  className={`p-3.5 cursor-pointer transition-colors ${
-                    (activeThread?.projectId === t.projectId) ? "bg-card border-l-4 border-primary shadow-warm-xs" : "hover:bg-card/70"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="font-semibold text-xs text-foreground truncate">{t.title}</h4>
-                    {t.unread && <span className="size-2 rounded-full bg-primary shrink-0" />}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-1">
-                    {t.lastMessage.content}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Right Pane: Thread Content */}
-        {activeThread ? (
-          <div className="flex-1 flex flex-col h-full bg-card">
-            {/* Thread Header */}
-            <div className="p-4 border-b border-border flex items-center justify-between bg-surface-subtle/30">
-              <div>
-                <h3 className="font-semibold text-sm text-foreground">{activeThread.title}</h3>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="size-3 text-primary" /> {activeThread.location} · Protected by SafePay
-                </p>
-              </div>
-              <Link
-                to="/projects/$id"
-                params={{ id: activeThread.projectId }}
-                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-              >
-                View Project Details <ArrowUpRight className="size-3" />
-              </Link>
-            </div>
-
-            {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col-reverse">
-              {activeThread.messages.map((msg: any) => {
-                const isMe = msg.sender_id === user?.id;
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col max-w-[75%] ${isMe ? "self-end items-end" : "self-start items-start"}`}
-                  >
-                    <div
-                      className={`p-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
-                        isMe
-                          ? "bg-primary text-primary-foreground rounded-tr-sm shadow-warm-xs"
-                          : "bg-surface-subtle text-foreground rounded-tl-sm border border-border"
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Fast Reply Suggestions */}
-            <div className="px-4 py-2 border-t border-border bg-surface-subtle/30 flex flex-wrap gap-2">
-              <span className="text-[11px] text-muted-foreground font-semibold mr-1 flex items-center">Fast Replies:</span>
-              {[
-                "I can arrive within 45 mins",
-                "Please share a photo of the unit",
-                "Quote submitted under SafePay",
-              ].map((txt) => (
-                <button
-                  key={txt}
-                  type="button"
-                  onClick={() => sendQuickReply(txt)}
-                  className="text-[11px] font-medium bg-background border border-border hover:border-primary/50 text-foreground px-2.5 py-1 rounded-full transition-colors"
-                >
-                  {txt}
-                </button>
-              ))}
-            </div>
-
-            {/* Message Input Box */}
-            <div className="p-3 border-t border-border bg-card">
-              <form onSubmit={sendMessage} className="flex gap-2">
-                <input
-                  name="content"
-                  type="text"
-                  placeholder="Type your message on Karighar..."
-                  className="flex-1 bg-surface-subtle border border-border rounded-xl px-4 py-2.5 text-xs sm:text-sm outline-none focus:ring-1 focus:ring-primary"
-                  autoComplete="off"
-                />
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-4 gap-1.5 text-xs font-semibold">
-                  <Send className="size-3.5" />
-                  Send
-                </Button>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-            <MessageSquare className="size-12 text-muted-foreground/30 mb-3" />
-            <h3 className="font-display text-lg font-semibold text-foreground">Customer Inquiries</h3>
-            <p className="text-xs max-w-xs mt-1">
-              Select an inquiry on the left to read and respond to customer questions.
-            </p>
-          </div>
-        )}
-
-      </div>
+      <KarigharChatPanel
+        threads={threads}
+        activeProjectId={activeProjectId}
+        onSelectThread={setActiveProjectId}
+        currentUserId={user?.id}
+        isPro={true}
+        onSendMessage={handleSendMessage}
+        emptyPlaceholder="No active customer messages"
+      />
     </div>
   );
 }

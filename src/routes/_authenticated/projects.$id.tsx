@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { inr, materialsLabel, statusLabel, useAuth } from "@/lib/karighar-api";
-import { ShieldCheck, Phone, FileCheck, Send, Sparkles, Check, Clock3 } from "lucide-react";
+import {
+  ShieldCheck, Phone, FileCheck, Send, Sparkles, Check, Clock3,
+  Paperclip, Camera, CheckCheck, Maximize2, Download, X
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { parseMessageContent } from "@/components/karighar-chat-panel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [
@@ -28,6 +34,10 @@ function ProjectDetail() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [offerAmount, setOfferAmount] = useState("");
+  const [pendingAttachment, setPendingAttachment] = useState<{ name: string; url: string } | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase.from("messages").select("*").eq("project_id", id).order("created_at", { ascending: true })
@@ -42,21 +52,50 @@ function ProjectDetail() {
     return () => { supabase.removeChannel(sub); };
   }, [id]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be under 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPendingAttachment({ name: file.name, url: reader.result as string });
+      toast.success(`Attached "${file.name}" — hit send!`);
+      textInputRef.current?.focus();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   async function sendMessage(isSpecialOffer = false) {
-    if (!newMessage.trim() && !isSpecialOffer) return;
+    if (!newMessage.trim() && !pendingAttachment && !isSpecialOffer) return;
     if (!user) return;
     const proj = project.data;
     const receiverId = user.id === proj?.customer_id ? proj?.professionals?.user_id : proj?.customer_id;
+
+    let content = newMessage.trim();
+    if (pendingAttachment) {
+      content = `[ATTACHMENT:${pendingAttachment.url}|${pendingAttachment.name}] ${content}`;
+    } else if (isSpecialOffer) {
+      content = `Special offer: ₹${offerAmount}`;
+    }
+
     const { error } = await supabase.from("messages").insert({
       project_id: id,
       sender_id: user.id,
       receiver_id: receiverId || null,
-      content: newMessage || `Special offer: ₹${offerAmount}`,
+      content,
       is_special_offer: isSpecialOffer,
       offer_amount: isSpecialOffer ? Number(offerAmount) : null
     });
     if (error) toast.error("Failed to send message: " + error.message);
-    else { setNewMessage(""); setOfferAmount(""); }
+    else {
+      setNewMessage("");
+      setOfferAmount("");
+      setPendingAttachment(null);
+    }
   }
 
   const project = useQuery({
@@ -289,23 +328,57 @@ function ProjectDetail() {
 
         {/* Chat & Negotiation */}
         <div className="mt-10">
-          <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Project Discussion</h2>
-          <div className="flex flex-col h-[460px] border border-border rounded-xl bg-card overflow-hidden shadow-warm-xs">
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-display text-2xl font-semibold text-foreground">Project Discussion</h2>
+              <p className="text-xs text-muted-foreground">SafePay custodial chat with verified photo sharing</p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 font-medium">
+              <ShieldCheck className="size-3.5 text-emerald-600" />
+              End-to-End Escrow Protected
+            </span>
+          </div>
+
+          <div className="flex flex-col h-[520px] border border-border rounded-2xl bg-card overflow-hidden shadow-warm-xs">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-                  No messages yet. Send a note to discuss timings, materials, or questions.
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-muted-foreground">
+                  <div className="size-12 rounded-2xl bg-surface-subtle flex items-center justify-center text-primary">
+                    <Send className="size-6" />
+                  </div>
+                  <h4 className="font-semibold text-foreground text-sm">No messages yet</h4>
+                  <p className="text-xs max-w-sm">
+                    Send a note to discuss timings, materials, or share photos of the issue.
+                  </p>
                 </div>
               ) : (
                 messages.map((m) => {
                   const isMine = m.sender_id === user?.id;
+                  const parsed = parseMessageContent(m.content);
+
                   return (
-                    <div key={m.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
-                      <div className={`px-4 py-2.5 rounded-xl max-w-[80%] text-sm ${
-                        isMine
-                          ? "bg-primary text-primary-foreground rounded-br-none"
-                          : "bg-surface-subtle text-foreground rounded-bl-none border border-border"
-                      } ${m.is_special_offer ? "!bg-warning-soft !text-foreground border border-warning/30" : ""}`}>
+                    <motion.div
+                      key={m.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                      className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                    >
+                      <div
+                        className={`p-3.5 rounded-2xl max-w-[82%] sm:max-w-[70%] text-xs sm:text-sm shadow-warm-xs leading-relaxed ${
+                          isMine
+                            ? "bg-primary text-primary-foreground rounded-br-xs"
+                            : "bg-surface-subtle text-foreground rounded-bl-xs border border-border"
+                        } ${m.is_special_offer ? "!bg-warning-soft !text-foreground border border-warning/30" : ""}`}
+                      >
                         {m.is_special_offer ? (
                           <div className="space-y-1.5">
                             <span className="font-bold text-[10px] uppercase tracking-wider text-warning flex items-center gap-1">
@@ -320,19 +393,78 @@ function ProjectDetail() {
                             )}
                           </div>
                         ) : (
-                          <p className="leading-relaxed">{m.content}</p>
+                          <>
+                            {parsed.hasAttachment && parsed.attachmentUrl && (
+                              <div className="mb-2 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 relative group/img bg-black/5">
+                                <img
+                                  src={parsed.attachmentUrl}
+                                  alt={parsed.attachmentName || "Attached photo"}
+                                  className="w-full max-h-56 object-cover cursor-pointer hover:scale-[1.02] transition-transform"
+                                  onClick={() => setZoomedImage(parsed.attachmentUrl)}
+                                />
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/75 text-white text-[10px] px-2 py-0.5 rounded-full">
+                                  <Maximize2 className="size-3" />
+                                  <span>Zoom</span>
+                                </div>
+                              </div>
+                            )}
+                            {parsed.text && <p className="whitespace-pre-wrap">{parsed.text}</p>}
+                          </>
                         )}
                       </div>
-                      <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5 px-1">
+                        <Clock className="size-2.5" />
+                        <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {isMine && <CheckCheck className="size-3 text-primary ml-0.5" />}
+                      </div>
+                    </motion.div>
                   );
                 })
               )}
             </div>
 
-            <div className="p-3 border-t border-border bg-surface-subtle">
+            {/* Fast Reply Suggestions (Populates textbox for edits!) */}
+            <div className="px-4 py-2 border-t border-border bg-surface-subtle/40 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+                Fast Replies:
+              </span>
+              {[
+                "Are you available for visit today?",
+                "I have attached photos of the issue",
+                "What is the cost estimate for spares?",
+                "Please confirm your arrival time",
+              ].map((txt) => (
+                <button
+                  key={txt}
+                  type="button"
+                  onClick={() => {
+                    setNewMessage(txt);
+                    textInputRef.current?.focus();
+                    toast.info("Fast reply inserted — you can edit before sending!");
+                  }}
+                  className="text-xs font-medium whitespace-nowrap bg-background hover:bg-surface-subtle border border-border text-foreground px-3 py-1 rounded-full transition-colors shadow-warm-xs"
+                >
+                  {txt}
+                </button>
+              ))}
+            </div>
+
+            {/* Pending Attachment Chip */}
+            {pendingAttachment && (
+              <div className="px-4 py-2 border-t border-border bg-primary/5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <img src={pendingAttachment.url} alt={pendingAttachment.name} className="size-8 rounded-lg object-cover border" />
+                  <span className="text-xs font-semibold truncate">Ready: {pendingAttachment.name}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setPendingAttachment(null)} className="h-6 w-6 p-0">
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <div className="p-3 border-t border-border bg-card">
               {user?.id !== p.customer_id && (
                 <div className="flex gap-2 mb-2">
                   <Input
@@ -347,20 +479,54 @@ function ProjectDetail() {
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-10 w-10 p-0 text-muted-foreground hover:text-foreground rounded-xl shrink-0"
+                  title="Attach photo"
+                >
+                  <Paperclip className="size-4" />
+                </Button>
+
                 <Input
+                  ref={textInputRef}
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                  placeholder="Type a message…"
-                  className="bg-background text-sm h-10"
+                  placeholder="Type a message or question…"
+                  className="bg-surface-subtle border-border text-xs sm:text-sm h-10 flex-1 rounded-xl"
                 />
-                <Button onClick={() => sendMessage(false)} className="h-10 px-4">
-                  <Send className="size-4" strokeWidth={1.5} />
+                <Button onClick={() => sendMessage(false)} className="h-10 px-4 rounded-xl gap-1.5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-warm shrink-0">
+                  <span>Send</span>
+                  <Send className="size-3.5" strokeWidth={1.5} />
                 </Button>
               </div>
             </div>
           </div>
+
+          {/* Lightbox Zoom Dialog */}
+          {zoomedImage && (
+            <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
+              <DialogContent className="max-w-2xl bg-card border border-border p-3">
+                <DialogHeader className="p-2 border-b border-border">
+                  <DialogTitle className="text-xs font-semibold">Attached Photo</DialogTitle>
+                </DialogHeader>
+                <div className="p-2 flex items-center justify-center max-h-[70vh]">
+                  <img src={zoomedImage} alt="Zoomed" className="max-h-[65vh] rounded-xl object-contain" />
+                </div>
+                <DialogFooter className="p-2 border-t border-border flex justify-between">
+                  <a href={zoomedImage} download="karighar-photo.jpg" className="text-xs font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-subtle border rounded-lg">
+                    <Download className="size-3.5" />
+                    <span>Download</span>
+                  </a>
+                  <Button onClick={() => setZoomedImage(null)} size="sm" className="text-xs">Close</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </main>
     </PageShell>
