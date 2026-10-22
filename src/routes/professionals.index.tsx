@@ -600,20 +600,14 @@ function ProfessionalsPage() {
                     {/* Photo, Shortlist & Availability */}
                     <div>
                       <div className="relative overflow-hidden rounded-xl">
-                        <Link
-                          to="/professionals/$id"
-                          params={{ id: pro.slug || pro.id }}
-                          className="block"
-                        >
-                          <img
-                            src={
-                              pro.image ||
-                              `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`
-                            }
-                            alt={pro.business}
-                            className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                          />
-                        </Link>
+                        <img
+                          src={
+                            pro.image ||
+                            `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`
+                          }
+                          alt={pro.business}
+                          className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
 
                         {/* Shortlist Heart Button */}
                         <button
@@ -647,13 +641,9 @@ function ProfessionalsPage() {
                       {/* Info & Rating */}
                       <div className="mt-3 space-y-1.5">
                         <div className="flex items-start justify-between gap-1">
-                          <Link
-                            to="/professionals/$id"
-                            params={{ id: pro.slug || pro.id }}
-                            className="font-display font-semibold text-base text-foreground group-hover:text-primary transition-colors truncate"
-                          >
+                          <h3 className="font-display font-semibold text-base text-foreground group-hover:text-primary transition-colors truncate">
                             {pro.business}
-                          </Link>
+                          </h3>
                           <span className="flex shrink-0 items-center gap-1 rounded-md bg-surface-subtle px-1.5 py-0.5 text-xs font-semibold">
                             <Star className="size-3 fill-amber-500 text-amber-500" />
                             {pro.computedRating ? pro.computedRating.toFixed(2) : "4.90"}
@@ -703,13 +693,10 @@ function ProfessionalsPage() {
 
                       <div className="flex items-center gap-1.5">
                         <Button
-                          asChild
                           size="sm"
-                          className="text-xs px-3 font-semibold shadow-warm-xs"
+                          className="text-xs px-3 font-semibold shadow-warm-xs group-hover:bg-primary/90 pointer-events-none"
                         >
-                          <Link to="/professionals/$id" params={{ id: pro.slug || pro.id }}>
-                            View Storefront
-                          </Link>
+                          View Storefront
                         </Button>
                       </div>
                     </div>

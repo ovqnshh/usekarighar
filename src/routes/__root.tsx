@@ -4,8 +4,10 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
+  ScrollRestoration,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -123,16 +125,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    // Instantly scroll to top on every route change
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
 
   return (
     <ReactLenis root>
       <QueryClientProvider client={queryClient}>
         <I18nProvider>
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
-        <AdminPanel />
-        <Toaster richColors position="top-center" />
+          <ScrollRestoration />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
+          <AdminPanel />
+          <Toaster richColors position="top-center" />
         </I18nProvider>
       </QueryClientProvider>
     </ReactLenis>

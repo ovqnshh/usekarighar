@@ -192,55 +192,87 @@ function HomePage() {
             {/* Right: Asymmetric Service Scene Collage */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
               <div className="space-y-3.5">
-                <div className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative">
+                <Link
+                  to="/professionals"
+                  search={{ q: 'plumbing', category: 'fix' }}
+                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
+                >
                   <img
                     src={waterTankImage}
                     alt="Plumbing maintenance scene"
                     className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3.5 text-white">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Plumbing Care</span>
-                    <p className="text-xs font-semibold leading-tight mt-0.5">Pressure valves & pipe restoration</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3.5 text-white">
+                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
+                      Plumbing Care
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
+                      Pressure valves & pipe restoration
+                    </p>
                   </div>
-                </div>
+                </Link>
 
-                <div className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative">
+                <Link
+                  to="/professionals"
+                  search={{ q: 'electrical', category: 'fix' }}
+                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
+                >
                   <img
                     src={electricalImage}
                     alt="Electrical safety scene"
                     className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Electrical Safety</span>
-                    <p className="text-xs font-semibold leading-tight mt-0.5">MCB load balance</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 text-white">
+                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
+                      Electrical Safety
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
+                      MCB load balance
+                    </p>
                   </div>
-                </div>
+                </Link>
               </div>
 
               <div className="space-y-3.5 pt-6">
-                <div className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative">
+                <Link
+                  to="/professionals"
+                  search={{ q: 'carpentry', category: 'build' }}
+                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
+                >
                   <img
                     src={wardrobeImage}
                     alt="Custom woodwork scene"
                     className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Carpentry</span>
-                    <p className="text-xs font-semibold leading-tight mt-0.5">Marine-ply woodwork</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 text-white">
+                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
+                      Carpentry
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
+                      Marine-ply woodwork
+                    </p>
                   </div>
-                </div>
+                </Link>
 
-                <div className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative">
+                <Link
+                  to="/professionals"
+                  search={{ q: 'waterproofing', category: 'renovate' }}
+                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
+                >
                   <img
                     src={bathroomImage}
                     alt="Tile & waterproofing scene"
                     className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3.5 text-white">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Waterproofing</span>
-                    <p className="text-xs font-semibold leading-tight mt-0.5">Joint barrier seal</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3.5 text-white">
+                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
+                      Waterproofing
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
+                      Joint barrier seal
+                    </p>
                   </div>
-                </div>
+                </Link>
               </div>
             </div>
 
@@ -584,7 +616,8 @@ function HomePage() {
             {professionals.slice(0, 3).map((p) => (
               <article
                 key={p.id}
-                className="group rounded-2xl border border-border bg-card p-5 shadow-warm-xs hover:border-primary/40 hover:shadow-warm transition-all flex flex-col justify-between"
+                onClick={() => navigate({ to: '/professionals/$id', params: { id: p.id } })}
+                className="group rounded-2xl border border-border bg-card p-5 shadow-warm-xs hover:border-primary/40 hover:shadow-warm transition-all flex flex-col justify-between cursor-pointer"
               >
                 <div>
                   {/* Lead with best work photo */}
@@ -596,7 +629,11 @@ function HomePage() {
                     />
                     <div className="absolute top-2.5 right-2.5">
                       <button
-                        onClick={(e) => { e.preventDefault(); toggle(p.id); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggle(p.id);
+                        }}
                         className="rounded-full bg-background/85 p-2 text-foreground/80 backdrop-blur-sm hover:text-primary transition-colors"
                         title={has(p.id) ? "Remove from Shortlist" : "Save to Shortlist"}
                       >
@@ -616,7 +653,9 @@ function HomePage() {
                       className="size-11 rounded-full object-cover border border-border shrink-0"
                     />
                     <div>
-                      <h3 className="font-semibold text-base text-foreground leading-snug">{p.business}</h3>
+                      <h3 className="font-semibold text-base text-foreground leading-snug group-hover:text-primary transition-colors">
+                        {p.business}
+                      </h3>
                       <p className="text-xs text-muted-foreground">{p.name} · {p.experience}</p>
                       <div className="flex items-center gap-2 mt-1.5 text-xs">
                         <span className="flex items-center gap-1 font-semibold text-foreground">
@@ -633,10 +672,8 @@ function HomePage() {
                     <span className="text-[10px] uppercase text-muted-foreground block">Starting from</span>
                     <span className="font-bold text-foreground text-sm font-mono">₹{p.price}</span>
                   </div>
-                  <Button asChild size="sm" className="font-semibold text-xs shadow-warm-xs">
-                    <Link to="/professionals/$id" params={{ id: p.id }}>
-                      View Storefront
-                    </Link>
+                  <Button size="sm" className="font-semibold text-xs shadow-warm-xs pointer-events-none group-hover:bg-primary/90">
+                    View Storefront
                   </Button>
                 </div>
               </article>
