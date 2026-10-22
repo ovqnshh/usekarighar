@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Hammer, Search, Sparkles, Wrench, MapPin, Check,
   Plug, Droplet, Fan, PaintRoller, BrickWall, Umbrella,
-  LayoutGrid, Box, Lock, Bug, Users, ChevronRight, Heart,
+  LayoutGrid, Box, Lock, Bug, Users, ChevronRight, ChevronLeft, Heart,
   CalendarDays, ImagePlus, ShieldCheck, Award, Star, ArrowRight,
   Clock, ShieldAlert,
 } from "lucide-react";
@@ -41,6 +41,250 @@ import { useI18n } from "@/lib/i18n";
 import { BeforeAfterSlider } from "@/components/before-after-slider";
 import { PROBLEM_TILES } from "@/lib/image-system";
 import { AskKarigharAutocomplete } from "@/components/ask-karighar-autocomplete";
+
+interface HeroSlide {
+  badge: string;
+  title: string;
+  image: string;
+  searchQ: string;
+  category: string;
+}
+
+const PLUMBING_SLIDES: HeroSlide[] = [
+  {
+    badge: "Plumbing Care",
+    title: "Pressure valves & pipe restoration",
+    image: waterTankImage,
+    searchQ: "plumbing",
+    category: "fix",
+  },
+  {
+    badge: "AC & Cooling",
+    title: "Copper coil flush & gas leak test",
+    image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "ac repair",
+    category: "fix",
+  },
+  {
+    badge: "Sanitary Rigs",
+    title: "Concealed leak isolation & Jaquar trim",
+    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "bathroom plumbing",
+    category: "fix",
+  },
+];
+
+const ELECTRICAL_SLIDES: HeroSlide[] = [
+  {
+    badge: "Electrical Safety",
+    title: "MCB load balance & surge earthing",
+    image: electricalImage,
+    searchQ: "electrical",
+    category: "fix",
+  },
+  {
+    badge: "Panel Engineering",
+    title: "Phase isolators & RCCB shock prevention",
+    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "mcb panel",
+    category: "fix",
+  },
+  {
+    badge: "Concealed Power",
+    title: "Zero-damage wiring & profile channels",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "lighting wiring",
+    category: "fix",
+  },
+];
+
+const CARPENTRY_SLIDES: HeroSlide[] = [
+  {
+    badge: "Carpentry",
+    title: "Marine-ply Cane Woodwork",
+    image: wardrobeImage,
+    searchQ: "carpentry",
+    category: "build",
+  },
+  {
+    badge: "Custom Cabinetry",
+    title: "Blum hydraulic soft-close kitchen units",
+    image: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "modular kitchen",
+    category: "build",
+  },
+  {
+    badge: "Solid Wood",
+    title: "Termite-proof solid teak wood framing",
+    image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "furniture repair",
+    category: "build",
+  },
+];
+
+const WATERPROOFING_SLIDES: HeroSlide[] = [
+  {
+    badge: "Waterproofing",
+    title: "Joint barrier seal & acoustic test",
+    image: bathroomImage,
+    searchQ: "waterproofing",
+    category: "renovate",
+  },
+  {
+    badge: "Painting & Finishes",
+    title: "Anti-fungal luxury paint & skim coating",
+    image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "painting",
+    category: "renovate",
+  },
+  {
+    badge: "Tile & Stone",
+    title: "Non-porous grout & vitrified alignment",
+    image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1000&q=80",
+    searchQ: "tiling",
+    category: "renovate",
+  },
+];
+
+function HeroServiceSlideCard({
+  slides,
+  intervalMs = 4500,
+  aspectClass = "aspect-[4/5]",
+}: {
+  slides: HeroSlide[];
+  intervalMs?: number;
+  aspectClass?: string;
+}) {
+  const [index, setIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % slides.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [isHovered, slides.length, intervalMs]);
+
+  const current = slides[index];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((prev) => (prev + 1) % slides.length);
+  };
+
+  const handleCardClick = () => {
+    navigate({
+      to: "/professionals",
+      search: {
+        q: current.searchQ,
+        category: current.category,
+      },
+    });
+  };
+
+  return (
+    <div
+      onClick={handleCardClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`overflow-hidden rounded-2xl border border-border/80 shadow-warm-xs group relative block cursor-pointer select-none bg-black transition-all hover:border-primary/60 hover:shadow-warm ${aspectClass}`}
+      title={`Explore ${current.badge} specialists on Karighar`}
+    >
+      {/* Background Image Slideshow with Smooth Crossfade */}
+      <AnimatePresence initial={false}>
+        <motion.img
+          key={current.image}
+          src={current.image}
+          alt={current.title}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      </AnimatePresence>
+
+      {/* Top Progress Pointers & Slide Counter */}
+      <div className="absolute top-2.5 inset-x-3 z-10 flex items-center justify-between gap-1.5 pointer-events-auto">
+        <div className="flex items-center gap-1">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIndex(i);
+              }}
+              className={`h-1 rounded-full transition-all duration-300 ${
+                i === index ? "w-5 bg-amber-400" : "w-2 bg-white/40 hover:bg-white/80"
+              }`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+        <span className="text-[10px] font-mono text-white/80 bg-black/50 backdrop-blur-xs px-1.5 py-0.5 rounded">
+          {index + 1}/{slides.length}
+        </span>
+      </div>
+
+      {/* Manual Arrow Controls (appear smoothly on hover) */}
+      <div className="absolute inset-y-0 inset-x-2 z-10 flex items-center justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="pointer-events-auto size-7 rounded-full bg-black/60 text-white backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-transform active:scale-95 hover:scale-110"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleNext}
+          className="pointer-events-auto size-7 rounded-full bg-black/60 text-white backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-transform active:scale-95 hover:scale-110"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+
+      {/* Bottom Gradient Overlay & Details */}
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3.5 pt-12 text-white pointer-events-none">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current.title}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.35 }}
+          >
+            <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1.5">
+              {current.badge}
+            </span>
+            <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
+              {current.title}
+            </p>
+            <div className="mt-1 flex items-center justify-between text-[11px] text-white/70">
+              <span className="text-[10px] text-amber-200/90 font-medium">SafePay Escrow</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-white/80 group-hover:text-amber-300 font-medium transition-colors">
+                Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -189,90 +433,32 @@ function HomePage() {
               </div>
             </div>
 
-            {/* Right: Asymmetric Service Scene Collage */}
+            {/* Right: Asymmetric Service Scene Collage with Moving Album Slides */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
               <div className="space-y-3.5">
-                <Link
-                  to="/professionals"
-                  search={{ q: 'plumbing', category: 'fix' }}
-                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
-                >
-                  <img
-                    src={waterTankImage}
-                    alt="Plumbing maintenance scene"
-                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3.5 text-white">
-                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
-                      Plumbing Care
-                    </span>
-                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
-                      Pressure valves & pipe restoration
-                    </p>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/professionals"
-                  search={{ q: 'electrical', category: 'fix' }}
-                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
-                >
-                  <img
-                    src={electricalImage}
-                    alt="Electrical safety scene"
-                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 text-white">
-                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
-                      Electrical Safety
-                    </span>
-                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
-                      MCB load balance
-                    </p>
-                  </div>
-                </Link>
+                <HeroServiceSlideCard
+                  slides={PLUMBING_SLIDES}
+                  intervalMs={4200}
+                  aspectClass="aspect-[4/5]"
+                />
+                <HeroServiceSlideCard
+                  slides={ELECTRICAL_SLIDES}
+                  intervalMs={4800}
+                  aspectClass="aspect-square"
+                />
               </div>
 
               <div className="space-y-3.5 pt-6">
-                <Link
-                  to="/professionals"
-                  search={{ q: 'carpentry', category: 'build' }}
-                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
-                >
-                  <img
-                    src={wardrobeImage}
-                    alt="Custom woodwork scene"
-                    className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 text-white">
-                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
-                      Carpentry
-                    </span>
-                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
-                      Marine-ply woodwork
-                    </p>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/professionals"
-                  search={{ q: 'waterproofing', category: 'renovate' }}
-                  className="overflow-hidden rounded-2xl border border-border shadow-warm-xs group relative block cursor-pointer"
-                >
-                  <img
-                    src={bathroomImage}
-                    alt="Tile & waterproofing scene"
-                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3.5 text-white">
-                    <span className="inline-flex items-center text-[10px] uppercase font-extrabold tracking-wider text-amber-300 bg-amber-950/80 border border-amber-400/60 px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-md mb-1">
-                      Waterproofing
-                    </span>
-                    <p className="text-xs sm:text-sm font-semibold leading-tight text-white drop-shadow-sm">
-                      Joint barrier seal
-                    </p>
-                  </div>
-                </Link>
+                <HeroServiceSlideCard
+                  slides={CARPENTRY_SLIDES}
+                  intervalMs={5200}
+                  aspectClass="aspect-square"
+                />
+                <HeroServiceSlideCard
+                  slides={WATERPROOFING_SLIDES}
+                  intervalMs={4600}
+                  aspectClass="aspect-[4/5]"
+                />
               </div>
             </div>
 
