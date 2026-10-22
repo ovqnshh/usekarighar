@@ -478,6 +478,28 @@
   opacity: 0.35;
 }
 
+/* Dedicated isolated scrollbar for in-app chat containers */
+.chat-scroll {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.28) transparent !important;
+  overscroll-behavior-y: contain !important;
+  scroll-behavior: smooth;
+}
+.chat-scroll::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.28) !important;
+  border-radius: 9999px !important;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.48) !important;
+}
+
 /* ═══════════════════════════════════════════════════════════
    MOTION SENSITIVITY
    ══════════════════════════════════════════════════════════ */

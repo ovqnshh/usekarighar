@@ -38,6 +38,48 @@ function ProjectDetail() {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom("smooth");
+    }, 40);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
+
+  useEffect(() => {
+    scrollToBottom("auto");
+  }, []);
+
+  // Isolate mouse wheel events so scrolling chat never bubbles or scrolls the outer page
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const isAtTop = el.scrollTop <= 0;
+      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+
+      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
 
   useEffect(() => {
     supabase.from("messages").select("*").eq("project_id", id).order("created_at", { ascending: true })
@@ -347,8 +389,8 @@ function ProjectDetail() {
             </span>
           </div>
 
-          <div className="flex flex-col h-[520px] border border-border rounded-2xl bg-card overflow-hidden shadow-warm-xs">
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+          <div data-lenis-prevent className="flex flex-col h-[520px] max-h-[75vh] border border-border rounded-2xl bg-card overflow-hidden shadow-warm-xs min-h-0">
+            <div ref={messagesContainerRef} data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 space-y-3.5 chat-scroll">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-muted-foreground">
                   <div className="size-12 rounded-2xl bg-surface-subtle flex items-center justify-center text-primary">

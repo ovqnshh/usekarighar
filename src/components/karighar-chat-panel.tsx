@@ -106,6 +106,8 @@ export function KarigharChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const threadsContainerRef = useRef<HTMLDivElement>(null);
 
   const activeThread = useMemo(() => {
     if (!threads || threads.length === 0) return null;
@@ -133,10 +135,50 @@ export function KarigharChatPanel({
 
   const chips = fastReplyOptions || defaultFastReplies;
 
-  // Auto-scroll to bottom on thread change or new message
+  // Scroll solely the internal messages box to bottom without moving the page or window
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior,
+      });
+    }
+  };
+
+  // Auto-scroll to bottom on thread change or new message inside the chat box ONLY!
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const timer = setTimeout(() => {
+      scrollToBottom("smooth");
+    }, 40);
+    return () => clearTimeout(timer);
   }, [activeThread?.messages.length, activeThread?.projectId]);
+
+  // Initial mount scroll without smooth animation delay
+  useEffect(() => {
+    scrollToBottom("auto");
+  }, []);
+
+  // Isolate mouse wheel events so scrolling chat never bubbles or scrolls the outer page
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const isAtTop = el.scrollTop <= 0;
+      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+
+      // When reaching top or bottom boundary, prevent wheel delta from chaining to the outer page
+      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [activeThread?.projectId]);
 
   // Handle fast reply click: populates textbox for edits!
   const handleFastReplyClick = (reply: string) => {
@@ -209,7 +251,7 @@ export function KarigharChatPanel({
   };
 
   return (
-    <div className="border border-border rounded-2xl h-[680px] bg-card shadow-warm flex overflow-hidden relative">
+    <div data-lenis-prevent className="border border-border rounded-2xl h-[680px] max-h-[82vh] bg-card shadow-warm flex overflow-hidden relative">
 
       {/* Hidden File Input for Attachments */}
       <input
@@ -221,7 +263,7 @@ export function KarigharChatPanel({
       />
 
       {/* ─── Left Pane: Conversations List ──────────────────────────── */}
-      <div className="w-80 md:w-88 border-r border-border flex flex-col shrink-0 bg-surface-subtle/40">
+      <div className="w-80 md:w-88 border-r border-border flex flex-col shrink-0 bg-surface-subtle/40 min-h-0">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between bg-card/60">
           <div className="flex items-center gap-2">
@@ -236,7 +278,7 @@ export function KarigharChatPanel({
         </div>
 
         {/* Thread items */}
-        <div className="flex-1 overflow-y-auto divide-y divide-border/60 no-scrollbar">
+        <div ref={threadsContainerRef} data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain divide-y divide-border/60 chat-scroll">
           {threads.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground space-y-3">
               <div className="size-12 rounded-2xl bg-surface-subtle flex items-center justify-center mx-auto text-muted-foreground">
@@ -307,9 +349,9 @@ export function KarigharChatPanel({
 
       {/* ─── Right Pane: Active Chat Room ───────────────────────────── */}
       {activeThread ? (
-        <div className="flex-1 flex flex-col h-full bg-card min-w-0">
+        <div className="flex-1 flex flex-col h-full bg-card min-w-0 min-h-0">
           {/* Room Header */}
-          <div className="p-3.5 sm:p-4 border-b border-border flex items-center justify-between bg-surface-subtle/40 backdrop-blur-sm">
+          <div className="p-3.5 sm:p-4 border-b border-border flex items-center justify-between bg-surface-subtle/40 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="size-9 rounded-full bg-primary/15 text-primary font-bold text-sm flex items-center justify-center border border-primary/20 shrink-0">
                 {activeThread.otherPartyName.charAt(0).toUpperCase()}
@@ -346,7 +388,11 @@ export function KarigharChatPanel({
           </div>
 
           {/* ─── Messages Stream ──────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-gradient-to-b from-surface-subtle/10 to-transparent">
+          <div
+            ref={messagesContainerRef}
+            data-lenis-prevent
+            className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 space-y-3.5 bg-gradient-to-b from-surface-subtle/10 to-transparent chat-scroll"
+          >
             {activeThread.messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-muted-foreground">
                 <div className="size-12 rounded-2xl bg-surface-subtle flex items-center justify-center text-primary">
