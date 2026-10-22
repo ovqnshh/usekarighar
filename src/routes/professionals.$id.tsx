@@ -42,6 +42,11 @@ interface ServiceGig {
   description: string;
   included: string[];
   notIncluded: string[];
+  photos?: string[];
+  addons?: { name: string; price: number }[];
+  warranty?: string;
+  serviceArea?: string;
+  category?: string;
 }
 
 interface CustomerReview {
@@ -374,26 +379,77 @@ const professionalQueryOptions = (slug: string) => queryOptions({
       : standardReviews;
 
     const fallbackGigs = TRADE_SERVICES[tradeKey] || TRADE_SERVICES.plumbing;
-    const existingGigs = (pro.gigs || []).filter((g: any) => g.is_published !== false);
-    const normalizedGigs: ServiceGig[] = existingGigs.length > 0
-      ? existingGigs.map((g: any, i: number) => ({
-          id: g.id || `gig-${i}`,
-          name: g.name,
-          price: Number(g.starting_price || g.price || 350),
-          duration: g.duration || '1–2 hours',
-          description: g.description || '',
-          included: Array.isArray(g.included) ? g.included : ['Doorstep inspection', 'SafePay escrow protection'],
-          notIncluded: Array.isArray(g.not_included) ? g.not_included : (Array.isArray(g.notIncluded) ? g.notIncluded : []),
-        }))
-      : fallbackGigs;
+    
+    // Read any custom gigs saved locally or created via dashboard studio
+    let localCustomGigs: any[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        const idKey = data?.id ? `karighar_custom_gigs_${data.id}` : null;
+        const slugKey = slug ? `karighar_custom_gigs_${slug}` : null;
+        const stored = (idKey && localStorage.getItem(idKey)) || 
+                       (slugKey && localStorage.getItem(slugKey));
+        if (stored) {
+          localCustomGigs = JSON.parse(stored);
+        } else {
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('karighar_custom_gigs_')) {
+              const val = localStorage.getItem(k);
+              if (val) {
+                const parsed = JSON.parse(val);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  if (k.includes(slug) || (data?.id && k.includes(data.id))) {
+                    localCustomGigs = parsed;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const dbGigs = (data?.gigs || pro.gigs || []).filter((g: any) => g.is_published !== false);
+    const combinedList = [...localCustomGigs];
+    for (const dg of dbGigs) {
+      if (!combinedList.some((g: any) => g.id === dg.id || (g.name && g.name.toLowerCase() === dg.name.toLowerCase()))) {
+        combinedList.push(dg);
+      }
+    }
+
+    // Merge: custom gigs first, followed by default trade gigs
+    const allGigs = [...combinedList];
+    for (const fg of fallbackGigs) {
+      if (!allGigs.some((g: any) => g.name && g.name.toLowerCase() === fg.name.toLowerCase())) {
+        allGigs.push(fg);
+      }
+    }
+
+    const normalizedGigs: ServiceGig[] = allGigs.map((g: any, i: number) => ({
+      id: g.id || `gig-${i}`,
+      name: g.name,
+      price: Number(g.starting_price || g.price || 350),
+      duration: g.duration || '1–2 hours',
+      description: g.description || '',
+      included: Array.isArray(g.included) ? g.included : ['Doorstep inspection', 'SafePay escrow protection'],
+      notIncluded: Array.isArray(g.not_included) ? g.not_included : (Array.isArray(g.notIncluded) ? g.notIncluded : []),
+      photos: Array.isArray(g.photos) ? g.photos : (g.image ? [g.image] : []),
+      addons: Array.isArray(g.addons) ? g.addons : [],
+      warranty: g.warranty || '30-day Karighar Workmanship Guarantee',
+      serviceArea: g.service_area || pro.city || 'Mumbai',
+      category: g.category || pro.trade,
+    }));
 
     return {
       ...pro,
       hourly_rate: Number((pro as any).price || (pro as any).hourly_rate || 350),
       image: (pro as any).image || (data as any)?.avatar_url || dummy?.image || arjunPortrait,
-      portfolio: (((data as any)?.gigs?.flatMap((g: any) => g.photos).filter(Boolean))?.length > 0
-        ? (data as any).gigs.flatMap((g: any) => g.photos)
-        : ((pro as any).portfolio?.length > 0 ? (pro as any).portfolio : (dummy?.portfolio || [waterTankProject, bathroomProject, electricalProject]))),
+      portfolio: [
+        ...(((data as any)?.gigs || []).flatMap((g: any) => g.photos || [])),
+        ...localCustomGigs.flatMap((g: any) => g.photos || []),
+        ...((pro as any).portfolio?.length > 0 ? (pro as any).portfolio : (dummy?.portfolio || [waterTankProject, bathroomProject, electricalProject]))
+      ].filter(Boolean),
       reviews: finalReviews,
       completed_projects_count: projectsCount || 184,
       verifications: verifications.length > 0 ? verifications : [
@@ -434,6 +490,8 @@ function ProfilePage() {
   const [estHours, setEstHours] = useState(2);
   const [includeParts, setIncludeParts] = useState(false);
   const [activeReviewFilter, setActiveReviewFilter] = useState<'all' | '5star' | 'recent'>('all');
+  const [activeProfileTab, setActiveProfileTab] = useState<'services' | 'reviews'>('services');
+  const [selectedGigCategory, setSelectedGigCategory] = useState<string>('all');
 
   // In-app message modal state (ZERO LEAKAGE - NO WHATSAPP)
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
@@ -859,6 +917,21 @@ function ProfilePage() {
     return true;
   });
 
+  const availableGigCategories = useMemo(() => {
+    if (!pro?.standard_gigs) return ['all'];
+    const cats = new Set<string>();
+    pro.standard_gigs.forEach((g: ServiceGig) => {
+      if (g.category) cats.add(g.category);
+    });
+    return ['all', ...Array.from(cats)];
+  }, [pro?.standard_gigs]);
+
+  const displayedGigs = useMemo(() => {
+    if (!pro?.standard_gigs) return [];
+    if (selectedGigCategory === 'all') return pro.standard_gigs;
+    return pro.standard_gigs.filter((g: ServiceGig) => g.category?.toLowerCase() === selectedGigCategory.toLowerCase());
+  }, [pro?.standard_gigs, selectedGigCategory]);
+
   const calculatedEstimate = useMemo(() => {
     const base = selectedService ? selectedService.price : activeDayPricing.price;
     return base + (includeParts ? 450 : 0);
@@ -933,10 +1006,15 @@ function ProfilePage() {
                   {pro.business}
                 </p>
                 <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs sm:text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1 text-foreground font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setActiveProfileTab('reviews')}
+                    className="flex items-center gap-1 text-foreground font-semibold hover:underline cursor-pointer transition-colors"
+                    title="Click to view verified customer reviews"
+                  >
                     <Star className="size-4 fill-amber-400 text-amber-500" />
-                    {avgRating} <span className="font-normal text-muted-foreground">({pro.reviews?.length || 128} verified reviews)</span>
-                  </span>
+                    {avgRating} <span className="font-normal text-muted-foreground">({reviewList.length} verified reviews)</span>
+                  </button>
                   <span>·</span>
                   <span className="flex items-center gap-1">
                     <MapPin className="size-3.5 text-primary" />
@@ -996,311 +1074,524 @@ function ProfilePage() {
           </div>
         </div>
 
+        {/* ─── Profile Navigation Tabs ─────────────────────────────────── */}
+        <div className="sticky top-16 z-20 mb-8 bg-background/95 backdrop-blur-md border-b border-border py-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveProfileTab('services')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer ${
+                activeProfileTab === 'services'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-warm-xs'
+                  : 'bg-card border border-border text-foreground/80 hover:bg-surface-subtle'
+              }`}
+            >
+              <Wrench className="size-4" />
+              <span>Their Works & Other Services</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                activeProfileTab === 'services' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-surface-subtle text-muted-foreground'
+              }`}>
+                {pro.standard_gigs?.length || 0}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveProfileTab('reviews')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer ${
+                activeProfileTab === 'reviews'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-warm-xs'
+                  : 'bg-card border border-border text-foreground/80 hover:bg-surface-subtle'
+              }`}
+            >
+              <Star className="size-4 fill-amber-400 text-amber-500" />
+              <span>Verified Customer Reviews</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                activeProfileTab === 'reviews' ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-surface-subtle text-muted-foreground'
+              }`}>
+                {reviewList.length}
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* ─── Main Two-Column Layout ─────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] gap-8 items-start">
 
           {/* Left Column: Craft Content */}
           <div className="space-y-10">
 
-            {/* 1. Craftsperson Story & Specialization */}
-            <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
-              <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Wrench className="size-5 text-primary" />
-                About {pro.name}
-              </h2>
-              <div className="relative">
-                <p className={`text-sm sm:text-base text-foreground/90 leading-relaxed ${bioExpanded ? '' : 'line-clamp-4'}`}>
-                  {pro.bio || `${pro.name} is a seasoned master craftsman serving the ${pro.city || 'Mumbai'} area for over a decade. Specializing in precision fault diagnosis, high-durability installations, and clean customer-first execution. Equipped with modern leak detection and diagnostic gear, all work is conducted under transparent standardized price-books and backed by Karighar's SafePay escrow guarantee.`}
-                </p>
-                <button
-                  onClick={() => setBioExpanded(!bioExpanded)}
-                  className="mt-2 text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  {bioExpanded ? 'Read less' : 'Read full craftsman bio'}
-                  <ChevronRight className={`size-3 transition-transform ${bioExpanded ? '-rotate-90' : ''}`} />
-                </button>
-              </div>
+            {activeProfileTab === 'services' ? (
+              <>
+                {/* 1. All Services & Standardized Gigs */}
+                <section className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                        <Wrench className="size-5 text-primary" />
+                        All Services & Gigs by {pro.name} ({displayedGigs.length})
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        Standardized pricing with verified inclusions. SafePay escrow protected.
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold self-start sm:self-auto">
+                      Standardized Price-Book
+                    </Badge>
+                  </div>
 
-              {/* Verified Tool & Rig Checklist */}
-              <div className="mt-6 pt-5 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex items-start gap-2.5 text-xs text-foreground/80">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Modern Diagnostic Rig:</strong> Pressure gauges, laser thermometers & pipe inspection camera.</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-xs text-foreground/80">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Zero Dust Protocol:</strong> Uses drop cloths, silicone shoe covers & leaves workspace spotless.</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-xs text-foreground/80">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Genuine Materials Only:</strong> Works with ISI / Jaquar / Anchor parts backed with genuine vendor receipts.</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-xs text-foreground/80">
-                  <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>SafePay Guaranteed:</strong> Funds held in escrow until you personally inspect and sign off on completion.</span>
-                </div>
-              </div>
-            </section>
+                  {/* Category Filter Chips */}
+                  {availableGigCategories.length > 2 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                      {availableGigCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedGigCategory(cat)}
+                          className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-colors shrink-0 cursor-pointer ${
+                            selectedGigCategory === cat
+                              ? 'bg-primary text-primary-foreground font-semibold shadow-warm-xs'
+                              : 'bg-surface-subtle text-foreground/80 hover:bg-card border border-border'
+                          }`}
+                        >
+                          {cat === 'all' ? 'All Craft Gigs' : cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-            {/* 2. Verified Transformation Showcase (Before & After) */}
-            <section className="space-y-4">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground">
-                    Verified Craft Transformation
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Real, inspected jobs completed by {pro.name} in Mumbai
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-[11px] font-semibold">
-                  Field Inspected
-                </Badge>
-              </div>
-
-              {tradeKey === 'carpentry' ? (
-                <BeforeAfterSlider
-                  beforeImage={wardrobeProject}
-                  afterImage={wardrobeProject}
-                  title="Marine-Ply Wardrobe & Blum Hydraulic Alignment"
-                  subtitle="Pali Hill, Bandra West · Complete restoration of warped shutters with termite-proof backing"
-                  trade="Carpentry & custom cabinetry"
-                  location="Bandra West, Mumbai"
-                  cost="₹14,200"
-                  duration="2 Days"
-                />
-              ) : tradeKey === 'ac' || tradeKey === 'electrical' ? (
-                <BeforeAfterSlider
-                  beforeImage={electricalProject}
-                  afterImage={electricalProject}
-                  title="Distribution Panel Overhaul & Surge Protection"
-                  subtitle="Hiranandani Gardens, Powai · Systematic phase balancing and modular RCCB integration"
-                  trade="Electrical engineering & safety"
-                  location="Powai, Mumbai"
-                  cost="₹4,600"
-                  duration="4 Hours"
-                />
-              ) : (
-                <BeforeAfterSlider
-                  beforeImage={waterTankProject}
-                  afterImage={bathroomProject}
-                  title="Concealed Pipe Burst & Jaquar Fixture Modernization"
-                  subtitle="Lokhandwala Complex, Andheri West · Hairline joint isolation without masonry damage"
-                  trade="Plumbing repair & installation"
-                  location="Andheri West, Mumbai"
-                  cost="₹3,850"
-                  duration="4 Hours"
-                />
-              )}
-            </section>
-
-            {/* 3. Standardized Transparent Price-Book & Services */}
-            <section className="space-y-4">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground">
-                    Fixed Gigs & Services
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Standardized rates with verified inclusions. No doorstep price haggling.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-primary flex items-center gap-1">
-                  <ShieldCheck className="size-3.5" />
-                  Standard Price Book
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                {(pro.standard_gigs || []).map((gig: ServiceGig) => {
-                  const isSelected = selectedService?.id === gig.id;
-                  return (
-                    <div
-                      key={gig.id}
-                      className={`rounded-2xl border p-5 transition-all bg-card ${
-                        isSelected
-                          ? 'border-primary ring-1 ring-primary shadow-warm'
-                          : 'border-border hover:border-primary/40 shadow-warm-xs'
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-display text-base sm:text-lg font-semibold text-foreground">
-                              {gig.name}
-                            </h3>
-                            {isSelected && (
-                              <Badge variant="default" className="text-[10px]">
-                                Selected
-                              </Badge>
+                  {/* Gigs List */}
+                  <div className="grid grid-cols-1 gap-4">
+                    {displayedGigs.map((gig: ServiceGig) => {
+                      const isSelected = selectedService?.id === gig.id;
+                      return (
+                        <div
+                          key={gig.id}
+                          className={`rounded-2xl border transition-all bg-card overflow-hidden ${
+                            isSelected
+                              ? 'border-primary ring-2 ring-primary/60 shadow-warm'
+                              : 'border-border hover:border-primary/40 shadow-warm-xs'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row">
+                            {/* Photo Showcase if gig has photos */}
+                            {gig.photos && gig.photos.length > 0 && (
+                              <div className="sm:w-56 shrink-0 relative bg-surface-subtle">
+                                <img
+                                  src={gig.photos[0]}
+                                  alt={gig.name}
+                                  className="w-full h-44 sm:h-full object-cover"
+                                />
+                                {gig.photos.length > 1 && (
+                                  <span className="absolute bottom-2 right-2 bg-black/75 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-sm">
+                                    <Camera className="size-3" />
+                                    +{gig.photos.length - 1} photos
+                                  </span>
+                                )}
+                              </div>
                             )}
-                          </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                            {gig.description}
-                          </p>
-                        </div>
-                        <div className="flex items-center sm:flex-col sm:items-end justify-between shrink-0 pt-2 sm:pt-0">
-                          <div>
-                            <span className="text-xs text-muted-foreground block sm:text-right">Fixed visit / labour</span>
-                            <span className="font-display text-lg sm:text-xl font-bold text-foreground">
-                              ₹{gig.price.toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={isSelected ? 'default' : 'outline'}
-                            onClick={() => handleSelectService(gig)}
-                            className="text-xs font-semibold rounded-lg mt-2"
-                          >
-                            {isSelected ? 'Selected' : 'Select for Visit'}
-                          </Button>
-                        </div>
-                      </div>
 
-                      {/* Inclusions */}
-                      <div className="mt-4 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-foreground/80">
-                        <span className="font-semibold text-muted-foreground">Includes:</span>
-                        {(gig.included || []).map((item, idx) => (
-                          <span key={idx} className="flex items-center gap-1">
-                            <Check className="size-3 text-emerald-600" />
-                            {item}
-                          </span>
-                        ))}
-                      </div>
+                            {/* Gig Content */}
+                            <div className="p-5 flex-1 flex flex-col justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {gig.category && (
+                                      <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wider">
+                                        {gig.category}
+                                      </Badge>
+                                    )}
+                                    <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+                                      <ShieldCheck className="size-3 text-emerald-600" />
+                                      {gig.warranty || '30-Day Guarantee'}
+                                    </span>
+                                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                      <Clock3 className="size-3" />
+                                      {gig.duration}
+                                    </span>
+                                  </div>
+
+                                  {isSelected && (
+                                    <Badge variant="default" className="text-[10px]">
+                                      Selected for Visit
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <h3 className="font-display text-base sm:text-lg font-semibold text-foreground">
+                                  {gig.name}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                  {gig.description}
+                                </p>
+
+                                {/* Inclusions */}
+                                <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/80">
+                                  <span className="font-semibold text-muted-foreground">Includes:</span>
+                                  {(gig.included || []).map((item, idx) => (
+                                    <span key={idx} className="flex items-center gap-1">
+                                      <Check className="size-3 text-emerald-600 shrink-0" />
+                                      {item}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {/* Optional Addons */}
+                                {gig.addons && gig.addons.length > 0 && (
+                                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
+                                    <span className="text-muted-foreground font-medium">Add-ons:</span>
+                                    {gig.addons.map((addon, aIdx) => (
+                                      <span
+                                        key={aIdx}
+                                        className="bg-surface-subtle text-foreground/80 border border-border px-2 py-0.5 rounded text-[11px]"
+                                      >
+                                        + {addon.name} (₹{addon.price})
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Price and CTA */}
+                              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                                <div>
+                                  <span className="text-[10px] text-muted-foreground block uppercase font-medium">Standardized Rate</span>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-display text-lg sm:text-xl font-bold text-foreground">
+                                      ₹{gig.price.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">/ job</span>
+                                  </div>
+                                </div>
+
+                                <Button
+                                  size="sm"
+                                  variant={isSelected ? 'default' : 'outline'}
+                                  onClick={() => handleSelectService(gig)}
+                                  className="text-xs font-semibold rounded-lg px-4 gap-1.5"
+                                >
+                                  {isSelected ? (
+                                    <>
+                                      <CheckCircle2 className="size-3.5" />
+                                      Selected
+                                    </>
+                                  ) : (
+                                    'Select for Visit'
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {/* 2. Verified Transformation Showcase (Before & After) */}
+                <section className="space-y-4">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground">
+                        Verified Craft Transformation
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        Real, inspected jobs completed by {pro.name} in Mumbai
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* 4. Mumbai Service Coverage & Local Response Hub (Replaces Broken Map) */}
-            <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
-                    <MapPin className="size-5 text-primary" />
-                    Mumbai Coverage & Response Hub
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Operating base: <strong className="text-foreground">{pro.city || 'Andheri West, Mumbai'}</strong> (15 km response radius)
-                  </p>
-                </div>
-                <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-xl border border-emerald-200 shrink-0 self-start sm:self-auto">
-                  <Clock3 className="size-3.5 text-emerald-600" />
-                  30–45 min standard arrival
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-xs sm:text-sm text-foreground/80">
-                  {pro.name} is stationed with a mobile service rig providing rapid diagnostic visits across the following verified Western & Central Mumbai localities:
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    'Andheri West', 'Lokhandwala Complex', 'Versova', 'Juhu Scheme',
-                    'Vile Parle West', 'Oshiwara', 'Bandra West', 'Khar West',
-                    'Santacruz West', 'Four Bungalows', 'Yari Road', 'DN Nagar'
-                  ].map((locality, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-foreground bg-surface-subtle border border-border px-3 py-1 rounded-lg"
-                    >
-                      <MapPin className="size-3 text-primary" />
-                      {locality}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-4 p-4 rounded-xl bg-surface-subtle border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="space-y-1">
-                    <strong className="block text-foreground">Standard Service Hours:</strong>
-                    <span className="text-muted-foreground">Monday – Sunday: 8:00 AM – 8:30 PM (Emergency slots available 24/7)</span>
+                    <Badge variant="outline" className="text-[11px] font-semibold">
+                      Field Inspected
+                    </Badge>
                   </div>
-                  <div className="text-muted-foreground">
-                    <span className="font-semibold text-foreground">Transit Guarantee:</span> Call ahead 15 mins prior to doorstep arrival.
-                  </div>
-                </div>
-              </div>
-            </section>
 
-            {/* 5. Verified Customer Reviews (Diverse & Real) */}
-            <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
-                    <Star className="size-5 fill-amber-400 text-amber-500" />
-                    {avgRating} · {reviewList.length} Verified Reviews
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    All reviews are from customers who completed jobs through Karighar SafePay
-                  </p>
-                </div>
+                  {tradeKey === 'carpentry' ? (
+                    <BeforeAfterSlider
+                      beforeImage={wardrobeProject}
+                      afterImage={wardrobeProject}
+                      title="Marine-Ply Wardrobe & Blum Hydraulic Alignment"
+                      subtitle="Pali Hill, Bandra West · Complete restoration of warped shutters with termite-proof backing"
+                      trade="Carpentry & custom cabinetry"
+                      location="Bandra West, Mumbai"
+                      cost="₹14,200"
+                      duration="2 Days"
+                    />
+                  ) : tradeKey === 'ac' || tradeKey === 'electrical' ? (
+                    <BeforeAfterSlider
+                      beforeImage={electricalProject}
+                      afterImage={electricalProject}
+                      title="Distribution Panel Overhaul & Surge Protection"
+                      subtitle="Hiranandani Gardens, Powai · Systematic phase balancing and modular RCCB integration"
+                      trade="Electrical engineering & safety"
+                      location="Powai, Mumbai"
+                      cost="₹4,600"
+                      duration="4 Hours"
+                    />
+                  ) : (
+                    <BeforeAfterSlider
+                      beforeImage={waterTankProject}
+                      afterImage={bathroomProject}
+                      title="Concealed Pipe Burst & Jaquar Fixture Modernization"
+                      subtitle="Lokhandwala Complex, Andheri West · Hairline joint isolation without masonry damage"
+                      trade="Plumbing repair & installation"
+                      location="Andheri West, Mumbai"
+                      cost="₹3,850"
+                      duration="4 Hours"
+                    />
+                  )}
+                </section>
 
-                {/* Filter Chips */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={activeReviewFilter === 'all' ? 'default' : 'outline'}
-                    onClick={() => setActiveReviewFilter('all')}
-                    className="text-xs h-8 px-3 rounded-lg font-medium"
-                  >
-                    All ({reviewList.length})
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={activeReviewFilter === '5star' ? 'default' : 'outline'}
-                    onClick={() => setActiveReviewFilter('5star')}
-                    className="text-xs h-8 px-3 rounded-lg font-medium"
-                  >
-                    5 Stars Only
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-6 divide-y divide-border">
-                {filteredReviews.map((r: CustomerReview, i: number) => (
-                  <div key={i} className={i === 0 ? '' : 'pt-6'}>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
-                          {r.initials}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-sm text-foreground">{r.name}</h4>
-                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">
-                              Verified SafePay Job
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{r.location} · {r.date}</p>
-                        </div>
+                {/* 3. Craft Portfolio & Inspected Projects Gallery */}
+                {pro.portfolio && pro.portfolio.length > 0 && (
+                  <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
+                          <Camera className="size-5 text-primary" />
+                          Inspected Works & Project Portfolio
+                        </h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                          High-resolution photographic records of verified jobs in Mumbai
+                        </p>
                       </div>
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`size-3.5 ${
-                              star <= r.rating ? 'fill-amber-400 text-amber-500' : 'text-border'
-                            }`}
+                      <Badge variant="outline" className="text-[11px] font-semibold">
+                        {pro.portfolio.length} Photos
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {pro.portfolio.map((imgUrl: string, idx: number) => (
+                        <div key={idx} className="group relative overflow-hidden rounded-xl border border-border aspect-[4/3] bg-surface-subtle">
+                          <img
+                            src={imgUrl}
+                            alt={`${pro.name} project ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
-                        ))}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
+                            <span className="text-white text-[11px] font-medium">Job #{idx + 1} Inspected</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* 4. Craftsperson Story & Specialization */}
+                <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
+                  <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Wrench className="size-5 text-primary" />
+                    About {pro.name}
+                  </h2>
+                  <div className="relative">
+                    <p className={`text-sm sm:text-base text-foreground/90 leading-relaxed ${bioExpanded ? '' : 'line-clamp-4'}`}>
+                      {pro.bio || `${pro.name} is a seasoned master craftsman serving the ${pro.city || 'Mumbai'} area for over a decade. Specializing in precision fault diagnosis, high-durability installations, and clean customer-first execution. Equipped with modern leak detection and diagnostic gear, all work is conducted under transparent standardized price-books and backed by Karighar's SafePay escrow guarantee.`}
+                    </p>
+                    <button
+                      onClick={() => setBioExpanded(!bioExpanded)}
+                      className="mt-2 text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      {bioExpanded ? 'Read less' : 'Read full craftsman bio'}
+                      <ChevronRight className={`size-3 transition-transform ${bioExpanded ? '-rotate-90' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Verified Tool & Rig Checklist */}
+                  <div className="mt-6 pt-5 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2.5 text-xs text-foreground/80">
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Modern Diagnostic Rig:</strong> Pressure gauges, laser thermometers & pipe inspection camera.</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 text-xs text-foreground/80">
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Zero Dust Protocol:</strong> Uses drop cloths, silicone shoe covers & leaves workspace spotless.</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 text-xs text-foreground/80">
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Genuine Materials Only:</strong> Works with ISI / Jaquar / Anchor parts backed with genuine vendor receipts.</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 text-xs text-foreground/80">
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>SafePay Guaranteed:</strong> Funds held in escrow until you personally inspect and sign off on completion.</span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 5. Mumbai Service Coverage & Local Response Hub */}
+                <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                      <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
+                        <MapPin className="size-5 text-primary" />
+                        Mumbai Coverage & Response Hub
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        Operating base: <strong className="text-foreground">{pro.city || 'Andheri West, Mumbai'}</strong> (15 km response radius)
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-xl border border-emerald-200 shrink-0 self-start sm:self-auto">
+                      <Clock3 className="size-3.5 text-emerald-600" />
+                      30–45 min standard arrival
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-xs sm:text-sm text-foreground/80">
+                      {pro.name} is stationed with a mobile service rig providing rapid diagnostic visits across the following verified Western & Central Mumbai localities:
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'Andheri West', 'Lokhandwala Complex', 'Versova', 'Juhu Scheme',
+                        'Vile Parle West', 'Oshiwara', 'Bandra West', 'Khar West',
+                        'Santacruz West', 'Four Bungalows', 'Yari Road', 'DN Nagar'
+                      ].map((locality, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-foreground bg-surface-subtle border border-border px-3 py-1 rounded-lg"
+                        >
+                          <MapPin className="size-3 text-primary" />
+                          {locality}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 p-4 rounded-xl bg-surface-subtle border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="space-y-1">
+                        <strong className="block text-foreground">Standard Service Hours:</strong>
+                        <span className="text-muted-foreground">Monday – Sunday: 8:00 AM – 8:30 PM (Emergency slots available 24/7)</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        <span className="font-semibold text-foreground">Transit Guarantee:</span> Call ahead 15 mins prior to doorstep arrival.
                       </div>
                     </div>
-
-                    <div className="mb-2">
-                      <span className="inline-block text-[11px] font-semibold text-foreground bg-surface-subtle px-2 py-0.5 rounded border border-border">
-                        {r.verifiedJob}
-                      </span>
+                  </div>
+                </section>
+              </>
+            ) : (
+              /* Verified Customer Reviews Section */
+              <div className="space-y-8">
+                {/* Rating Overview Card */}
+                <section className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-warm-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <div className="text-center md:text-left border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-6">
+                      <div className="flex items-center justify-center md:justify-start gap-2">
+                        <span className="font-display text-4xl sm:text-5xl font-bold text-foreground">
+                          {avgRating}
+                        </span>
+                        <div className="flex flex-col items-start">
+                          <div className="flex items-center text-amber-500">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star key={s} className="size-4 fill-amber-400 text-amber-500" />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground mt-0.5">out of 5.0</span>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground mt-2">
+                        {reviewList.length} Verified Customer Ratings
+                      </p>
+                      <Badge variant="success" className="text-[10px] mt-2">
+                        <ShieldCheck className="size-3 mr-1" />
+                        100% SafePay Verified Jobs
+                      </Badge>
                     </div>
 
-                    <p className="text-sm text-foreground/90 leading-relaxed">
-                      "{r.body}"
-                    </p>
+                    <div className="md:col-span-2 grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                        <span className="text-muted-foreground block">Craftsmanship Quality</span>
+                        <span className="font-display text-base font-bold text-foreground">5.0 / 5.0</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                        <span className="text-muted-foreground block">Punctuality & Speed</span>
+                        <span className="font-display text-base font-bold text-foreground">4.9 / 5.0</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                        <span className="text-muted-foreground block">Standardized Pricing</span>
+                        <span className="font-display text-base font-bold text-foreground">4.9 / 5.0</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                        <span className="text-muted-foreground block">Workspace Cleanliness</span>
+                        <span className="font-display text-base font-bold text-foreground">5.0 / 5.0</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                </section>
+
+                {/* Filter and Reviews List */}
+                <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                      <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                        <Star className="size-5 fill-amber-400 text-amber-500" />
+                        Verified Reviews ({filteredReviews.length})
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        Inspected ratings from Mumbai households with signed-off escrow
+                      </p>
+                    </div>
+
+                    {/* Filter Chips */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={activeReviewFilter === 'all' ? 'default' : 'outline'}
+                        onClick={() => setActiveReviewFilter('all')}
+                        className="text-xs h-8 px-3 rounded-lg font-medium"
+                      >
+                        All ({reviewList.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={activeReviewFilter === '5star' ? 'default' : 'outline'}
+                        onClick={() => setActiveReviewFilter('5star')}
+                        className="text-xs h-8 px-3 rounded-lg font-medium"
+                      >
+                        5 Stars Only
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 divide-y divide-border">
+                    {filteredReviews.map((r: CustomerReview, i: number) => (
+                      <div key={i} className={i === 0 ? '' : 'pt-6'}>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
+                              {r.initials}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-sm text-foreground">{r.name}</h4>
+                                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">
+                                  Verified SafePay Job
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{r.location} · {r.date}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`size-3.5 ${
+                                  star <= r.rating ? 'fill-amber-400 text-amber-500' : 'text-border'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-2">
+                          <span className="inline-block text-[11px] font-semibold text-foreground bg-surface-subtle px-2 py-0.5 rounded border border-border">
+                            {r.verifiedJob}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-foreground/90 leading-relaxed">
+                          "{r.body}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
-            </section>
+            )}
 
           </div>
 

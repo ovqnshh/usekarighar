@@ -594,7 +594,8 @@ function ProfessionalsPage() {
                 {professionals.map((pro: any) => (
                   <article
                     key={pro.id}
-                    className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-3.5 shadow-warm-xs transition-all hover:border-primary/40 hover:shadow-warm"
+                    onClick={() => navigate({ to: '/professionals/$id', params: { id: pro.slug || pro.id } })}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-3.5 shadow-warm-xs transition-all hover:border-primary/40 hover:shadow-warm cursor-pointer"
                   >
                     {/* Photo, Shortlist & Availability */}
                     <div>
