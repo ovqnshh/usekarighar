@@ -690,12 +690,26 @@ function ProfilePage() {
         .insert({
           project_id: project.id,
           professional_id: pro.id,
-          status: 'accepted',
+          status: 'requested',
           labour: activeDayPricing.price,
           materials_cost: includeParts ? 450 : 0,
         });
 
       if (quoteError) throw quoteError;
+
+      // Automatically initialize chat thread with doorstep booking pass
+      try {
+        await supabase.from('messages').insert({
+          sender_id: user.id,
+          receiver_id: (pro as any)?.user_id || null,
+          project_id: project.id,
+          content: `Doorstep Visit Scheduled for ${jobDate ? format(jobDate, 'd MMM yyyy') : 'selected date'} (${selectedTimeSlot}). Address: ${fullAddress}. SafePay Escrow Authorized.`,
+          read: false,
+        });
+      } catch (msgErr) {
+        console.warn('Initial booking message notice:', msgErr);
+      }
+
       return project.id;
     },
     onSuccess: (projectId) => {
@@ -730,42 +744,65 @@ function ProfilePage() {
 
     setIsSendingMessage(true);
     try {
-      // Create a direct inquiry project record so it appears in both user's and pro's inbox
-      const { data: project } = await supabase
+      // 1. Create a direct inquiry project record (valid source: 'quote', status: 'requested')
+      const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert({
           customer_id: user.id,
           title: `Direct Inquiry with ${pro?.name}`,
-          summary: inAppMessageText,
+          summary: inAppMessageText.trim(),
+          location: `${customerLocality || 'Mumbai'}, Mumbai`,
           professional_id: pro?.id,
-          status: 'requesting_quotes',
-          source: 'inquiry',
+          status: 'requested',
+          source: 'quote',
         })
         .select('id')
         .single();
 
-      if (project?.id) {
-        await supabase.from('messages').insert({
-          sender_id: user.id,
-          receiver_id: (pro as any).user_id || pro?.id,
-          project_id: project.id,
-          content: inAppMessageText,
-          read: false,
-        });
+      if (projectError) throw projectError;
+
+      // 2. Insert quote request so inquiry displays in Pro's "Job Requests" tab
+      if (pro?.id) {
+        const { error: quoteError } = await supabase
+          .from('quotes')
+          .insert({
+            project_id: project.id,
+            professional_id: pro.id,
+            status: 'requested',
+          });
+        if (quoteError) {
+          console.warn('Inquiry quote creation notice:', quoteError.message);
+        }
       }
 
-      toast.success('Message sent on Karighar!', {
-        description: `${pro?.name} receives instant push notification. Replies will show in your inbox.`,
+      // 3. Insert initial message into Messages table for live thread
+      const receiverUserId = (pro as any)?.user_id || null;
+      const { error: messageError } = await supabase.from('messages').insert({
+        sender_id: user.id,
+        receiver_id: receiverUserId,
+        project_id: project.id,
+        content: inAppMessageText.trim(),
+        read: false,
       });
+
+      if (messageError) throw messageError;
+
+      toast.success('Inquiry Transmitted!', {
+        description: `${pro?.name} was notified. You can track this thread in your projects.`,
+        action: {
+          label: 'Open Chat',
+          onClick: () => navigate({ to: '/projects/$id', params: { id: project.id } }),
+        },
+      });
+
       setIsMessageModalOpen(false);
       setInAppMessageText('');
+      qc.invalidateQueries({ queryKey: ['my-projects'] });
     } catch (err: any) {
-      console.warn('In-app message recorded:', err);
-      toast.success('Inquiry transmitted!', {
-        description: `${pro?.name} will receive your message in the Karighar Pro portal.`,
+      console.error('In-app message error:', err);
+      toast.error('Could not send inquiry', {
+        description: err.message || 'Please check your connection and try again.',
       });
-      setIsMessageModalOpen(false);
-      setInAppMessageText('');
     } finally {
       setIsSendingMessage(false);
     }

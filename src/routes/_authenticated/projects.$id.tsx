@@ -45,14 +45,17 @@ function ProjectDetail() {
   async function sendMessage(isSpecialOffer = false) {
     if (!newMessage.trim() && !isSpecialOffer) return;
     if (!user) return;
+    const proj = project.data;
+    const receiverId = user.id === proj?.customer_id ? proj?.professionals?.user_id : proj?.customer_id;
     const { error } = await supabase.from("messages").insert({
       project_id: id,
       sender_id: user.id,
+      receiver_id: receiverId || null,
       content: newMessage || `Special offer: ₹${offerAmount}`,
       is_special_offer: isSpecialOffer,
       offer_amount: isSpecialOffer ? Number(offerAmount) : null
     });
-    if (error) toast.error("Failed to send message");
+    if (error) toast.error("Failed to send message: " + error.message);
     else { setNewMessage(""); setOfferAmount(""); }
   }
 

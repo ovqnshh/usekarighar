@@ -15,6 +15,7 @@ export const Route = createFileRoute('/my-projects')({
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "info" | "outline" }> = {
   draft: { label: 'Draft', variant: 'secondary' },
+  requested: { label: 'Awaiting quotes', variant: 'info' },
   requesting_quotes: { label: 'Awaiting quotes', variant: 'info' },
   scheduled: { label: 'Scheduled', variant: 'warning' },
   in_progress: { label: 'In progress', variant: 'warning' },

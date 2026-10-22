@@ -1886,18 +1886,48 @@ function AvailabilityRulesTab({ pro }: { pro: ProRow }) {
    ═══════════════════════════════════════════════════════════════════════ */
 function MessagesTab({ pro }: { pro: ProRow }) {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const { data: messages = [] } = useQuery({
-    queryKey: ["pro-messages", pro.id],
+    queryKey: ["pro-messages", pro.id, pro.user_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*, projects(id, title, customer_id, location)")
-        .or(`sender_id.eq.${pro.user_id},receiver_id.eq.${pro.user_id}`)
-        .order("created_at", { ascending: false });
-      if (error) return [];
-      return data ?? [];
+      try {
+        const [projRes, quoteRes] = await Promise.all([
+          supabase.from("projects").select("id").eq("professional_id", pro.id),
+          supabase.from("quotes").select("project_id").eq("professional_id", pro.id),
+        ]);
+
+        const projectIds = new Set<string>();
+        (projRes.data || []).forEach((p: any) => p.id && projectIds.add(p.id));
+        (quoteRes.data || []).forEach((q: any) => q.project_id && projectIds.add(q.project_id));
+        const idList = Array.from(projectIds);
+
+        let query = supabase
+          .from("messages")
+          .select("*, projects(id, title, customer_id, location)")
+          .order("created_at", { ascending: false });
+
+        if (idList.length > 0 && pro.user_id) {
+          query = query.or(`project_id.in.(${idList.join(",")}),sender_id.eq.${pro.user_id},receiver_id.eq.${pro.user_id}`);
+        } else if (idList.length > 0) {
+          query = query.in("project_id", idList);
+        } else if (pro.user_id) {
+          query = query.or(`sender_id.eq.${pro.user_id},receiver_id.eq.${pro.user_id}`);
+        } else {
+          return [];
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.warn("Pro messages query error:", error);
+          return [];
+        }
+        return data ?? [];
+      } catch (e) {
+        console.warn("Failed to load messages:", e);
+        return [];
+      }
     },
     refetchInterval: 3000,
   });
@@ -1912,6 +1942,7 @@ function MessagesTab({ pro }: { pro: ProRow }) {
           projectId: msg.project_id,
           title: msg.projects?.title || "Customer Inquiry",
           location: msg.projects?.location || pro.city || "Mumbai",
+          customerId: msg.projects?.customer_id,
           lastMessage: msg,
           unread: msg.receiver_id === user?.id && !msg.read,
           messages: [],
@@ -1937,31 +1968,44 @@ function MessagesTab({ pro }: { pro: ProRow }) {
     if (!input.value.trim()) return;
 
     const firstMsg = activeThread.messages[0];
-    const receiverId = firstMsg.sender_id === user.id ? firstMsg.receiver_id : firstMsg.sender_id;
+    const receiverId = activeThread.customerId || (firstMsg?.sender_id === user.id ? firstMsg?.receiver_id : firstMsg?.sender_id);
+    const content = input.value.trim();
+    input.value = "";
 
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       sender_id: user.id,
-      receiver_id: receiverId,
+      receiver_id: receiverId || null,
       project_id: activeThread.projectId,
-      content: input.value.trim(),
+      content,
       read: false,
     });
-    input.value = "";
+
+    if (error) {
+      toast.error("Failed to send message: " + error.message);
+    } else {
+      qc.invalidateQueries({ queryKey: ["pro-messages", pro.id, pro.user_id] });
+    }
   };
 
   const sendQuickReply = async (text: string) => {
     if (!activeThread || !user) return;
     const firstMsg = activeThread.messages[0];
-    const receiverId = firstMsg.sender_id === user.id ? firstMsg.receiver_id : firstMsg.sender_id;
+    const receiverId = activeThread.customerId || (firstMsg?.sender_id === user.id ? firstMsg?.receiver_id : firstMsg?.sender_id);
 
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       sender_id: user.id,
-      receiver_id: receiverId,
+      receiver_id: receiverId || null,
       project_id: activeThread.projectId,
       content: text,
       read: false,
     });
-    toast.success("Quick reply sent!");
+
+    if (error) {
+      toast.error("Failed to send quick reply: " + error.message);
+    } else {
+      toast.success("Quick reply sent!");
+      qc.invalidateQueries({ queryKey: ["pro-messages", pro.id, pro.user_id] });
+    }
   };
 
   return (

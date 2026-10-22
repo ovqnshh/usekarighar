@@ -313,28 +313,42 @@ function ServicesCatalogPage() {
           summary,
           location: fullAddress,
           timing: jobDate,
+          professional_id: proId,
           status: "scheduled",
-          source: "catalog_booking",
+          source: "quote",
         })
         .select("id")
         .single();
 
       if (projectError) throw projectError;
 
-      // 2. Insert Accepted Quote
+      // 2. Insert Quote Request
       const { error: quoteError } = await supabase
         .from("quotes")
         .insert({
           project_id: project.id,
           professional_id: proId,
-          status: "accepted",
+          status: "requested",
           labour: quoteBreakdown?.labour || selectedService.basePrice,
           platform_fee: quoteBreakdown?.platformFee || 0,
           tax: quoteBreakdown?.gst || 0,
-          total: totalAmount,
         });
 
       if (quoteError) throw quoteError;
+
+      // 3. Initialize chat message
+      try {
+        await supabase.from("messages").insert({
+          project_id: project.id,
+          sender_id: user.id,
+          receiver_id: matchedPro?.user_id || null,
+          content: `Doorstep Booking Confirmed for ${selectedService.name}. Scheduled Date: ${jobDate}. Address: ${fullAddress}. SafePay Escrow Authorized.`,
+          read: false,
+        });
+      } catch (mErr) {
+        console.warn("Booking message notice:", mErr);
+      }
+
       return project.id;
     },
     onSuccess: () => {
