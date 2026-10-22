@@ -169,116 +169,6 @@ const TRADE_SERVICES: Record<string, ServiceGig[]> = {
   ],
 };
 
-const TRADE_REVIEWS: Record<string, CustomerReview[]> = {
-  plumbing: [
-    {
-      name: 'Priya Deshmukh',
-      location: 'Lokhandwala, Andheri West',
-      rating: 5,
-      body: 'Persistent bathroom concealed pipeline leakage that two other local technicians couldn\'t diagnose. He arrived right on time with proper pressure gauges, pinpointed the hairline joint crack in 20 minutes, and finished with zero unnecessary tile breakage. Highly skilled and very clean work.',
-      date: '2 days ago',
-      verifiedJob: 'Concealed Pipe Joint Leak Repair',
-      initials: 'PD',
-    },
-    {
-      name: 'Rohit Singhania',
-      location: 'Versova, Andheri West',
-      rating: 5,
-      body: 'Replaced our kitchen sink diverter and angle valves with Jaquar fittings. Upfront transparent pricing with zero surprise charges. SafePay gave me great peace of mind since money was held in escrow until we verified the water pressure together.',
-      date: '1 week ago',
-      verifiedJob: 'Sink Diverter & Valve Replacement',
-      initials: 'RS',
-    },
-    {
-      name: 'Ananya Iyer',
-      location: 'Juhu Scheme, Vile Parle',
-      rating: 5,
-      body: 'Prompt Sunday emergency response when our overhead loft tank ball-cock valve jammed and overflowed. Clean professional work, verified Karighar ID shown at the security gate before entering. Will book again without hesitation.',
-      date: '2 weeks ago',
-      verifiedJob: 'Loft Tank Ball-Cock Overhaul',
-      initials: 'AI',
-    },
-    {
-      name: 'Farhan Merchant',
-      location: 'Oshiwara, Mumbai',
-      rating: 5,
-      body: 'Very polite and honest craftsman. Clearly explained what caused the drain blockage and what preventative steps to take instead of pushing for unnecessary part replacements.',
-      date: '3 weeks ago',
-      verifiedJob: 'Drainage Auger Jet Clean',
-      initials: 'FM',
-    },
-  ],
-  ac: [
-    {
-      name: 'Sameer Kulkarni',
-      location: 'Hiranandani, Powai',
-      rating: 5,
-      body: 'Thorough jet-pump coil wash and R32 pressure diagnostics for our Daikin split unit. Temperature dropped from 28°C to 20°C in just 10 minutes after service. Clean plastic sheets used so my wooden flooring remained completely dry.',
-      date: 'Yesterday',
-      verifiedJob: 'Deep Jet-Foam Split AC Service',
-      initials: 'SK',
-    },
-    {
-      name: 'Neha Gupta',
-      location: 'Chandivali, Mumbai',
-      rating: 5,
-      body: 'Identified an inverter PCB relay issue that another company had quoted ₹9,000 for full board replacement. Diagnosed the sensor fault accurately and repaired it transparently under ₹1,800. True honest expert.',
-      date: '4 days ago',
-      verifiedJob: 'Inverter PCB Diagnostic & Sensor Fix',
-      initials: 'NG',
-    },
-    {
-      name: 'Alok Varma',
-      location: 'Bandra West, Mumbai',
-      rating: 5,
-      body: 'Arrived within 30 minutes of booking. Carried digital manifold gauges and sealed refrigerant cylinder. Zero gas leakage tricks. 10/10 professionalism.',
-      date: '1 week ago',
-      verifiedJob: 'Copper Flare Joint & Gas Top-up',
-      initials: 'AV',
-    },
-  ],
-  carpentry: [
-    {
-      name: 'Tara Krishnamurthy',
-      location: 'Pali Hill, Bandra West',
-      rating: 5,
-      body: 'Crafted custom marine-grade teak alcove shelves and realigned 4 saggy wardrobe doors. Velvet-smooth edge-banding and flawless Blum hydraulic hinge alignment. Extremely detail-oriented artisan.',
-      date: '3 days ago',
-      verifiedJob: 'Custom Marine-Ply Alcove Shelving',
-      initials: 'TK',
-    },
-    {
-      name: 'Devansh Mehta',
-      location: 'Khar West, Mumbai',
-      rating: 5,
-      body: 'Repaired water-damaged modular kitchen cabinet bases using waterproof ply. Matched the laminate veneer seamlessly. Cleaned all wood shavings before leaving.',
-      date: '2 weeks ago',
-      verifiedJob: 'Kitchen Under-Sink Base Restoration',
-      initials: 'DM',
-    },
-  ],
-  electrical: [
-    {
-      name: 'Nikhil Parekh',
-      location: 'Powai, Mumbai',
-      rating: 5,
-      body: 'Solved an elusive tripping issue on our main RCCB distribution board that had been plaguing us for two weeks. Tested earth leakage resistance systematically and isolated the faulty neutral wire.',
-      date: 'Yesterday',
-      verifiedJob: 'RCCB Tripping & Earth Leakage Isolation',
-      initials: 'NP',
-    },
-    {
-      name: 'Shruti Tendulkar',
-      location: 'Vikhroli West, Mumbai',
-      rating: 5,
-      body: 'Installed modular smart switches and concealed LED profile lighting under false ceiling. Zero visible wiring and spotless cleanup.',
-      date: '5 days ago',
-      verifiedJob: 'Modular Switchboard & Profile Fitting',
-      initials: 'ST',
-    },
-  ],
-};
-
 function getTradeKey(trade: string = ''): string {
   const t = trade.toLowerCase();
   if (t.includes('plumb') || t.includes('water') || t.includes('leak') || t.includes('drain')) return 'plumbing';
@@ -322,7 +212,7 @@ const professionalQueryOptions = (slug: string) => queryOptions({
     if (!pro) return null;
 
     let dbReviews: any[] = [];
-    let projectsCount = pro.projects_count || dummy?.projects || 0;
+    let projectsCount = pro.projects_count ?? dummy?.projects ?? 0;
     let verifications: any[] = (dummy?.badges || []).map(b => ({ type: b, status: 'verified' }));
     let availability: any[] = [];
     let scheduledProjects: any[] = [];
@@ -330,7 +220,7 @@ const professionalQueryOptions = (slug: string) => queryOptions({
     if (data?.id) {
       const { data: revs } = await supabase
         .from('reviews')
-        .select('rating, body, created_at')
+        .select('rating, body, created_at, customer_name, service_name, location')
         .eq('professional_id', data.id)
         .order('created_at', { ascending: false });
       if (revs && revs.length > 0) dbReviews = revs;
@@ -340,7 +230,9 @@ const professionalQueryOptions = (slug: string) => queryOptions({
         .select('*', { count: 'exact', head: true })
         .eq('professional_id', data.id)
         .eq('status', 'completed');
-      if (dbProjectsCount) projectsCount = dbProjectsCount;
+      if (dbProjectsCount !== null && dbProjectsCount !== undefined) {
+        projectsCount = dbProjectsCount;
+      }
 
       const { data: dbVerifications } = await supabase
         .from('karighar_verifications')
@@ -365,18 +257,24 @@ const professionalQueryOptions = (slug: string) => queryOptions({
     }
 
     const tradeKey = getTradeKey(pro.trade);
-    const standardReviews = TRADE_REVIEWS[tradeKey] || TRADE_REVIEWS.plumbing;
-    const finalReviews = dbReviews.length > 0
-      ? dbReviews.map((r: any, idx: number) => ({
-          name: `Verified Customer #${idx + 1}`,
-          location: pro.city || 'Mumbai',
-          rating: r.rating || 5,
-          body: r.body,
-          date: new Date(r.created_at).toLocaleDateString(),
-          verifiedJob: pro.trade,
-          initials: 'VC',
-        }))
-      : standardReviews;
+    const finalReviews: CustomerReview[] = dbReviews.map((r: any, idx: number) => {
+      const reviewerName = r.author?.name || r.customer_name || `Verified Customer #${idx + 1}`;
+      const initials = reviewerName
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'VC';
+      return {
+        name: reviewerName,
+        location: r.location || pro.city || 'Mumbai',
+        rating: Number(r.rating) || 5,
+        body: r.body || '',
+        date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
+        verifiedJob: r.service_name || pro.trade,
+        initials,
+      };
+    });
 
     const fallbackGigs = TRADE_SERVICES[tradeKey] || TRADE_SERVICES.plumbing;
     
@@ -451,7 +349,7 @@ const professionalQueryOptions = (slug: string) => queryOptions({
         ...((pro as any).portfolio?.length > 0 ? (pro as any).portfolio : (dummy?.portfolio || [waterTankProject, bathroomProject, electricalProject]))
       ].filter(Boolean),
       reviews: finalReviews,
-      completed_projects_count: projectsCount || 184,
+      completed_projects_count: projectsCount || 0,
       verifications: verifications.length > 0 ? verifications : [
         { type: 'Aadhaar ID verified', status: 'verified' },
         { type: 'Police background cleared', status: 'verified' },
@@ -910,8 +808,10 @@ function ProfilePage() {
   }
 
   const tradeKey = getTradeKey(pro.trade);
-  const avgRating = pro.rating || 4.9;
   const reviewList = pro.reviews || [];
+  const avgRating = reviewList.length > 0
+    ? (reviewList.reduce((acc: number, r: CustomerReview) => acc + (r.rating || 5), 0) / reviewList.length).toFixed(1)
+    : (pro.rating ? Number(pro.rating).toFixed(1) : null);
   const filteredReviews = reviewList.filter((r: CustomerReview) => {
     if (activeReviewFilter === '5star') return r.rating === 5;
     return true;
@@ -1012,8 +912,19 @@ function ProfilePage() {
                     className="flex items-center gap-1 text-foreground font-semibold hover:underline cursor-pointer transition-colors"
                     title="Click to view verified customer reviews"
                   >
-                    <Star className="size-4 fill-amber-400 text-amber-500" />
-                    {avgRating} <span className="font-normal text-muted-foreground">({reviewList.length} verified reviews)</span>
+                    {avgRating ? (
+                      <>
+                        <Star className="size-4 fill-amber-400 text-amber-500" />
+                        <span>{avgRating}</span>
+                        <span className="font-normal text-muted-foreground">({reviewList.length} verified review{reviewList.length === 1 ? '' : 's'})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="size-4 text-amber-500" />
+                        <span className="font-semibold text-foreground">New Verified Artisan</span>
+                        <span className="font-normal text-muted-foreground">(0 reviews)</span>
+                      </>
+                    )}
                   </button>
                   <span>·</span>
                   <span className="flex items-center gap-1">
@@ -1033,7 +944,7 @@ function ProfilePage() {
             <div className="grid grid-cols-3 gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-border shrink-0">
               <div className="bg-surface-subtle border border-border rounded-xl p-3 text-center">
                 <span className="block font-display text-lg sm:text-xl font-bold text-foreground">
-                  {pro.completed_projects_count}+
+                  {pro.completed_projects_count > 0 ? `${pro.completed_projects_count}+` : '0'}
                 </span>
                 <span className="block text-[11px] text-muted-foreground font-medium">Jobs Completed</span>
               </div>
@@ -1466,130 +1377,161 @@ function ProfilePage() {
             ) : (
               /* Verified Customer Reviews Section */
               <div className="space-y-8">
-                {/* Rating Overview Card */}
-                <section className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-warm-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                    <div className="text-center md:text-left border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-6">
-                      <div className="flex items-center justify-center md:justify-start gap-2">
-                        <span className="font-display text-4xl sm:text-5xl font-bold text-foreground">
-                          {avgRating}
-                        </span>
-                        <div className="flex flex-col items-start">
-                          <div className="flex items-center text-amber-500">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className="size-4 fill-amber-400 text-amber-500" />
-                            ))}
-                          </div>
-                          <span className="text-xs text-muted-foreground mt-0.5">out of 5.0</span>
-                        </div>
-                      </div>
-                      <p className="text-sm font-semibold text-foreground mt-2">
-                        {reviewList.length} Verified Customer Ratings
-                      </p>
-                      <Badge variant="success" className="text-[10px] mt-2">
-                        <ShieldCheck className="size-3 mr-1" />
-                        100% SafePay Verified Jobs
-                      </Badge>
+                {reviewList.length === 0 ? (
+                  <section className="bg-card border border-border rounded-2xl p-8 sm:p-12 text-center shadow-warm-xs space-y-4">
+                    <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
+                      <Star className="size-8 fill-amber-400 text-amber-500" />
                     </div>
-
-                    <div className="md:col-span-2 grid grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
-                        <span className="text-muted-foreground block">Craftsmanship Quality</span>
-                        <span className="font-display text-base font-bold text-foreground">5.0 / 5.0</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
-                        <span className="text-muted-foreground block">Punctuality & Speed</span>
-                        <span className="font-display text-base font-bold text-foreground">4.9 / 5.0</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
-                        <span className="text-muted-foreground block">Standardized Pricing</span>
-                        <span className="font-display text-base font-bold text-foreground">4.9 / 5.0</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-surface-subtle border border-border">
-                        <span className="text-muted-foreground block">Workspace Cleanliness</span>
-                        <span className="font-display text-base font-bold text-foreground">5.0 / 5.0</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Filter and Reviews List */}
-                <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <div>
-                      <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
-                        <Star className="size-5 fill-amber-400 text-amber-500" />
-                        Verified Reviews ({filteredReviews.length})
-                      </h2>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                        Inspected ratings from Mumbai households with signed-off escrow
+                    <div className="max-w-md mx-auto space-y-2">
+                      <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                        No Customer Reviews Yet
+                      </h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        {pro.name} is a verified artisan on Karighar with identity and trade credentials verified. Genuine customer reviews will be published here once their first SafePay service dispatch is completed.
                       </p>
                     </div>
-
-                    {/* Filter Chips */}
-                    <div className="flex items-center gap-2">
+                    <div className="pt-2">
                       <Button
-                        size="sm"
-                        variant={activeReviewFilter === 'all' ? 'default' : 'outline'}
-                        onClick={() => setActiveReviewFilter('all')}
-                        className="text-xs h-8 px-3 rounded-lg font-medium"
+                        onClick={() => {
+                          setSelectedService(displayedGigs[0] || null);
+                          setBookingStep('service');
+                          setShowBookingModal(true);
+                        }}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl shadow-warm px-5 py-2.5"
                       >
-                        All ({reviewList.length})
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={activeReviewFilter === '5star' ? 'default' : 'outline'}
-                        onClick={() => setActiveReviewFilter('5star')}
-                        className="text-xs h-8 px-3 rounded-lg font-medium"
-                      >
-                        5 Stars Only
+                        <CalendarDays className="size-3.5 mr-1.5" />
+                        Book First Service Visit
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-6 divide-y divide-border">
-                    {filteredReviews.map((r: CustomerReview, i: number) => (
-                      <div key={i} className={i === 0 ? '' : 'pt-6'}>
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
-                              {r.initials}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-sm text-foreground">{r.name}</h4>
-                                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">
-                                  Verified SafePay Job
-                                </span>
+                  </section>
+                ) : (
+                  <>
+                    {/* Rating Overview Card */}
+                    <section className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-warm-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                        <div className="text-center md:text-left border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-6">
+                          <div className="flex items-center justify-center md:justify-start gap-2">
+                            <span className="font-display text-4xl sm:text-5xl font-bold text-foreground">
+                              {avgRating}
+                            </span>
+                            <div className="flex flex-col items-start">
+                              <div className="flex items-center text-amber-500">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star key={s} className="size-4 fill-amber-400 text-amber-500" />
+                                ))}
                               </div>
-                              <p className="text-xs text-muted-foreground">{r.location} · {r.date}</p>
+                              <span className="text-xs text-muted-foreground mt-0.5">out of 5.0</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`size-3.5 ${
-                                  star <= r.rating ? 'fill-amber-400 text-amber-500' : 'text-border'
-                                }`}
-                              />
-                            ))}
+                          <p className="text-sm font-semibold text-foreground mt-2">
+                            {reviewList.length} Verified Customer Rating{reviewList.length === 1 ? '' : 's'}
+                          </p>
+                          <Badge variant="success" className="text-[10px] mt-2">
+                            <ShieldCheck className="size-3 mr-1" />
+                            100% SafePay Verified Jobs
+                          </Badge>
+                        </div>
+
+                        <div className="md:col-span-2 grid grid-cols-2 gap-3 text-xs">
+                          <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                            <span className="text-muted-foreground block">Overall Satisfaction</span>
+                            <span className="font-display text-base font-bold text-foreground">{avgRating} / 5.0</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                            <span className="text-muted-foreground block">Verified Completed Jobs</span>
+                            <span className="font-display text-base font-bold text-foreground">{reviewList.length}</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                            <span className="text-muted-foreground block">SafePay Escrow Release</span>
+                            <span className="font-display text-base font-bold text-foreground">100%</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-surface-subtle border border-border">
+                            <span className="text-muted-foreground block">Quality Guarantee</span>
+                            <span className="font-display text-base font-bold text-foreground">30 Days</span>
                           </div>
                         </div>
+                      </div>
+                    </section>
 
-                        <div className="mb-2">
-                          <span className="inline-block text-[11px] font-semibold text-foreground bg-surface-subtle px-2 py-0.5 rounded border border-border">
-                            {r.verifiedJob}
-                          </span>
+                    {/* Filter and Reviews List */}
+                    <section className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-warm-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                          <h2 className="font-display text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                            <Star className="size-5 fill-amber-400 text-amber-500" />
+                            Verified Reviews ({filteredReviews.length})
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                            Inspected ratings from Mumbai households with signed-off escrow
+                          </p>
                         </div>
 
-                        <p className="text-sm text-foreground/90 leading-relaxed">
-                          "{r.body}"
-                        </p>
+                        {/* Filter Chips */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant={activeReviewFilter === 'all' ? 'default' : 'outline'}
+                            onClick={() => setActiveReviewFilter('all')}
+                            className="text-xs h-8 px-3 rounded-lg font-medium"
+                          >
+                            All ({reviewList.length})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={activeReviewFilter === '5star' ? 'default' : 'outline'}
+                            onClick={() => setActiveReviewFilter('5star')}
+                            className="text-xs h-8 px-3 rounded-lg font-medium"
+                          >
+                            5 Stars Only
+                          </Button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </section>
+
+                      <div className="space-y-6 divide-y divide-border">
+                        {filteredReviews.map((r: CustomerReview, i: number) => (
+                          <div key={i} className={i === 0 ? '' : 'pt-6'}>
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="size-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
+                                  {r.initials}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-sm text-foreground">{r.name}</h4>
+                                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">
+                                      Verified SafePay Job
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{r.location} · {r.date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`size-3.5 ${
+                                      star <= r.rating ? 'fill-amber-400 text-amber-500' : 'text-border'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="mb-2">
+                              <span className="inline-block text-[11px] font-semibold text-foreground bg-surface-subtle px-2 py-0.5 rounded border border-border">
+                                {r.verifiedJob}
+                              </span>
+                            </div>
+
+                            <p className="text-sm text-foreground/90 leading-relaxed">
+                              "{r.body}"
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
               </div>
             )}
 
@@ -1959,7 +1901,7 @@ function ProfilePage() {
             </div>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <Star className="size-3 fill-amber-400 text-amber-500" />
-              <span className="font-semibold text-foreground">{avgRating}</span>
+              <span className="font-semibold text-foreground">{avgRating ? `${avgRating} ★` : 'New Verified'}</span>
               <span>· SafePay</span>
             </div>
           </div>
