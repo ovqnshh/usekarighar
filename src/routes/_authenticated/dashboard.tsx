@@ -10,7 +10,7 @@ import {
   FileText, TrendingUp, TrendingDown, Receipt, Download, Search, Filter,
   CheckCircle, Calendar, ArrowRight, CreditCard, Clock, Activity, Printer
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
