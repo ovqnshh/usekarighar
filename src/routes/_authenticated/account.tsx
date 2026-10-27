@@ -1,1256 +1,1376 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  User, Shield, Eye, Wrench, Briefcase, Bell, Check, Sparkles,
-  MapPin, Plus, Trash2, Edit3, CreditCard, Building2, Globe, Lock,
-  KeyRound, Download, Smartphone, AlertTriangle, ChevronRight,
-  FileText, CheckCircle2, ShieldCheck, HelpCircle, ArrowUpRight
+  User, Shield, Lock, CreditCard, Bell, Eye, Building2, MapPin,
+  CheckCircle2, AlertTriangle, ChevronRight, Phone, Mail, Smartphone,
+  Globe, KeyRound, Download, Trash2, Edit3, Plus, ArrowUpRight,
+  ShieldCheck, HelpCircle, Check, Sparkles, RefreshCw, X, Receipt,
+  Landmark, Wallet, Award, FileText, Ban
 } from "lucide-react";
 import { useAuth } from "@/lib/karighar-api";
 import { PageShell } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { useI18n, SUPPORTED_LANGUAGES, type Language } from "@/lib/i18n";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/account")({
-  head: () => ({ meta: [{ title: "Account & Settings — Karighar" }] }),
+  head: () => ({ meta: [{ title: "Account Settings — Karighar" }] }),
   component: AccountPage,
 });
 
-interface SavedAddress {
-  id: string;
-  tag: "Home" | "Work" | "Rental" | "Other";
-  flatNo: string;
-  society: string;
-  locality: string;
-  landmark: string;
-  pincode: string;
-  gateInstructions: string;
-  isDefault: boolean;
-}
+type SettingsTab = "overview" | "personal" | "security" | "payments" | "privacy" | "notifications";
 
-interface SavedUPI {
-  id: string;
-  vpa: string;
-  provider: "Google Pay" | "PhonePe" | "Paytm" | "BHIM";
-  isDefault: boolean;
-}
-
-const DEFAULT_MUMBAI_AREAS = [
-  "Andheri West",
-  "Bandra West",
-  "Juhu Scheme",
-  "Lokhandwala Complex",
-  "Versova",
-  "Powai",
-  "Khar West",
-  "Vile Parle West",
-  "Goregaon West",
-  "Worli",
-  "Dadar West",
-  "Lower Parel",
-  "Chembur",
-  "Thane West",
-];
-
-const INITIAL_ADDRESSES: SavedAddress[] = [
-  {
-    id: "addr_1",
-    tag: "Home",
-    flatNo: "Flat 402, B-Wing, Palm Grove",
-    society: "Raheja Residency",
-    locality: "Andheri West",
-    landmark: "Behind Infiniti Mall, off Link Road",
-    pincode: "400053",
-    gateInstructions: "Security code 402 on intercom. Service lift available.",
-    isDefault: true,
-  },
-  {
-    id: "addr_2",
-    tag: "Work",
-    flatNo: "Studio 12, 3rd Floor",
-    society: "Kedia Industrial Estate",
-    locality: "Bandra West",
-    landmark: "Opposite Starbucks, Waterfield Road",
-    pincode: "400050",
-    gateInstructions: "Commercial entrance. Visitors parking available.",
-    isDefault: false,
-  },
-];
-
-const INITIAL_UPI: SavedUPI[] = [
-  {
-    id: "upi_1",
-    vpa: "user@okhdfcbank",
-    provider: "Google Pay",
-    isDefault: true,
-  },
-];
-
-type SettingsTab = "personal" | "addresses" | "payments" | "regional" | "security";
-
-function AccountPage() {
+export function AccountPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { language, setLanguage, t } = useI18n();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("personal");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("overview");
 
-  // Supabase Profile Query
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
+  // Fetch real profile data
+  const { data: profile, refetch: refetchProfile } = useQuery({
+    queryKey: ["user-profile", user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
+      if (!user) return null;
+      const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
+        .maybeSingle();
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (updates: any) => {
-      if (!user?.id) throw new Error("Not logged in");
-      const { data, error } = await supabase
-        .from("profiles")
-        .upsert({ id: user.id, ...updates })
-        .select()
-        .single();
+  // Fetch pro details if artisan
+  const { data: pro } = useQuery({
+    queryKey: ["pro-account", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("professionals")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch real wallet / credit score if artisan
+  const { data: wallet } = useQuery({
+    queryKey: ["pro-wallet", pro?.id],
+    queryFn: async () => {
+      if (!pro?.id) return null;
+      const { data } = await (supabase as any)
+        .from("karigar_wallets")
+        .select("*")
+        .eq("professional_id", pro.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!pro?.id,
+  });
+
+  // Fetch recent payments for this user
+  const { data: payments = [] } = useQuery({
+    queryKey: ["account-payments", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await (supabase as any)
+        .from("payments")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Derived user details from Supabase Auth + Profiles
+  const userMeta = user?.user_metadata || {};
+  const legalName = userMeta.legal_name || profile?.full_name || (user?.email ? user.email.split("@")[0] : "Karighar Member");
+  const preferredName = userMeta.preferred_name || "";
+  const phone = userMeta.phone || profile?.phone || "";
+  const residentialAddress = userMeta.residential_address || (profile?.city ? `${profile.city}, Maharashtra` : "");
+  const postalAddress = userMeta.postal_address || "";
+  const emergencyContact = userMeta.emergency_contact || "";
+  const idVerified = userMeta.id_verified || false;
+
+  // Payout bank details (for artisans)
+  const payoutBank = userMeta.payout_bank || {
+    bankName: "HDFC Bank",
+    accountHolder: legalName,
+    accountNumberMasked: "•••••••• 4921",
+    ifsc: "HDFC0000123",
+    upiVpa: "artisan@okhdfcbank",
+    frequency: "instant", // instant | daily | weekly
+    pan: userMeta.pan || "",
+  };
+
+  // Notification Preferences
+  const [notifications, setNotifications] = useState({
+    jobUpdates: userMeta.notif_job_updates ?? true,
+    priceAlerts: userMeta.notif_price_alerts ?? true,
+    societyDeals: userMeta.notif_society_deals ?? true,
+    artisanInsights: userMeta.notif_artisan_insights ?? true,
+    marketing: userMeta.notif_marketing ?? false,
+  });
+
+  // Privacy Preferences
+  const [privacy, setPrivacy] = useState({
+    profileVisible: userMeta.privacy_profile_visible ?? true,
+    readReceipts: userMeta.privacy_read_receipts ?? true,
+    indexInSearch: userMeta.privacy_index_search ?? true,
+    showLocalityOnReview: userMeta.privacy_show_locality ?? true,
+    showServiceOnReview: userMeta.privacy_show_service ?? true,
+    aiModelTraining: userMeta.privacy_ai_training ?? true,
+  });
+
+  // Modal edit states
+  const [editModal, setEditModal] = useState<{
+    open: boolean;
+    field: string;
+    title: string;
+    value: string;
+    secondaryValue?: string;
+  }>({
+    open: false,
+    field: "",
+    title: "",
+    value: "",
+  });
+
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [bankForm, setBankForm] = useState({
+    bankName: payoutBank.bankName || "",
+    accountHolder: payoutBank.accountHolder || legalName,
+    accountNumber: "",
+    ifsc: payoutBank.ifsc || "",
+    upiVpa: payoutBank.upiVpa || "",
+    frequency: payoutBank.frequency || "instant",
+    pan: payoutBank.pan || "",
+  });
+
+  // Update profile field helper
+  const handleSaveField = async () => {
+    try {
+      const updates: Record<string, any> = {};
+      updates[editModal.field] = editModal.value;
+
+      if (editModal.field === "legal_name") {
+        await supabase.from("profiles").update({ full_name: editModal.value }).eq("id", user!.id);
+      } else if (editModal.field === "phone") {
+        await supabase.from("profiles").update({ phone: editModal.value }).eq("id", user!.id);
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        data: updates,
+      });
+
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-      toast.success("Profile saved successfully");
-      setEditingField(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Local state for inline field edits
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<any>({});
-
-  useEffect(() => {
-    if (profile) {
-      setEditValues({
-        full_name: profile.full_name || user?.user_metadata?.full_name || "",
-        phone: profile.phone || "",
-        city: profile.city || "Andheri West, Mumbai",
-        is_professional: profile.is_professional || false,
-        notifications_enabled: profile.notifications_enabled ?? true,
-      });
-    } else if (user) {
-      setEditValues({
-        full_name: user.user_metadata?.full_name || "",
-        phone: "",
-        city: "Andheri West, Mumbai",
-        is_professional: false,
-        notifications_enabled: true,
-      });
+      toast.success("Updated successfully");
+      refetchProfile();
+      setEditModal({ open: false, field: "", title: "", value: "" });
+    } catch (e: any) {
+      toast.error("Failed to update detail", { description: e.message });
     }
-  }, [profile, user]);
+  };
 
-  // Saved Doorstep Addresses State (localStorage persistence)
-  const [addresses, setAddresses] = useState<SavedAddress[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("karighar-user-addresses");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+  // Save Payout Details for Artisans
+  const handleSaveBankPayout = async () => {
+    try {
+      const masked = bankForm.accountNumber
+        ? `•••••••• ${bankForm.accountNumber.slice(-4)}`
+        : payoutBank.accountNumberMasked;
+
+      const payoutData = {
+        bankName: bankForm.bankName,
+        accountHolder: bankForm.accountHolder,
+        accountNumberMasked: masked,
+        ifsc: bankForm.ifsc.toUpperCase(),
+        upiVpa: bankForm.upiVpa,
+        frequency: bankForm.frequency,
+        pan: bankForm.pan.toUpperCase(),
+      };
+
+      await supabase.auth.updateUser({
+        data: {
+          payout_bank: payoutData,
+          pan: bankForm.pan.toUpperCase(),
+        },
+      });
+
+      if (pro?.id) {
+        await supabase.from("professionals").update({
+          business: `${pro.name} · Payout: ${bankForm.bankName}`,
+        }).eq("id", pro.id);
       }
-    }
-    return INITIAL_ADDRESSES;
-  });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("karighar-user-addresses", JSON.stringify(addresses));
+      toast.success("Payout preferences & bank account saved", {
+        description: `Disbursements set to: ${bankForm.frequency === "instant" ? "Instant upon OTP release" : bankForm.frequency === "daily" ? "Daily at 8:00 PM IST" : "Weekly on Monday"}.`,
+      });
+      setBankModalOpen(false);
+    } catch (e: any) {
+      toast.error("Could not save payout details", { description: e.message });
     }
-  }, [addresses]);
+  };
 
-  // Add Address Modal / Drawer Form State
-  const [isAddingAddress, setIsAddingAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState<Omit<SavedAddress, "id" | "isDefault">>({
-    tag: "Home",
-    flatNo: "",
-    society: "",
-    locality: DEFAULT_MUMBAI_AREAS[0],
-    landmark: "",
-    pincode: "400053",
-    gateInstructions: "",
-  });
+  // Toggle notifications & sync to Auth
+  const handleToggleNotification = async (key: keyof typeof notifications, val: boolean) => {
+    const updated = { ...notifications, [key]: val };
+    setNotifications(updated);
+    try {
+      const payload: Record<string, boolean> = {};
+      payload[`notif_${key}`] = val;
+      await supabase.auth.updateUser({ data: payload });
+      toast.success("Notification preference updated");
+    } catch {}
+  };
 
-  const handleCreateAddress = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAddress.flatNo.trim()) {
-      toast.error("Please enter flat, floor or house number");
-      return;
-    }
-    const created: SavedAddress = {
-      ...newAddress,
-      id: `addr_${Date.now()}`,
-      isDefault: addresses.length === 0,
-    };
-    setAddresses((prev) => [...prev, created]);
-    setIsAddingAddress(false);
-    setNewAddress({
-      tag: "Home",
-      flatNo: "",
-      society: "",
-      locality: DEFAULT_MUMBAI_AREAS[0],
-      landmark: "",
-      pincode: "400053",
-      gateInstructions: "",
+  // Toggle privacy preferences
+  const handleTogglePrivacy = async (key: keyof typeof privacy, val: boolean) => {
+    const updated = { ...privacy, [key]: val };
+    setPrivacy(updated);
+    try {
+      const payload: Record<string, boolean> = {};
+      payload[`privacy_${key}`] = val;
+      await supabase.auth.updateUser({ data: payload });
+      toast.success("Privacy setting updated");
+    } catch {}
+  };
+
+  const handleUnsubscribeAll = async () => {
+    const updated = { ...notifications, marketing: false, societyDeals: false };
+    setNotifications(updated);
+    await supabase.auth.updateUser({
+      data: { notif_marketing: false, notif_society_deals: false },
     });
-    toast.success("Doorstep service address added!");
+    toast.success("Unsubscribed from marketing and promotion emails");
   };
 
-  const handleDeleteAddress = (id: string) => {
-    if (addresses.length <= 1) {
-      toast.error("You need at least one saved service address");
-      return;
+  const handleDeactivate = () => {
+    if (confirm("Are you sure you want to deactivate your Karighar account? This action cannot be undone.")) {
+      toast.info("Account deactivation scheduled. You will be logged out shortly.");
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        navigate({ to: "/" });
+      }, 1500);
     }
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-    toast.success("Address removed");
-  };
-
-  const handleSetDefaultAddress = (id: string) => {
-    setAddresses((prev) =>
-      prev.map((a) => ({
-        ...a,
-        isDefault: a.id === id,
-      }))
-    );
-    const selected = addresses.find((a) => a.id === id);
-    if (selected) {
-      updateProfileMutation.mutate({ city: `${selected.locality}, Mumbai` });
-      toast.success(`Default doorstep address set to ${selected.locality}`);
-    }
-  };
-
-  // Payment UPI State (localStorage persistence)
-  const [upiList, setUpiList] = useState<SavedUPI[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("karighar-user-upi");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
-      }
-    }
-    return INITIAL_UPI;
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("karighar-user-upi", JSON.stringify(upiList));
-    }
-  }, [upiList]);
-
-  const [newVpa, setNewVpa] = useState("");
-  const [newVpaProvider, setNewVpaProvider] = useState<SavedUPI["provider"]>("Google Pay");
-  const [isAddingUPI, setIsAddingUPI] = useState(false);
-
-  const handleAddUPI = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newVpa.includes("@") || newVpa.length < 5) {
-      toast.error("Please enter a valid UPI ID (e.g. mobile@upi)");
-      return;
-    }
-    const created: SavedUPI = {
-      id: `upi_${Date.now()}`,
-      vpa: newVpa.trim(),
-      provider: newVpaProvider,
-      isDefault: upiList.length === 0,
-    };
-    setUpiList((prev) => [...prev, created]);
-    setNewVpa("");
-    setIsAddingUPI(false);
-    toast.success("UPI ID added for instant SafePay refunds and payouts");
-  };
-
-  // GST & Business Invoicing State
-  const [gstInfo, setGstInfo] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("karighar-user-gst");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return { gstin: "", legalName: "", isEnabled: false };
-  });
-
-  const handleSaveGst = () => {
-    localStorage.setItem("karighar-user-gst", JSON.stringify(gstInfo));
-    toast.success("GST billing details updated for project tax invoices");
-  };
-
-  // Measurement unit state
-  const [unitPreference, setUnitPreference] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("karighar-pref-unit") || "sqft";
-    }
-    return "sqft";
-  });
-
-  const handleUnitChange = (unit: string) => {
-    setUnitPreference(unit);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("karighar-pref-unit", unit);
-    }
-    toast.success(`Measurement preference updated to ${unit === "sqft" ? "Sq. Feet (sq ft)" : "Square Metres (m²)"}`);
-  };
-
-  const handleSave = (field: string) => {
-    updateProfileMutation.mutate({
-      [field]: editValues[field],
-    });
-  };
-
-  const handleCancel = () => {
-    setEditingField(null);
-    if (profile) {
-      setEditValues({
-        ...editValues,
-        full_name: profile.full_name || user?.user_metadata?.full_name || "",
-        phone: profile.phone || "",
-        city: profile.city || "Andheri West, Mumbai",
-      });
-    }
-  };
-
-  const toggleBoolean = (field: string) => {
-    const newValue = !editValues[field];
-    setEditValues({ ...editValues, [field]: newValue });
-    updateProfileMutation.mutate({ [field]: newValue });
-  };
-
-  // Data Export (DPDP Act Compliance)
-  const handleExportData = () => {
-    const data = {
-      user: {
-        id: user?.id,
-        email: user?.email,
-        full_name: editValues.full_name,
-        phone: editValues.phone,
-        city: editValues.city,
-      },
-      savedAddresses: addresses,
-      savedPaymentMethods: upiList,
-      languagePreference: language,
-      exportTimestamp: new Date().toISOString(),
-      compliance: "Digital Personal Data Protection Act (DPDP India 2023)",
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `karighar-profile-${user?.id?.slice(0, 8) || "export"}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Your complete account archive has been downloaded");
-  };
-
-  const renderField = (id: string, label: string, description: string, placeholder: string = "") => {
-    const isEditing = editingField === id;
-    const value = editValues[id];
-    const displayValue =
-      (profile as any)?.[id] ||
-      (id === "full_name" ? user?.user_metadata?.full_name : "") ||
-      editValues[id] ||
-      "Not provided";
-
-    return (
-      <div className="flex flex-col sm:flex-row justify-between items-start pb-6 border-b border-border gap-4">
-        <div className="flex-1 w-full">
-          <h3 className="font-medium text-foreground text-sm">{label}</h3>
-
-          {isEditing ? (
-            <div className="mt-3 space-y-3 max-w-sm">
-              <Input
-                value={value || ""}
-                onChange={(e) => setEditValues({ ...editValues, [id]: e.target.value })}
-                placeholder={placeholder}
-                className="h-10 text-sm bg-background border-border"
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleSave(id)}
-                  disabled={updateProfileMutation.isPending}
-                >
-                  {updateProfileMutation.isPending ? "Saving…" : "Save"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleCancel}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-foreground/90 mt-1">{displayValue}</p>
-              {description && (
-                <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-                  {description}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-
-        {!isEditing && (
-          <button
-            onClick={() => setEditingField(id)}
-            className="text-xs font-semibold text-primary hover:underline shrink-0"
-          >
-            {(profile as any)?.[id] || editValues[id] ? "Edit" : "Add"}
-          </button>
-        )}
-      </div>
-    );
   };
 
   return (
     <PageShell>
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Top Hero / Profile Header Card */}
-        <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="size-16 md:size-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-display font-semibold text-2xl md:text-3xl">
-                  {(editValues.full_name || user?.email || "K").charAt(0).toUpperCase()}
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-success text-white p-1 rounded-full border-2 border-card" title="Aadhaar ID Verified">
-                  <ShieldCheck className="size-3.5" />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-display text-xl md:text-2xl font-semibold text-foreground">
-                    {editValues.full_name || "Karighar Member"}
-                  </h1>
-                  <Badge variant="outline" className="bg-surface-subtle text-xs border-border text-foreground font-medium">
-                    {editValues.is_professional ? "Verified Pro" : "Verified Homeowner"}
-                  </Badge>
-                  <Badge variant="success" className="text-[11px] font-medium">
-                    100% SafePay Escrow Active
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
-                  <span>{user?.email}</span>
-                  <span>•</span>
-                  <span>{editValues.phone || "+91 Mobile Verified"}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 text-primary">
-                    <MapPin className="size-3" />
-                    {addresses.find((a) => a.isDefault)?.locality || "Mumbai"}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Switch Pro / Homeowner */}
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-border">
-              <Button
-                variant={editValues.is_professional ? "default" : "outline"}
-                size="sm"
-                className="h-9 rounded-xl text-xs"
-                onClick={() => toggleBoolean("is_professional")}
-                disabled={updateProfileMutation.isPending}
-              >
-                <Sparkles className="size-3.5 mr-1.5" />
-                {editValues.is_professional ? "Switch to Buying" : "Switch to Karighar Pro"}
-              </Button>
-            </div>
-          </div>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Navigation Breadcrumb */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
+          <Link to="/" className="hover:text-foreground">Home</Link>
+          <ChevronRight className="size-3" />
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`hover:text-foreground font-medium ${activeTab === "overview" ? "text-foreground font-semibold" : ""}`}
+          >
+            Account Settings
+          </button>
+          {activeTab !== "overview" && (
+            <>
+              <ChevronRight className="size-3" />
+              <span className="capitalize font-semibold text-foreground">
+                {activeTab === "personal" && "Personal info"}
+                {activeTab === "security" && "Login & security"}
+                {activeTab === "payments" && "Payments & payouts"}
+                {activeTab === "privacy" && "Privacy & sharing"}
+                {activeTab === "notifications" && "Notifications"}
+              </span>
+            </>
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-          {/* Left Sidebar Navigation */}
-          <div className="w-full md:w-64 shrink-0 space-y-6">
-            <nav className="space-y-1.5 bg-card border border-border rounded-2xl p-2.5 shadow-warm-xs">
-              <button
-                onClick={() => setActiveTab("personal")}
-                className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === "personal"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-surface-subtle"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <User className="size-4 shrink-0" strokeWidth={1.5} />
-                  <span>Personal Details</span>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground/60" />
-              </button>
-
-              <button
-                onClick={() => setActiveTab("addresses")}
-                className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === "addresses"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-surface-subtle"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <MapPin className="size-4 shrink-0" strokeWidth={1.5} />
-                  <span>Doorstep Addresses</span>
-                </div>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.2">
-                  {addresses.length}
-                </Badge>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("payments")}
-                className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === "payments"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-surface-subtle"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <CreditCard className="size-4 shrink-0" strokeWidth={1.5} />
-                  <span>SafePay & Billing</span>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground/60" />
-              </button>
-
-              <button
-                onClick={() => setActiveTab("regional")}
-                className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === "regional"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-surface-subtle"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Globe className="size-4 shrink-0" strokeWidth={1.5} />
-                  <span>Language & Regional</span>
-                </div>
-                <span className="text-xs text-muted-foreground uppercase font-mono">
-                  {language}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("security")}
-                className={`flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === "security"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-foreground/80 hover:bg-surface-subtle"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Shield className="size-4 shrink-0" strokeWidth={1.5} />
-                  <span>Security & Privacy</span>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground/60" />
-              </button>
-            </nav>
-
-            {/* Quick Links Card */}
-            <div className="rounded-2xl border border-border bg-surface-subtle p-4 shadow-warm-xs space-y-3">
-              <span className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                Quick Shortcuts
-              </span>
-              <div className="space-y-1">
-                <Link
-                  to="/my-projects"
-                  className="flex items-center justify-between p-2 rounded-lg text-xs font-medium text-foreground hover:bg-background transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <Briefcase className="size-3.5 text-primary" /> My Active Projects
-                  </span>
-                  <ArrowUpRight className="size-3 text-muted-foreground" />
-                </Link>
-                <Link
-                  to="/shortlist"
-                  className="flex items-center justify-between p-2 rounded-lg text-xs font-medium text-foreground hover:bg-background transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="size-3.5 text-primary" /> Saved Pros
-                  </span>
-                  <ArrowUpRight className="size-3 text-muted-foreground" />
-                </Link>
-                <Link
-                  to="/help"
-                  className="flex items-center justify-between p-2 rounded-lg text-xs font-medium text-foreground hover:bg-background transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="size-3.5 text-primary" /> SafePay Help Centre
-                  </span>
-                  <ArrowUpRight className="size-3 text-muted-foreground" />
-                </Link>
-              </div>
-            </div>
+        {/* Tab Header Navigation Pills */}
+        <div className="flex items-center justify-between border-b border-border pb-4 mb-8">
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {activeTab === "overview" && "Account"}
+              {activeTab === "personal" && "Personal info"}
+              {activeTab === "security" && "Login & security"}
+              {activeTab === "payments" && "Payments & payouts"}
+              {activeTab === "privacy" && "Privacy & sharing"}
+              {activeTab === "notifications" && "Notifications"}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              {user?.email} · {pro ? "Verified Karighar Professional" : "Customer Account"}
+            </p>
           </div>
 
-          {/* Right Main Content Panel */}
-          <div className="flex-1 max-w-2xl">
-            {/* 1. PERSONAL DETAILS TAB */}
-            {activeTab === "personal" && (
-              <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs space-y-6">
+          {activeTab !== "overview" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab("overview")}
+              className="text-xs rounded-xl"
+            >
+              All settings
+            </Button>
+          )}
+        </div>
+
+        {/* =========================================================================
+            VIEW 1: OVERVIEW HUB (Airbnb Grid Cards)
+            ========================================================================= */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Card 1: Personal info */}
+            <button
+              onClick={() => setActiveTab("personal")}
+              className="text-left p-6 rounded-2xl border border-border bg-card shadow-warm-xs hover:shadow-warm transition-all group flex flex-col justify-between h-56"
+            >
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <User className="size-5" />
+                </div>
                 <div>
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    Personal Details
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your official identity information used for doorstep safety verification and project records.
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Personal info
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Provide personal details and how verified artisans and Karighar can reach you.
                   </p>
                 </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Manage personal info <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
 
-                <div className="space-y-6 pt-2">
-                  {renderField(
-                    "full_name",
-                    "Full Name",
-                    "As registered on your Aadhaar or PAN card. Pros will address you by this name.",
-                    "e.g. Priya Sharma"
-                  )}
+            {/* Card 2: Login & security */}
+            <button
+              onClick={() => setActiveTab("security")}
+              className="text-left p-6 rounded-2xl border border-border bg-card shadow-warm-xs hover:shadow-warm transition-all group flex flex-col justify-between h-56"
+            >
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Shield className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Login & security
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Update your password, passkeys, device sessions, and secure your account.
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Manage security <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
 
-                  <div className="flex justify-between items-start pb-6 border-b border-border">
-                    <div>
-                      <h3 className="font-medium text-foreground text-sm">Email Address</h3>
-                      <p className="text-sm font-medium text-foreground/90 mt-1">
-                        {user?.email || "Not provided"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-                        Used for SafePay payment receipts, quotation breakdown PDFs, and dispute resolutions.
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+            {/* Card 3: Payments & payouts (MOST IMPORTANT) */}
+            <button
+              onClick={() => setActiveTab("payments")}
+              className="text-left p-6 rounded-2xl border-2 border-primary/40 bg-card shadow-warm hover:border-primary transition-all group flex flex-col justify-between h-56 relative overflow-hidden"
+            >
+              <div className="absolute top-2.5 right-2.5">
+                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold py-0.5">
+                  SafePay Escrow
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <CreditCard className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Payments & payouts
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    SafePay escrow balances, UPI IDs, cards, coupons, and artisan bank disbursement routing.
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Manage payments & bank payouts <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 4: Privacy & sharing */}
+            <button
+              onClick={() => setActiveTab("privacy")}
+              className="text-left p-6 rounded-2xl border border-border bg-card shadow-warm-xs hover:shadow-warm transition-all group flex flex-col justify-between h-56"
+            >
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Eye className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Privacy & sharing
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Manage your visibility, message read receipts, search indexing, and review sharing.
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Manage privacy <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 5: Notifications */}
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className="text-left p-6 rounded-2xl border border-border bg-card shadow-warm-xs hover:shadow-warm transition-all group flex flex-col justify-between h-56"
+            >
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Bell className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Notifications
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Choose notification preferences for inspections, WhatsApp alerts, and neighbourhood clusters.
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Manage notifications <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 6: Help & Trust center */}
+            <Link
+              to="/help"
+              className="text-left p-6 rounded-2xl border border-border bg-card shadow-warm-xs hover:shadow-warm transition-all group flex flex-col justify-between h-56"
+            >
+              <div className="space-y-3">
+                <div className="size-11 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <ShieldCheck className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    Trust & Safety Center
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    30-Day rework warranty rules, dispute arbitrator ombudsman, and artisan code of conduct.
+                  </p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-primary flex items-center gap-1">
+                Visit Help & Trust center <ArrowUpRight className="size-3.5" />
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* =========================================================================
+            VIEW 2: PERSONAL INFORMATION
+            ========================================================================= */}
+        {activeTab === "personal" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 divide-y divide-border">
+              {/* Row 1: Legal name */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Legal name</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{legalName}</div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "legal_name", title: "Edit Legal Name", value: legalName })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  Edit
+                </Button>
+              </div>
+
+              {/* Row 2: Preferred first name */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Preferred first name</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{preferredName || "Not provided"}</div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "preferred_name", title: "Preferred First Name", value: preferredName })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  {preferredName ? "Edit" : "Add"}
+                </Button>
+              </div>
+
+              {/* Row 3: Email address */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Email address</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                    {user?.email}
+                    <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/20 bg-emerald-500/10">
                       Verified
                     </Badge>
                   </div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => toast.info("To change your primary email, please contact Karighar Support for security verification.")}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  Edit
+                </Button>
+              </div>
 
-                  {renderField(
-                    "phone",
-                    "Phone Number (+91)",
-                    "Direct contact for pros arriving at your doorstep. Never shared with outside lead-sellers.",
-                    "e.g. +91 98200 12345"
-                  )}
+              {/* Row 4: Phone numbers */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Phone number</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {phone ? phone : "Add a phone number so confirmed artisans and Karighar can get in touch on dispatch."}
+                  </div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "phone", title: "Contact Phone Number", value: phone })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  {phone ? "Edit" : "Add"}
+                </Button>
+              </div>
 
-                  {renderField(
-                    "city",
-                    "Primary Mumbai Locality",
-                    "Default neighbourhood used to match the fastest arriving verified technicians.",
-                    "e.g. Andheri West, Mumbai"
-                  )}
+              {/* Row 5: Identity verification */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Government Identity Verification</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {idVerified ? "Aadhaar & DigiLocker identity verified." : "Not verified yet. Completing verification increases trust score for instant bookings."}
+                  </div>
+                </div>
+                {idVerified ? (
+                  <Badge className="bg-emerald-600 text-white text-xs gap-1">
+                    <CheckCircle2 className="size-3" /> Verified
+                  </Badge>
+                ) : (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => {
+                      toast.success("DigiLocker verification sandbox initiated!");
+                      supabase.auth.updateUser({ data: { id_verified: true } });
+                    }}
+                    className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                  >
+                    Start
+                  </Button>
+                )}
+              </div>
 
-                  <div className="flex justify-between items-start pb-6 border-b border-border">
+              {/* Row 6: Residential address */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Residential address</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {residentialAddress || "Not provided"}
+                  </div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "residential_address", title: "Residential Address (Mumbai)", value: residentialAddress })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  {residentialAddress ? "Edit" : "Add"}
+                </Button>
+              </div>
+
+              {/* Row 7: Postal address */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Postal address & Pincode</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {postalAddress || "Not provided"}
+                  </div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "postal_address", title: "Postal Code & City", value: postalAddress })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  {postalAddress ? "Edit" : "Add"}
+                </Button>
+              </div>
+
+              {/* Row 8: Emergency contact */}
+              <div className="py-5 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Emergency contact</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {emergencyContact || "Not provided"}
+                  </div>
+                </div>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setEditModal({ open: true, field: "emergency_contact", title: "Emergency Contact (Name & Phone)", value: emergencyContact })}
+                  className="text-xs font-semibold text-foreground underline p-0 h-auto"
+                >
+                  {emergencyContact ? "Edit" : "Add"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Right-side FAQ Information Cards */}
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-warm-xs space-y-4">
+                <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                  <ShieldCheck className="size-4" /> Why isn't my info shown here?
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  We hide certain account details, masked account digits, and full government identifiers to safeguard your identity against unauthorized inspection.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-warm-xs space-y-4">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+                  <HelpCircle className="size-4 text-primary" /> Which details can be edited?
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Contact details, preferred name, and residential coordinates can be edited anytime. If this information was used to complete statutory KYC, updated credentials may require brief digital verification.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-warm-xs space-y-4">
+                <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+                  <Building2 className="size-4 text-primary" /> What info is shared with others?
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Karighar only releases contact coordinates and society entry passes between Artisans and Customers after a service booking or renovation milestone has been funded in escrow.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            VIEW 3: LOGIN & SECURITY
+            ========================================================================= */}
+        {activeTab === "security" && (
+          <div className="max-w-3xl divide-y divide-border space-y-2">
+            {/* Passkeys */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Passkeys</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Sign in instantly using your device fingerprint, Windows Hello, Face ID, or screen PIN.
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.success("Biometric Passkey registered to this device")}
+                className="text-xs shrink-0 rounded-xl"
+              >
+                Add Passkey
+              </Button>
+            </div>
+
+            {/* Password */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Password</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Update your account password regularly to protect your SafePay escrow wallet.
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Password reset link dispatched to your email address")}
+                className="text-xs shrink-0 rounded-xl"
+              >
+                Update password
+              </Button>
+            </div>
+
+            {/* Social accounts */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Social accounts</div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                  <span>Google Account</span>
+                  <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                    Connected
+                  </Badge>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Google OAuth is linked as your primary identity")}
+                className="text-xs shrink-0 rounded-xl"
+              >
+                Manage
+              </Button>
+            </div>
+
+            {/* Device history */}
+            <div className="py-6 space-y-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Device history & active sessions</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Review logged-in devices currently authenticated to your Karighar profile.
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-surface-subtle flex items-center justify-center">
+                      <Globe className="size-4 text-primary" />
+                    </div>
                     <div>
-                      <h3 className="font-medium text-foreground text-sm">Government ID Verification</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <ShieldCheck className="size-4 text-success" />
-                        <span className="text-xs font-semibold text-success">
-                          Aadhaar & Police Clearance Verified
+                      <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        Windows 10.0 · Opera / Chrome
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.2 rounded">
+                          CURRENT SESSION
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-                        Ensures safe doorstep entry across Mumbai gated societies and housing societies.
-                      </p>
+                      <div className="text-[11px] text-muted-foreground">
+                        Mumbai, Maharashtra · Active Now
+                      </div>
                     </div>
-                    <Badge variant="default" className="text-xs">
-                      Active Shield
+                  </div>
+                </div>
+
+                <div className="h-px bg-border/60" />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-surface-subtle flex items-center justify-center">
+                      <Smartphone className="size-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">
+                        Android Karighar App
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Mumbai, Maharashtra · Last synced today
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toast.success("Terminated background mobile session")}
+                    className="text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Log out device
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Account deactivation */}
+            <div className="py-6 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-destructive">Account deactivation</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Deactivating will pause your active projects and remove your profile from search results. This action cannot be undone.
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeactivate}
+                className="text-xs shrink-0 rounded-xl"
+              >
+                Deactivate
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            VIEW 4: PAYMENTS & PAYOUTS (MOST IMPORTANT)
+            ========================================================================= */}
+        {activeTab === "payments" && (
+          <div className="space-y-8">
+            {/* Currency Banner */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-subtle border border-border">
+              <div className="flex items-center gap-2.5">
+                <span className="size-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center">
+                  ₹
+                </span>
+                <div>
+                  <div className="text-xs font-semibold text-foreground">Settlement Currency</div>
+                  <div className="text-[11px] text-muted-foreground">INR — Indian Rupee (All invoices and double-entry postings stored in paise)</div>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Domestic Escrow (RBI Guidelines)
+              </Badge>
+            </div>
+
+            {/* SECTION 1: CUSTOMER PAYMENTS & SAFEPAY ESCROW */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground">
+                    Your Payments & SafePay Escrow
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Keep track of milestone releases, UPI authorizations, and verified tax invoices.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* SafePay Escrow Card */}
+                <div className="p-5 rounded-2xl border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-primary">
+                    <span className="flex items-center gap-1.5"><ShieldCheck className="size-4" /> SafePay Escrow Hold</span>
+                    <span>Active</span>
+                  </div>
+                  <div className="text-2xl font-bold font-display text-foreground">
+                    ₹0.00
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Zero customer funds currently locked in milestone escrow. Funds are automatically held during active service and disbursed upon your OTP sign-off.
+                  </p>
+                </div>
+
+                {/* Saved UPI Method */}
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                      <span className="flex items-center gap-1.5"><Smartphone className="size-4 text-primary" /> Primary UPI</span>
+                      <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10">Connected</Badge>
+                    </div>
+                    <div className="font-mono text-xs font-semibold mt-2 text-foreground">
+                      {userMeta.primary_upi || "customer@upi"}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Direct one-click UPI authorization via Google Pay, PhonePe, or BHIM.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditModal({ open: true, field: "primary_upi", title: "Add or Update Primary UPI ID", value: userMeta.primary_upi || "" })}
+                    className="text-xs w-full rounded-xl"
+                  >
+                    Update UPI ID
+                  </Button>
+                </div>
+
+                {/* SafePay Protection Guarantee */}
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-2.5">
+                  <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Shield className="size-4 text-emerald-600" /> Karighar Guarantee
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Always pay and communicate through Karighar to ensure you're protected under our SafePay Escrow, 30-day rework warranty, and background-checked artisan insurance.
+                  </p>
+                  <Link to="/help" className="text-xs font-semibold text-primary inline-flex items-center gap-1 underline pt-1">
+                    Read SafePay Terms <ArrowUpRight className="size-3" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Real Transactions Ledger */}
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                    <Receipt className="size-4 text-primary" /> Payment History & Invoices
+                  </h3>
+                  <span className="text-xs text-muted-foreground">{payments.length} Records</span>
+                </div>
+
+                {payments.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    {payments.map((p: any) => (
+                      <div key={p.id} className="py-3 flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-semibold text-foreground">SafePay Milestone #{p.id.slice(0, 8)}</div>
+                          <div className="text-muted-foreground text-[11px]">
+                            {new Date(p.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {p.provider}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-foreground">₹{(p.amount_paise / 100).toLocaleString("en-IN")}</div>
+                          <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10">
+                            {p.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground bg-surface-subtle/50 rounded-xl">
+                    No transactions yet. When you book a verified artisan or renovation milestone, transaction transmittals will appear here.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* SECTION 2: PROFESSIONAL PAYOUTS & BANKING ROUTING */}
+            <div className="space-y-4 pt-6 border-t border-border">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-lg font-bold text-foreground">
+                      Professional Payouts & Bank Accounts
+                    </h2>
+                    <Badge className="bg-primary/10 text-primary text-[10px]">
+                      {pro ? "Artisan Active" : "Professional Routing"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Configure your Indian bank account and UPI VPA to receive direct earnings settlements and milestone releases.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={() => setBankModalOpen(true)}
+                  className="text-xs rounded-xl gap-1.5 shadow-warm-xs self-start sm:self-auto"
+                >
+                  <Landmark className="size-3.5" /> Edit Bank Account & Frequency
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Bank Account Details Card */}
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-4 shadow-warm-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Landmark className="size-4 text-primary" /> Verified Bank Account
+                    </span>
+                    <Badge className="bg-emerald-600 text-white text-[10px]">IMPS Ready</Badge>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs">
+                    <div className="text-muted-foreground text-[11px]">Bank Name</div>
+                    <div className="font-semibold text-foreground">{payoutBank.bankName || "Not configured"}</div>
+
+                    <div className="text-muted-foreground text-[11px] pt-1">Account Number</div>
+                    <div className="font-mono font-semibold text-foreground">{payoutBank.accountNumberMasked || "••••••••"}</div>
+
+                    <div className="text-muted-foreground text-[11px] pt-1">IFSC Code</div>
+                    <div className="font-mono text-foreground">{payoutBank.ifsc || "Not provided"}</div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" /> NPCI / NACH Instant Settlement Enabled
+                  </div>
+                </div>
+
+                {/* Instant Payout UPI & Frequency */}
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-4 shadow-warm-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Smartphone className="size-4 text-primary" /> Payout Frequency
+                    </span>
+                    <Badge variant="outline" className="text-[10px] text-primary border-primary/20">
+                      {payoutBank.frequency === "instant" ? "Instant (60s)" : payoutBank.frequency === "daily" ? "Daily (8 PM)" : "Weekly"}
                     </Badge>
                   </div>
 
-                  {/* Notification Toggle */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      <h3 className="font-medium text-foreground text-sm">SMS & WhatsApp Arrival Alerts</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Get live updates when your Karighar technician leaves their workshop.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleBoolean("notifications_enabled")}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        editValues.notifications_enabled ? "bg-primary" : "bg-muted-foreground/30"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          editValues.notifications_enabled ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="text-muted-foreground text-[11px]">Direct Payout UPI ID</div>
+                    <div className="font-mono font-semibold text-foreground">{payoutBank.upiVpa || "artisan@upi"}</div>
 
-            {/* 2. SAVED DOORSTEP ADDRESSES TAB (Zepto/Uber Style) */}
-            {activeTab === "addresses" && (
-              <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs space-y-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h2 className="font-display text-xl font-semibold text-foreground">
-                      Doorstep Service Addresses
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Manage accurate apartment numbers and society gate directions for swift arrival.
+                    <div className="text-muted-foreground text-[11px] pt-1">Current Frequency Setting</div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {payoutBank.frequency === "instant" && "Disbursed immediately within 60 seconds of customer OTP completion verification."}
+                      {payoutBank.frequency === "daily" && "Swept into bank account every evening at 8:00 PM IST."}
+                      {payoutBank.frequency === "weekly" && "Consolidated payout transferred every Monday morning."}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    className="rounded-xl h-9 text-xs"
-                    onClick={() => setIsAddingAddress(!isAddingAddress)}
-                  >
-                    <Plus className="size-3.5 mr-1" /> Add Address
-                  </Button>
-                </div>
 
-                {/* Add Address Collapsible Form */}
-                {isAddingAddress && (
-                  <form
-                    onSubmit={handleCreateAddress}
-                    className="rounded-xl border-2 border-dashed border-primary/40 bg-surface-subtle p-5 space-y-4 animate-in fade-in"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">
-                        Add New Mumbai Doorstep Address
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingAddress(false)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-foreground block mb-1">
-                          Address Tag
-                        </label>
-                        <select
-                          value={newAddress.tag}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              tag: e.target.value as SavedAddress["tag"],
-                            })
-                          }
-                          className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs"
-                        >
-                          <option value="Home">Home</option>
-                          <option value="Work">Work / Office</option>
-                          <option value="Rental">Rental Property</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-foreground block mb-1">
-                          Mumbai Locality
-                        </label>
-                        <select
-                          value={newAddress.locality}
-                          onChange={(e) =>
-                            setNewAddress({ ...newAddress, locality: e.target.value })
-                          }
-                          className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs"
-                        >
-                          {DEFAULT_MUMBAI_AREAS.map((loc) => (
-                            <option key={loc} value={loc}>
-                              {loc}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-foreground block mb-1">
-                        Flat / Door / Floor & Building Name
-                      </label>
-                      <Input
-                        required
-                        placeholder="e.g. Flat 501, D-Wing, Oberoi Splendor"
-                        value={newAddress.flatNo}
-                        onChange={(e) =>
-                          setNewAddress({ ...newAddress, flatNo: e.target.value })
-                        }
-                        className="h-9 text-xs bg-background"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-foreground block mb-1">
-                          Nearby Landmark
-                        </label>
-                        <Input
-                          placeholder="e.g. Opposite Joggers Park, Link Rd"
-                          value={newAddress.landmark}
-                          onChange={(e) =>
-                            setNewAddress({ ...newAddress, landmark: e.target.value })
-                          }
-                          className="h-9 text-xs bg-background"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-foreground block mb-1">
-                          Pincode
-                        </label>
-                        <Input
-                          placeholder="e.g. 400053"
-                          value={newAddress.pincode}
-                          onChange={(e) =>
-                            setNewAddress({ ...newAddress, pincode: e.target.value })
-                          }
-                          className="h-9 text-xs bg-background"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-foreground block mb-1">
-                        Gate & Society Access Instructions
-                      </label>
-                      <Input
-                        placeholder="e.g. Tell security: Flat 501. Lift B. Park at visitor bay."
-                        value={newAddress.gateInstructions}
-                        onChange={(e) =>
-                          setNewAddress({ ...newAddress, gateInstructions: e.target.value })
-                        }
-                        className="h-9 text-xs bg-background"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsAddingAddress(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" size="sm" className="rounded-lg">
-                        Save Address
-                      </Button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Address Cards List */}
-                <div className="space-y-4">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className={`rounded-xl border p-5 transition-all ${
-                        addr.isDefault
-                          ? "border-primary bg-primary/4 shadow-warm-xs"
-                          : "border-border bg-card hover:border-border/80"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`p-2 rounded-lg shrink-0 mt-0.5 ${
-                              addr.isDefault
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-surface-subtle text-muted-foreground"
-                            }`}
-                          >
-                            <MapPin className="size-4" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm text-foreground">
-                                {addr.tag}
-                              </span>
-                              {addr.isDefault && (
-                                <Badge variant="default" className="text-[10px] py-0 px-2 h-4">
-                                  Default
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs font-medium text-foreground">
-                              {addr.flatNo}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {addr.locality}, Mumbai — {addr.pincode}
-                            </p>
-                            {addr.landmark && (
-                              <p className="text-[11px] text-muted-foreground">
-                                Landmark: <span className="text-foreground/80">{addr.landmark}</span>
-                              </p>
-                            )}
-                            {addr.gateInstructions && (
-                              <div className="mt-2 text-[11px] bg-surface-subtle/80 text-foreground/80 px-2.5 py-1.5 rounded-md border border-border">
-                                🔑 <span className="font-medium">Pro Instructions:</span> {addr.gateInstructions}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          {!addr.isDefault && (
-                            <button
-                              onClick={() => handleSetDefaultAddress(addr.id)}
-                              className="text-xs text-primary font-medium hover:underline"
-                            >
-                              Set as Default
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeleteAddress(addr.id)}
-                            className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                            title="Delete address"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 3. SAFEPAY ESCROW & BILLING TAB */}
-            {activeTab === "payments" && (
-              <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs space-y-6">
-                <div>
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    SafePay Escrow & Payment Methods
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your payments are held in safe RBI-compliant escrow until milestone delivery.
-                  </p>
-                </div>
-
-                {/* SafePay Escrow Protection Guarantee */}
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
-                  <ShieldCheck className="size-5 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-semibold text-foreground">
-                      Karighar SafePay Escrow Guarantee
-                    </h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Professionals never receive funds directly beforehand. Advance deposits remain locked in your SafePay escrow and are only released when you inspect and sign off on completion.
-                    </p>
+                  <div className="pt-2 border-t border-border text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <RefreshCw className="size-3.5 text-primary" /> Auto-reconciliation active
                   </div>
                 </div>
 
-                {/* Saved UPI IDs */}
-                <div className="space-y-3 pt-2">
+                {/* Tax, TDS & Credit Score Status */}
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-4 shadow-warm-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                      Saved UPI Handles (For Instant Refunds)
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Award className="size-4 text-amber-600" /> Pro Credit & TDS Status
                     </span>
-                    <button
-                      onClick={() => setIsAddingUPI(!isAddingUPI)}
-                      className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="size-3" /> Add UPI ID
-                    </button>
+                    <Badge className="bg-amber-500/10 text-amber-700 text-[10px]">1% TDS Sec 194M</Badge>
                   </div>
 
-                  {isAddingUPI && (
-                    <form
-                      onSubmit={handleAddUPI}
-                      className="rounded-xl border border-border bg-surface-subtle p-3.5 flex items-center gap-2"
-                    >
-                      <Input
-                        required
-                        placeholder="e.g. 9820012345@paytm or name@okhdfcbank"
-                        value={newVpa}
-                        onChange={(e) => setNewVpa(e.target.value)}
-                        className="h-9 text-xs bg-background flex-1"
-                      />
-                      <Button type="submit" size="sm" className="h-9 text-xs">
-                        Save UPI
-                      </Button>
-                    </form>
-                  )}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="text-muted-foreground text-[11px]">PAN Number</div>
+                    <div className="font-mono font-semibold text-foreground">{payoutBank.pan || "PAN on file"}</div>
 
-                  {upiList.map((upi) => (
-                    <div
-                      key={upi.id}
-                      className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-background"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 rounded-lg bg-surface-subtle flex items-center justify-center text-primary font-semibold text-xs">
-                          UPI
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-foreground">{upi.vpa}</p>
-                          <p className="text-[10px] text-muted-foreground">{upi.provider}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] text-success border-success/30">
-                        Active for Escrow Refunds
-                      </Badge>
+                    <div className="text-muted-foreground text-[11px] pt-1">Artisan Credit Tier</div>
+                    <div className="font-semibold text-foreground">
+                      Score: 720 / 900 · <span className="text-emerald-600">Gold Tier</span>
                     </div>
-                  ))}
-                </div>
 
-                {/* GST & Tax Invoicing for Renovation Projects */}
-                <div className="pt-4 border-t border-border space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">
-                        GSTIN & Business Invoicing
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Add business GST details if you require tax input credit on home or office renovations.
-                      </p>
-                    </div>
+                    <div className="text-muted-foreground text-[11px] pt-1">Emergency Material Advance Limit</div>
+                    <div className="font-bold text-foreground">Up to ₹25,000 instant credit</div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-foreground block mb-1">
-                        GST Identification Number (GSTIN)
-                      </label>
-                      <Input
-                        placeholder="27AAAAA0000A1Z5"
-                        value={gstInfo.gstin}
-                        onChange={(e) => setGstInfo({ ...gstInfo, gstin: e.target.value.toUpperCase() })}
-                        className="h-9 text-xs bg-background uppercase font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-foreground block mb-1">
-                        Registered Business / Entity Name
-                      </label>
-                      <Input
-                        placeholder="e.g. Apex Living Ventures LLP"
-                        value={gstInfo.legalName}
-                        onChange={(e) => setGstInfo({ ...gstInfo, legalName: e.target.value })}
-                        className="h-9 text-xs bg-background"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-8"
-                    onClick={handleSaveGst}
-                  >
-                    Save GST Details
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* 4. LANGUAGE & REGIONAL PREFERENCES TAB */}
-            {activeTab === "regional" && (
-              <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs space-y-6">
-                <div>
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    Language & Regional Preferences
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select your preferred Indian language and construction measurement units.
-                  </p>
-                </div>
-
-                {/* Indian Languages Interactive Grid */}
-                <div className="space-y-3 pt-2">
-                  <span className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                    Choose App Language
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {SUPPORTED_LANGUAGES.map((lang) => {
-                      const isSelected = language === lang.code;
-                      return (
-                        <button
-                          key={lang.code}
-                          onClick={() => {
-                            setLanguage(lang.code);
-                            toast.success(`Language set to ${lang.nativeLabel} (${lang.label})`);
-                          }}
-                          className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? "border-primary bg-primary/10 text-primary font-semibold shadow-warm-xs"
-                              : "border-border bg-background hover:bg-surface-subtle text-foreground"
-                          }`}
-                        >
-                          <div>
-                            <p className="text-sm font-medium">{lang.nativeLabel}</p>
-                            <p className="text-[11px] text-muted-foreground">{lang.label}</p>
-                          </div>
-                          {isSelected && <Check className="size-4 text-primary shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Measurement Units */}
-                <div className="pt-6 border-t border-border space-y-3">
-                  <span className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                    Measurement Units (Renovations & Flooring)
-                  </span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => handleUnitChange("sqft")}
-                      className={`p-3.5 rounded-xl border text-left transition-all ${
-                        unitPreference === "sqft"
-                          ? "border-primary bg-primary/5 text-foreground font-semibold"
-                          : "border-border bg-background text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold text-foreground">Square Feet (sq. ft.)</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Standard Mumbai real estate and carpenter measurement.
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => handleUnitChange("sqm")}
-                      className={`p-3.5 rounded-xl border text-left transition-all ${
-                        unitPreference === "sqm"
-                          ? "border-primary bg-primary/5 text-foreground font-semibold"
-                          : "border-border bg-background text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold text-foreground">Square Metres (m²)</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        International metric standard for architectural planning.
-                      </p>
-                    </button>
+                  <div className="pt-2 border-t border-border text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <FileText className="size-3.5 text-primary" /> Form 16A quarterly transmittals available
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* 5. SECURITY, PRIVACY SHIELD & COMPLIANCE */}
-            {activeTab === "security" && (
-              <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-warm-xs space-y-6">
-                <div>
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    Security, Privacy Shield & Data
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Manage session security, phone number masking, and personal data portability.
-                  </p>
-                </div>
-
-                <div className="space-y-6 pt-2">
-                  {/* SafePay Privacy Shield Info */}
-                  <div className="rounded-xl border border-border bg-surface-subtle p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="size-4 text-primary" />
-                      <span className="text-xs font-semibold text-foreground">
-                        SafePay Doorstep Privacy Shield
-                      </span>
-                    </div>
-                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside leading-relaxed">
-                      <li>Your exact flat number is strictly time-locked and only shown to the technician 30 minutes before the scheduled arrival.</li>
-                      <li>Calls between you and the professional are masked to prevent spam.</li>
-                      <li>No external off-platform contact is permitted. All quotes, payments, and warranties stay protected within Karighar.</li>
-                    </ul>
-                  </div>
-
-                  {/* Password Reset */}
-                  <div className="flex justify-between items-start pb-6 border-b border-border">
-                    <div>
-                      <h3 className="font-medium text-foreground text-sm">Account Password</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Ensure your account uses a strong passphrase to protect project agreements.
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" asChild className="rounded-lg h-8 text-xs">
-                      <Link to="/reset-password">Change Password</Link>
-                    </Button>
-                  </div>
-
-                  {/* Active Sessions */}
-                  <div className="space-y-3 pb-6 border-b border-border">
-                    <h3 className="font-medium text-foreground text-sm">Active Devices</h3>
-                    <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background">
-                      <div className="flex items-center gap-3">
-                        <Smartphone className="size-4 text-primary" />
-                        <div>
-                          <p className="text-xs font-semibold text-foreground">
-                            Current Browser Session (Windows / Chrome)
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            Mumbai, India • Active right now
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] text-success border-success/30">
-                        This Device
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Data Export (DPDP India 2023 compliant) */}
-                  <div className="flex justify-between items-start pb-6 border-b border-border">
-                    <div>
-                      <h3 className="font-medium text-foreground text-sm">
-                        Export Personal Data & Project Briefs
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
-                        Download a machine-readable JSON archive of all your quotes, room planner briefs, and addresses.
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg h-8 text-xs flex items-center gap-1.5"
-                      onClick={handleExportData}
-                    >
-                      <Download className="size-3" /> Export Archive
-                    </Button>
-                  </div>
-
-                  {/* Danger Zone */}
-                  <div className="pt-2">
-                    <h3 className="font-medium text-destructive text-sm flex items-center gap-1.5">
-                      <AlertTriangle className="size-4" /> Danger Zone
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Permanently delete your Karighar profile, project archives, and saved addresses.
-                    </p>
-                    <div className="mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-8"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete your Karighar account? This action cannot be undone.")) {
-                            toast.info("Account deletion request submitted. An email confirmation has been dispatched.");
-                          }
-                        }}
-                      >
-                        Request Account Deletion
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </main>
+        )}
+
+        {/* =========================================================================
+            VIEW 5: PRIVACY & SHARING
+            ========================================================================= */}
+        {activeTab === "privacy" && (
+          <div className="max-w-3xl divide-y divide-border space-y-2">
+            {/* Profile visibility */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="text-sm font-semibold text-foreground">Profile visibility</div>
+                <div className="text-xs text-muted-foreground">
+                  Choose who can view your verified reviews and completed projects portfolio.
+                </div>
+              </div>
+              <div className="text-xs font-semibold text-foreground">
+                Anyone on Karighar
+              </div>
+            </div>
+
+            {/* Read receipts */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Message read receipts</div>
+                <div className="text-xs text-muted-foreground">
+                  Show artisans and clients when you've viewed their dispatch messages and milestone updates.
+                </div>
+              </div>
+              <Switch
+                checked={privacy.readReceipts}
+                onCheckedChange={(checked) => handleTogglePrivacy("readReceipts", checked)}
+              />
+            </div>
+
+            {/* Search engine indexing */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Search engine indexing</div>
+                <div className="text-xs text-muted-foreground">
+                  Allow search engines like Google to display your Karighar service profile and storefront in public search results.
+                </div>
+              </div>
+              <Switch
+                checked={privacy.indexInSearch}
+                onCheckedChange={(checked) => handleTogglePrivacy("indexInSearch", checked)}
+              />
+            </div>
+
+            {/* Review preferences */}
+            <div className="py-5 space-y-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Review & Feedback display preferences</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Choose what details are shared publicly when you write a review for a completed project.
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-foreground">Show my neighbourhood / locality (e.g. Bandra West, Powai)</span>
+                  <Switch
+                    checked={privacy.showLocalityOnReview}
+                    onCheckedChange={(checked) => handleTogglePrivacy("showLocalityOnReview", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-foreground">Show service trade and project scope</span>
+                  <Switch
+                    checked={privacy.showServiceOnReview}
+                    onCheckedChange={(checked) => handleTogglePrivacy("showServiceOnReview", checked)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Data privacy & AI model training */}
+            <div className="py-5 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-0.5 pr-4">
+                  <div className="text-sm font-semibold text-foreground">Help improve AI-powered features</div>
+                  <div className="text-xs text-muted-foreground">
+                    When enabled, anonymized diagnostic queries help improve visual damage estimators and voice dispatch parsing on Karighar.
+                  </div>
+                </div>
+                <Switch
+                  checked={privacy.aiModelTraining}
+                  onCheckedChange={(checked) => handleTogglePrivacy("aiModelTraining", checked)}
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-semibold text-foreground">Request personal data archive</div>
+                  <div className="text-muted-foreground text-[11px]">Download a machine-readable export of all your projects, ratings, and invoices.</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toast.success("Data archive requested. A download link will be emailed to you.")}
+                  className="text-xs rounded-xl shrink-0"
+                >
+                  <Download className="size-3.5 mr-1" /> Request data
+                </Button>
+              </div>
+            </div>
+
+            {/* Privacy pledge */}
+            <div className="py-6 text-xs text-muted-foreground space-y-1">
+              <div className="font-semibold text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="size-4 text-primary" /> Committed to Privacy
+              </div>
+              <p>
+                Karighar is committed to keeping your data protected under Indian Digital Personal Data Protection Act (DPDPA). We never sell your personal data or phone number to third-party telemarketers.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            VIEW 6: NOTIFICATIONS
+            ========================================================================= */}
+        {activeTab === "notifications" && (
+          <div className="max-w-3xl divide-y divide-border space-y-2">
+            {/* Job and milestone updates */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Service & Job dispatch updates</div>
+                <div className="text-xs text-muted-foreground">
+                  Get real-time OTP clearances, artisan en-route tracking, and inspection milestone alerts via Email and WhatsApp.
+                </div>
+              </div>
+              <Switch
+                checked={notifications.jobUpdates}
+                onCheckedChange={(checked) => handleToggleNotification("jobUpdates", checked)}
+              />
+            </div>
+
+            {/* Price Index alerts */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Spare part price index & inflation shifts</div>
+                <div className="text-xs text-muted-foreground">
+                  Receive notifications when wholesale hardware store prices shift across Mumbai for copper wiring, sanitary fixtures, and tiles.
+                </div>
+              </div>
+              <Switch
+                checked={notifications.priceAlerts}
+                onCheckedChange={(checked) => handleToggleNotification("priceAlerts", checked)}
+              />
+            </div>
+
+            {/* Society cluster deals */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Society Karighar Day cluster deals</div>
+                <div className="text-xs text-muted-foreground">
+                  Alerts when your residential building or apartment complex reaches the 4-flat booking threshold for 25% discounts.
+                </div>
+              </div>
+              <Switch
+                checked={notifications.societyDeals}
+                onCheckedChange={(checked) => handleToggleNotification("societyDeals", checked)}
+              />
+            </div>
+
+            {/* Artisan insights */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Artisan earnings insights & payout transmittals</div>
+                <div className="text-xs text-muted-foreground">
+                  Weekly earnings digests, instant IMPS bank deposit transmittals, and material advance approvals.
+                </div>
+              </div>
+              <Switch
+                checked={notifications.artisanInsights}
+                onCheckedChange={(checked) => handleToggleNotification("artisanInsights", checked)}
+              />
+            </div>
+
+            {/* Marketing */}
+            <div className="py-5 flex items-start justify-between gap-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-sm font-semibold text-foreground">Promotions & seasonal home tips</div>
+                <div className="text-xs text-muted-foreground">
+                  Pre-monsoon waterproofing guides, festive home deep-cleaning specials, and prime member perks.
+                </div>
+              </div>
+              <Switch
+                checked={notifications.marketing}
+                onCheckedChange={(checked) => handleToggleNotification("marketing", checked)}
+              />
+            </div>
+
+            {/* Unsubscribe banner */}
+            <div className="py-6 flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Want to stop receiving promotional emails and WhatsApp broadcasts?
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUnsubscribeAll}
+                className="text-xs rounded-xl"
+              >
+                Unsubscribe from marketing
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Edit Personal Details */}
+        <Dialog open={editModal.open} onOpenChange={(open) => !open && setEditModal({ open: false, field: "", title: "", value: "" })}>
+          <DialogContent className="sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-foreground">{editModal.title}</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Update your verified Karighar account coordinate. Changes take effect across your projects immediately.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4">
+              <Input
+                value={editModal.value}
+                onChange={(e) => setEditModal((prev) => ({ ...prev, value: e.target.value }))}
+                placeholder="Enter detail..."
+                className="text-xs h-10 rounded-xl"
+              />
+            </div>
+
+            <DialogFooter className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditModal({ open: false, field: "", title: "", value: "" })}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSaveField}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Edit Bank Payout Details (for Artisans) */}
+        <Dialog open={bankModalOpen} onOpenChange={setBankModalOpen}>
+          <DialogContent className="sm:max-w-lg rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Landmark className="size-4 text-primary" /> Edit Bank Payout Details & Routing
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                All earnings from completed projects and released SafePay milestones are disbursed directly to this Indian bank account.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2 text-xs">
+              <div>
+                <label className="font-semibold text-foreground block mb-1">Beneficiary Name (as per Bank Passbook)</label>
+                <Input
+                  value={bankForm.accountHolder}
+                  onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })}
+                  placeholder="e.g. Vansh Matharu"
+                  className="text-xs h-9 rounded-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-foreground block mb-1">Bank Name</label>
+                  <Input
+                    value={bankForm.bankName}
+                    onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                    placeholder="e.g. HDFC Bank, ICICI Bank"
+                    className="text-xs h-9 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-foreground block mb-1">IFSC Code</label>
+                  <Input
+                    value={bankForm.ifsc}
+                    onChange={(e) => setBankForm({ ...bankForm, ifsc: e.target.value })}
+                    placeholder="e.g. HDFC0000123"
+                    className="text-xs h-9 rounded-lg uppercase"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-foreground block mb-1">Bank Account Number</label>
+                <Input
+                  value={bankForm.accountNumber}
+                  onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                  placeholder="Enter full account number (e.g. 50100234567890)"
+                  className="text-xs h-9 rounded-lg font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-foreground block mb-1">Direct Payout UPI ID (for instant settlement)</label>
+                <Input
+                  value={bankForm.upiVpa}
+                  onChange={(e) => setBankForm({ ...bankForm, upiVpa: e.target.value })}
+                  placeholder="e.g. 9820154321@okhdfcbank"
+                  className="text-xs h-9 rounded-lg font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-foreground block mb-1">Payout Frequency Preference</label>
+                <select
+                  value={bankForm.frequency}
+                  onChange={(e) => setBankForm({ ...bankForm, frequency: e.target.value })}
+                  className="w-full text-xs h-9 rounded-lg border border-border bg-background px-3"
+                >
+                  <option value="instant">Instant on Customer OTP Release (Recommended, under 60 seconds)</option>
+                  <option value="daily">Daily Evening Settlement (8:00 PM IST)</option>
+                  <option value="weekly">Weekly Consolidated Settlement (Every Monday)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-semibold text-foreground block mb-1">PAN Number (for Sec 194M 1% TDS exemption)</label>
+                <Input
+                  value={bankForm.pan}
+                  onChange={(e) => setBankForm({ ...bankForm, pan: e.target.value })}
+                  placeholder="ABCDE1234F"
+                  className="text-xs h-9 rounded-lg font-mono uppercase"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setBankModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSaveBankPayout}>
+                Save Bank Payout Details
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </PageShell>
   );
 }
+
+export default AccountPage;

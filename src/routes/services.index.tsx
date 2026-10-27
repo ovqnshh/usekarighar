@@ -178,6 +178,42 @@ function ServicesCatalogPage() {
     },
   });
 
+  // Query live published gigs from Supabase
+  const { data: dbGigs = [] } = useQuery({
+    queryKey: ["all-published-gigs"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("gigs")
+        .select("*, professionals(*)")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const allServices: CuratedService[] = useMemo(() => {
+    const customList: CuratedService[] = dbGigs.map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      category: g.professionals?.trade || "Home Services",
+      pricingMode: "fixed_menu" as PricingMode,
+      visitFee: 0,
+      basePrice: g.starting_price || 499,
+      duration: g.duration || "1–2 hours",
+      warranty: g.warranty || "30-day Karighar Workmanship Guarantee",
+      riskLevel: "Standard",
+      description: g.description || "Verified doorstep service by Karighar master artisan.",
+      included: Array.isArray(g.included) && g.included.length > 0 ? g.included : ["Doorstep diagnostic inspection", "SafePay escrow protection"],
+      excluded: Array.isArray(g.not_included) && g.not_included.length > 0 ? g.not_included : ["Replacement parts"],
+      proSlug: g.professionals?.slug || g.professional_id,
+    }));
+
+    if (customList.length > 0) {
+      return customList;
+    }
+    return CURATED_SERVICES;
+  }, [dbGigs]);
+
   // Matched Pro for the Selected Service
   const matchedPro = useMemo(() => {
     const found = dbPros.find((p: any) => p.slug === selectedService.proSlug || p.trade?.toLowerCase().includes(selectedService.category.toLowerCase()));
@@ -411,7 +447,7 @@ function ServicesCatalogPage() {
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Select a standardized service package
             </h2>
-            {CURATED_SERVICES.map((s) => {
+            {allServices.map((s) => {
               const isSelected = selectedService.id === s.id;
               const proForService = dbPros.find((p: any) => p.slug === s.proSlug || p.trade?.toLowerCase().includes(s.category.toLowerCase())) || dbPros[0];
 
@@ -453,21 +489,21 @@ function ServicesCatalogPage() {
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/80 mb-3 text-xs">
                     <div className="flex items-center gap-2.5">
                       <img
-                        src={proForService.image}
-                        alt={proForService.name}
+                        src={(proForService as any)?.image || (proForService as any)?.avatar_url || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop"}
+                        alt={proForService?.name || "Professional"}
                         className="size-7 rounded-full object-cover border border-border"
                       />
                       <div>
                         <span className="font-semibold text-foreground block leading-tight">
-                          {proForService.name}
+                          {proForService?.name || "Verified Professional"}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {proForService.business} · ★ {proForService.rating} ({proForService.reviews})
+                          {proForService?.business || "Karighar Pro"} · ★ {proForService?.rating || 4.9} ({proForService?.reviews || 24})
                         </span>
                       </div>
                     </div>
                     <span className="text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold border border-emerald-200">
-                      {proForService.availability || "Available Today"}
+                      {(proForService as any)?.availability || "Available Today"}
                     </span>
                   </div>
 
@@ -506,7 +542,7 @@ function ServicesCatalogPage() {
                 <div className="p-3.5 rounded-xl bg-surface-subtle border border-border flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img
-                      src={matchedPro.image || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=120&q=80&auto=format&fit=crop"}
+                      src={(matchedPro as any).image || (matchedPro as any).avatar_url || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=120&q=80&auto=format&fit=crop"}
                       alt={matchedPro.name}
                       className="size-11 rounded-xl object-cover border border-border"
                     />
@@ -675,7 +711,7 @@ function ServicesCatalogPage() {
                 {/* Matched artisan */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-subtle border border-border">
                   <img
-                    src={matchedPro.image}
+                    src={(matchedPro as any).image || (matchedPro as any).avatar_url || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=120&q=80&auto=format&fit=crop"}
                     alt={matchedPro.name}
                     className="size-11 rounded-xl object-cover border border-border shrink-0"
                   />

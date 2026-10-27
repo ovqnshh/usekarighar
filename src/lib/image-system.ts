@@ -2,9 +2,10 @@ import bathroomProject from "@/assets/bathroom-project.jpg";
 import waterTankProject from "@/assets/water-tank-project.jpg";
 import wardrobeProject from "@/assets/wardrobe-project.jpg";
 import electricalProject from "@/assets/electrical-project.jpg";
-import arjunPortrait from "@/assets/arjun-portrait.jpg";
-import meeraPortrait from "@/assets/meera-portrait.jpg";
-import rohanPortrait from "@/assets/rohan-portrait.jpg";
+import acServiceImg from "@/assets/ac-service.jpg";
+import waterproofingServiceImg from "@/assets/waterproofing-service.jpg";
+import paintingServiceImg from "@/assets/painting-service.jpg";
+import carpentryServiceImg from "@/assets/carpentry-service.jpg";
 
 export interface ImageScene {
   url: string;
@@ -71,17 +72,17 @@ export const SERVICE_IMAGE_SETS: Record<string, ServiceImageSet> = {
   carpentry: {
     serviceId: "carpentry",
     name: "Carpentry & Custom Woodwork",
-    hero: wardrobeProject,
-    tile: wardrobeProject,
+    hero: carpentryServiceImg,
+    tile: carpentryServiceImg,
     problemTitle: "Wardrobe Door Sticking or Custom Storage",
     problemSubtitle: "Hinges not aligning, moisture swelling, modular shelf additions",
     problemPrompt: "I need custom marine-ply storage shelves built for my bedroom alcove.",
     scenes: [
-      { url: wardrobeProject, role: "result", alt: "Custom modular wardrobe with precision finish" },
+      { url: carpentryServiceImg, role: "result", alt: "Custom modular wardrobe with precision finish" },
     ],
     beforeAfter: {
-      before: electricalProject,
-      after: wardrobeProject,
+      before: wardrobeProject,
+      after: carpentryServiceImg,
       title: "Custom Marine-Ply Wardrobe",
       description: "Built-in precision cabinetry with soft-close hardware",
     },
@@ -89,17 +90,17 @@ export const SERVICE_IMAGE_SETS: Record<string, ServiceImageSet> = {
   ac_appliance: {
     serviceId: "ac_appliance",
     name: "AC Deep Clean & Jet Wash",
-    hero: electricalProject,
-    tile: electricalProject,
+    hero: acServiceImg,
+    tile: acServiceImg,
     problemTitle: "Noisy AC or Foul Air Cooling Drop",
     problemSubtitle: "Choked filter coils, low refrigerant, water dripping indoors",
     problemPrompt: "My split AC is blowing warm air and making a vibrating noise.",
     scenes: [
-      { url: electricalProject, role: "tools", alt: "High pressure jet foam cleaning equipment" },
+      { url: acServiceImg, role: "tools", alt: "High pressure jet foam cleaning equipment" },
     ],
     beforeAfter: {
-      before: waterTankProject,
-      after: bathroomProject,
+      before: electricalProject,
+      after: acServiceImg,
       title: "Deep Jet Wash & Coil Shield",
       description: "Antibacterial foam shield and restored 100% cooling air throw",
     },
@@ -107,18 +108,18 @@ export const SERVICE_IMAGE_SETS: Record<string, ServiceImageSet> = {
   waterproofing: {
     serviceId: "waterproofing",
     name: "Waterproofing & Seepage Barrier",
-    hero: bathroomProject,
-    tile: bathroomProject,
+    hero: waterproofingServiceImg,
+    tile: waterproofingServiceImg,
     problemTitle: "Ceiling Seepage & Peeling Wall Dampness",
     problemSubtitle: "Bathroom joint leaks, monsoon wall bubbles, terrace cracks",
     problemPrompt: "There is dampness spreading across my living room wall from the bathroom.",
     scenes: [
-      { url: waterTankProject, role: "problem", alt: "Water seepage on masonry joints" },
+      { url: waterproofingServiceImg, role: "problem", alt: "Water seepage on masonry joints" },
       { url: bathroomProject, role: "result", alt: "Finished waterproof tile barrier" },
     ],
     beforeAfter: {
       before: waterTankProject,
-      after: bathroomProject,
+      after: waterproofingServiceImg,
       title: "Polymer Joint Seal & Grouting",
       description: "Complete moisture barrier guaranteed against monsoon seepage",
     },
@@ -149,7 +150,7 @@ export const PROBLEM_TILES = [
     title: "Noisy or Warm AC",
     subtitle: "Not cooling, filter choked, ice forming on coil",
     prompt: "My split AC is not cooling properly and needs a deep jet wash.",
-    image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80&auto=format&fit=crop",
+    image: acServiceImg,
     trade: "AC & appliance repair/installation",
     estTime: "1 hour",
   },
@@ -158,7 +159,7 @@ export const PROBLEM_TILES = [
     title: "Wardrobe Door Sticking",
     subtitle: "Misaligned hinge, drawer off track, new shelves",
     prompt: "My wardrobe sliding door has come off the track and needs realigning.",
-    image: wardrobeProject,
+    image: carpentryServiceImg,
     trade: "Carpentry & custom furniture",
     estTime: "1-2 hours",
   },
@@ -167,7 +168,7 @@ export const PROBLEM_TILES = [
     title: "Wall Dampness & Peeling",
     subtitle: "Moisture bubbles, tile joint leak, terrace damp",
     prompt: "Dampness is spreading along the bathroom wall. Need waterproofing inspection.",
-    image: bathroomProject,
+    image: waterproofingServiceImg,
     trade: "Waterproofing",
     estTime: "Half day",
   },

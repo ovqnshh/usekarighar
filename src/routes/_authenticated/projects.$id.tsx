@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -9,12 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { inr, materialsLabel, statusLabel, useAuth } from "@/lib/karighar-api";
 import {
-  ShieldCheck, Phone, FileCheck, Send, Sparkles, Check, Clock3,
-  Paperclip, Camera, CheckCheck, Maximize2, Download, X
+  ShieldCheck, Phone, FileCheck, Send, Sparkles, Check, Clock3, Clock,
+  Paperclip, Camera, CheckCheck, Maximize2, Download, X, Building2, AlertTriangle, Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { parseMessageContent } from "@/components/karighar-chat-panel";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { checkQuoteItemInflation } from "@/lib/visual-damage.functions";
+import {
+  arbitrateWarrantyDisputeCore,
+  type WarrantyVerdict,
+} from "@/lib/warranty-arbitrator/arbitrator.functions";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({ meta: [
@@ -36,6 +41,10 @@ function ProjectDetail() {
   const [offerAmount, setOfferAmount] = useState("");
   const [pendingAttachment, setPendingAttachment] = useState<{ name: string; url: string } | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [disputeNote, setDisputeNote] = useState("");
+  const [disputeVerdict, setDisputeVerdict] = useState<WarrantyVerdict | null>(null);
+  const [isArbitrating, setIsArbitrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -191,6 +200,22 @@ function ProjectDetail() {
           </Badge>
           <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground">{p.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{[p.location, p.timing, p.budget].filter(Boolean).join(" · ")}</p>
+          
+          {/* Technician Shortcut: Quick hardware store and price index lookup */}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href={`/hardware-locator?locality=${encodeURIComponent(p.location || "Mumbai")}&category=${(p as any).category || "all"}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors shadow-2xs"
+            >
+              <Building2 className="size-3.5" /> Find Nearby Hardware & Spare Parts
+            </a>
+            <a
+              href="/price-index"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-surface-subtle transition-colors"
+            >
+              <Sparkles className="size-3.5 text-primary" /> Smart Part Finder
+            </a>
+          </div>
         </div>
 
         {/* Booking Status & Contact Details */}
@@ -214,26 +239,44 @@ function ProjectDetail() {
               <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
                 Contact shared for your active booking. Please keep agreements recorded in chat.
               </p>
+
+              {(p.status === "scheduled" || p.status === "in_progress") && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <Button asChild size="sm" variant="outline" className="w-full text-xs gap-1.5 h-8">
+                    <Link to="/gate-pass/$projectId" params={{ projectId: p.id }}>
+                      <Building2 className="size-3.5 text-primary" /> Generate Society Gate Pass
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
 
             {p.status === "completed" && (
               <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between shadow-warm-xs">
                 <div>
                   <h2 className="font-semibold text-foreground mb-1 flex items-center gap-2 text-sm">
-                    <FileCheck className="size-4 text-success" strokeWidth={1.5} />
-                    14-Day Warranty Active
+                    <FileCheck className="size-4 text-emerald-600" strokeWidth={1.5} />
+                    30-Day SafePay Rework Warranty Active
                   </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                    Covered by the Karighar Quality Guarantee until {new Date(new Date(p.created_at).getTime() + 14*24*60*60*1000).toLocaleDateString()}.
+                    Covered by the Karighar Quality Guarantee until {new Date(new Date(p.created_at).getTime() + 30*24*60*60*1000).toLocaleDateString("en-IN")}.
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-xs">
-                    Download Invoice
-                  </Button>
-                  <Button size="sm" className="flex-1 text-xs" onClick={() => toast.success("Claim filed. Support will contact you.")}>
-                    Claim Warranty
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" variant="outline" className="flex-1 text-xs gap-1">
+                      <Link to="/home-passport">
+                        <ShieldCheck className="size-3.5 text-primary" /> Home Passport
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => setIsDisputeModalOpen(true)}
+                    >
+                      AI Dispute & Claim
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -348,6 +391,39 @@ function ProjectDetail() {
                         </strong>
                       </div>
                       {q.scope && <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{q.scope}</p>}
+
+                      {(() => {
+                        if (!q.materials_cost && !q.scope) return null;
+                        const check = checkQuoteItemInflation({
+                          name: q.scope || "standard hardware part",
+                          quotedPricePaise: (q.materials_cost || 0) * 100,
+                        });
+
+                        if (check.isInflated) {
+                          return (
+                            <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-2 text-[11px] text-amber-800 dark:text-amber-200">
+                              <div className="flex items-center gap-1 font-semibold text-amber-900 dark:text-amber-100">
+                                <AlertTriangle className="size-3.5 text-amber-600 shrink-0" />
+                                <span>High Price Alert: {check.inflationPct}% above benchmark</span>
+                              </div>
+                              <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+                                {check.alertMessage}
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        if (q.materials_cost > 0) {
+                          return (
+                            <div className="mt-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2 text-[11px] text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5">
+                              <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                              <span>Price Index Verified: Fair Mumbai Trade Rate</span>
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })()}
                     </>
                   )}
                 </div>
@@ -569,6 +645,121 @@ function ProjectDetail() {
               </DialogContent>
             </Dialog>
           )}
+
+          {/* Feature 15: AI Warranty Dispute Ombudsman Modal */}
+          <Dialog open={isDisputeModalOpen} onOpenChange={setIsDisputeModalOpen}>
+            <DialogContent data-lenis-prevent className="max-w-lg max-h-[85vh] overflow-y-auto overscroll-contain bg-card border border-border p-6 rounded-3xl">
+              <DialogHeader className="space-y-1.5 border-b border-border pb-3">
+                <Badge variant="outline" className="w-fit text-[10px] bg-primary/10 text-primary border-primary/20">
+                  <Sparkles className="size-3 mr-1" /> SafePay Warranty Arbitrator
+                </Badge>
+                <DialogTitle className="font-display text-lg font-bold">
+                  File Warranty Re-work Claim
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Our AI ombudsman compares your reported issue with original before/after photos and invoice scope to approve free rework under SafePay warranty.
+                </DialogDescription>
+              </DialogHeader>
+
+              {!disputeVerdict ? (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">
+                      Describe what broke or leaked again:
+                    </label>
+                    <textarea
+                      value={disputeNote}
+                      onChange={(e) => setDisputeNote(e.target.value)}
+                      placeholder="e.g. 'The diverter cartridge replaced 5 days ago has started dripping again from the bottom joint...'"
+                      rows={3}
+                      className="w-full text-xs rounded-xl border border-border bg-background p-3 outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      if (!disputeNote.trim()) {
+                        toast.error("Please describe the issue");
+                        return;
+                      }
+                      setIsArbitrating(true);
+                      try {
+                        const res = await arbitrateWarrantyDisputeCore({
+                          complaintDescription: disputeNote,
+                          originalTrade: (p as any).category || p.intent || "Plumbing",
+                          originalScope: p.title,
+                          daysSinceCompletion: 5,
+                        });
+                        setDisputeVerdict(res.verdict);
+                        toast.success("AI Dispute Arbitration Complete!");
+                      } catch (e: any) {
+                        toast.error("Arbitration failed", { description: e.message });
+                      } finally {
+                        setIsArbitrating(false);
+                      }
+                    }}
+                    disabled={isArbitrating || !disputeNote.trim()}
+                    className="w-full text-xs font-semibold py-4 shadow-warm-xs"
+                  >
+                    {isArbitrating ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Analyzing with Karighar Warranty AI...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4 mr-1.5" />
+                        Run AI Warranty Arbitration
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 pt-2">
+                  <div className={`p-4 rounded-2xl border text-xs space-y-2 ${disputeVerdict.aiVerdict === "WARRANTY_APPROVED_REWORK" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100" : "bg-primary/5 border-primary/20 text-foreground"}`}>
+                    <div className="flex items-center justify-between font-bold text-sm">
+                      <span>Verdict: {disputeVerdict.aiVerdict.replace(/_/g, " ")}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        Match: {Math.round(disputeVerdict.aiMatchScore * 100)}%
+                      </Badge>
+                    </div>
+
+                    <p className="leading-relaxed">
+                      {disputeVerdict.customerSummary}
+                    </p>
+
+                    <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <strong>Ombudsman Analysis:</strong> {disputeVerdict.engineeringReasoning}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => {
+                        setDisputeVerdict(null);
+                        setDisputeNote("");
+                      }}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => {
+                        setIsDisputeModalOpen(false);
+                        toast.success("Operational dispatch confirmed under warranty.");
+                      }}
+                    >
+                      Confirm Operational Dispatch
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </PageShell>

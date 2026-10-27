@@ -309,6 +309,7 @@ function TodayTab({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedBrief, setSelectedBrief] = useState<any | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [useSamplePreview, setUseSamplePreview] = useState(false);
 
   // 1. Fetch quotes assigned to this professional
   const { data: rawQuotes = [], isLoading: quotesLoading } = useQuery({
@@ -1498,13 +1499,13 @@ function EarningsAnalyticsTab({
       return {
         id: `SETTLE-${orderRef}`,
         date,
-        account: pro.bank_account || "Direct IMPS Bank Settlement",
+        account: (pro as any).bank_account || "Direct IMPS Bank Settlement",
         utr: `CMS${orderRef}${q.id.replace(/[^0-9]/g, "").slice(0, 4) || "8921"}`,
         amount: net,
         status: "Settled via SafePay",
       };
     });
-  }, [liveCompleted, pro.bank_account]);
+  }, [liveCompleted, (pro as any).bank_account]);
 
   const customerRepeatRate = useMemo(() => {
     if (liveCompleted.length <= 1) return 0;
@@ -2177,6 +2178,47 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
         } catch {}
       }
 
+      // Auto-heal / sync local-only gigs that failed earlier into Supabase
+      if (typeof window !== "undefined" && localGigs.length > 0) {
+        let updatedLocal = false;
+        for (const lg of localGigs) {
+          if (typeof lg.id === "string" && lg.id.startsWith("gig-")) {
+            try {
+              const validMaterials = ["customer", "professional", "help"];
+              const mat = validMaterials.includes(lg.materials) ? lg.materials : "professional";
+              const { data: insData, error: insErr } = await supabase.from("gigs").insert({
+                professional_id: pro.id,
+                name: lg.name || "Custom Service",
+                description: lg.description || "",
+                starting_price: Number(lg.starting_price) || 0,
+                duration: lg.duration || "1–2 hours",
+                photos: lg.photos || [],
+                included: lg.included || [],
+                not_included: lg.not_included || [],
+                addons: lg.addons || [],
+                warranty: lg.warranty || "30-day Karighar Workmanship Guarantee",
+                service_area: lg.service_area || pro.city || "Mumbai",
+                materials: mat,
+                is_published: lg.is_published ?? true,
+              }).select("id").maybeSingle();
+
+              if (!insErr && insData?.id) {
+                lg.id = insData.id;
+                updatedLocal = true;
+              }
+            } catch (syncErr) {
+              console.warn("Auto-sync gig error:", syncErr);
+            }
+          }
+        }
+        if (updatedLocal) {
+          try {
+            localStorage.setItem(`karighar_custom_gigs_${pro.id}`, JSON.stringify(localGigs));
+            localStorage.setItem(`karighar_custom_gigs_${pro.slug}`, JSON.stringify(localGigs));
+          } catch {}
+        }
+      }
+
       if (error && localGigs.length > 0) return localGigs;
       const combined = [...(data || [])];
       for (const lg of localGigs) {
@@ -2190,6 +2232,10 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
     if (!formData.name?.trim()) return toast.error("Please provide a service title");
     const starting_price = Number(formData.starting_price) || 0;
 
+    // Ensure database check constraint CHECK (materials IN ('customer','professional','help'))
+    const validMaterials = ["customer", "professional", "help"];
+    const materialsVal = validMaterials.includes(formData.materials) ? formData.materials : "professional";
+
     const payload = {
       professional_id: pro.id,
       name: formData.name.trim(),
@@ -2202,27 +2248,29 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
       addons: formData.addons || [],
       warranty: formData.warranty || "30-day Karighar Workmanship Guarantee",
       service_area: formData.service_area || pro.city || "Mumbai",
-      materials: formData.materials || "Artisan carries branded ISI supplies & precision tools",
+      materials: materialsVal,
       is_published: formData.is_published ?? true,
     };
 
     let targetId = editingId;
     if (editingId === "new") {
       const { data, error } = await supabase.from("gigs").insert(payload).select("id").maybeSingle();
-      targetId = data?.id || `gig-${Date.now()}`;
       if (error) {
-        console.warn("DB gig insert notice:", error.message);
+        console.error("DB gig insert notice:", error);
+        return toast.error("Failed to publish service live to database: " + error.message);
       }
+      targetId = data?.id || `gig-${Date.now()}`;
       toast.success("✨ New service published live on your storefront!");
     } else {
       const { error } = await supabase.from("gigs").update(payload).eq("id", editingId!);
       if (error) {
-        console.warn("DB gig update notice:", error.message);
+        console.error("DB gig update notice:", error);
+        return toast.error("Failed to update service in database: " + error.message);
       }
       toast.success("Changes saved! Live on your customer storefront.");
     }
 
-    // Save to local persistence cache for bulletproof instant visibility
+    // Save to local persistence cache for instant visibility
     if (typeof window !== "undefined") {
       try {
         const currentLocal = gigs.filter((g: any) => g.id !== targetId);
@@ -2234,13 +2282,19 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
 
     setEditingId(null);
     qc.invalidateQueries({ queryKey: ["my-gigs", pro.id] });
+    qc.invalidateQueries({ queryKey: ["all-published-gigs"] });
     qc.invalidateQueries({ queryKey: ["professional", pro.slug] });
     qc.invalidateQueries({ queryKey: ["professional", pro.id] });
+    qc.invalidateQueries({ queryKey: ["professionals"] });
   };
 
   const deleteGig = async (id: string) => {
     if (!confirm("Are you sure you want to remove this service from your storefront?")) return;
-    await supabase.from("gigs").delete().eq("id", id);
+    const { error } = await supabase.from("gigs").delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to delete service: " + error.message);
+      return;
+    }
     if (typeof window !== "undefined") {
       try {
         const filtered = gigs.filter((g: any) => g.id !== id);
@@ -2250,12 +2304,18 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
     }
     toast.success("Service removed from storefront");
     qc.invalidateQueries({ queryKey: ["my-gigs", pro.id] });
+    qc.invalidateQueries({ queryKey: ["all-published-gigs"] });
     qc.invalidateQueries({ queryKey: ["professional", pro.slug] });
+    qc.invalidateQueries({ queryKey: ["professionals"] });
   };
 
   const togglePublish = async (gig: any) => {
     const nextState = !gig.is_published;
-    await supabase.from("gigs").update({ is_published: nextState }).eq("id", gig.id);
+    const { error } = await supabase.from("gigs").update({ is_published: nextState }).eq("id", gig.id);
+    if (error) {
+      toast.error("Failed to toggle status: " + error.message);
+      return;
+    }
     if (typeof window !== "undefined") {
       try {
         const updated = gigs.map((g: any) => g.id === gig.id ? { ...g, is_published: nextState } : g);
@@ -2265,7 +2325,9 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
     }
     toast.success(nextState ? "🟢 Gig is now LIVE on your public profile" : "Service hidden from customers");
     qc.invalidateQueries({ queryKey: ["my-gigs", pro.id] });
+    qc.invalidateQueries({ queryKey: ["all-published-gigs"] });
     qc.invalidateQueries({ queryKey: ["professional", pro.slug] });
+    qc.invalidateQueries({ queryKey: ["professionals"] });
   };
 
   const handleAddPhoto = () => {
@@ -2325,7 +2387,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
-            Create rich, tailored service listings for your craft: showcase verified photo galleries, transparent pricing, custom add-ons, and guarantees live on your storefront.
+            Create rich, tailored services and gigs for your craft: showcase verified photo galleries, transparent pricing, custom add-ons, and guarantees live on your storefront.
           </p>
         </div>
 
@@ -2368,13 +2430,13 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs sm:text-sm px-5 py-2.5 gap-2 shadow-warm"
             >
               <Plus className="size-4" />
-              Create New Listing
+              Create New Service
             </Button>
           </div>
         )}
       </div>
 
-      {/* ─── CRAFT LISTING STUDIO ───────────────────────── */}
+      {/* ─── CRAFT SERVICE STUDIO ───────────────────────── */}
       {editingId ? (
         <div className="space-y-6">
 
@@ -2624,7 +2686,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
 
                   {/* Title */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Listing Title</Label>
+                    <Label className="text-xs font-semibold text-foreground">Service Title</Label>
                     <Input
                       placeholder="e.g. Bathroom Concealed Pipe Leak Detection & Jaquar Fixture Fitting"
                       value={formData.name || ""}
@@ -2917,7 +2979,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                     <div>
                       <Label className="text-xs font-semibold text-foreground">Publish Live Immediately</Label>
                       <p className="text-[11px] text-muted-foreground">
-                        Listing goes live immediately for Mumbai customers searching your trade.
+                        Service goes live immediately for Mumbai customers searching your trade.
                       </p>
                     </div>
                     <Switch
@@ -2967,7 +3029,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                       onClick={saveGig}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl px-6 shadow-warm"
                     >
-                      {editingId === "new" ? "🚀 Publish Live Listing" : "Save Changes"}
+                      {editingId === "new" ? "🚀 Publish Live Service" : "Save Changes"}
                     </Button>
                   )}
                 </div>
@@ -3187,7 +3249,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                   No services published on your storefront yet
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-                  Create your first tailored service listing with photos, verified inclusions, and pricing to immediately receive doorstep dispatches in Mumbai.
+                  Create your first tailored service or gig with photos, verified inclusions, and pricing to immediately receive doorstep dispatches in Mumbai.
                 </p>
                 <Button
                   onClick={() => {
@@ -3211,7 +3273,7 @@ function MyServicesTab({ pro }: { pro: ProRow }) {
                   }}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl px-6 py-2.5 shadow-warm"
                 >
-                  + Create First Listing
+                  + Create First Service
                 </Button>
               </div>
             )}

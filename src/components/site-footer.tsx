@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Globe, IndianRupee, Heart } from "lucide-react";
+import karigharLogo from "@/assets/karighar-logo.png";
 
 const cols = [
   {
@@ -19,7 +20,6 @@ const cols = [
       ["Partner Portal", "/partner"],
       ["Pro Dashboard", "/dashboard"],
       ["Pro Growth & Standards", "/help"],
-      ["Code on Social Security", "/admin"],
     ],
   },
   {
@@ -38,6 +38,12 @@ export function SiteFooter() {
   return (
     <footer className="mt-20 border-t border-border bg-surface-subtle">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+        {/* Brand row */}
+        <div className="flex items-center gap-2 mb-8">
+          <img src={karigharLogo} alt="Karighar" className="size-6 object-contain dark:invert" />
+          <span className="font-display font-bold text-lg text-foreground tracking-tight">karighar</span>
+        </div>
+
         {/* Columns */}
         <div className="grid gap-10 sm:grid-cols-3">
           {cols.map((col) => (

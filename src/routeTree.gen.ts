@@ -12,25 +12,31 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeAProRouteImport } from './routes/become-a-pro'
+import { Route as HardwareLocatorRouteImport } from './routes/hardware-locator'
+import { Route as HomePassportRouteImport } from './routes/home-passport'
 import { Route as MyProjectsRouteImport } from './routes/my-projects'
 import { Route as PartnerRouteImport } from './routes/partner'
+import { Route as PriceIndexRouteImport } from './routes/price-index'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProDashboardRouteImport } from './routes/pro-dashboard'
 import { Route as ProfessionalsRouteImport } from './routes/professionals'
 import { Route as ProjectRouteImport } from './routes/project'
+import { Route as ReferRouteImport } from './routes/refer'
 import { Route as RenovationPlannerRouteImport } from './routes/renovation-planner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShortlistRouteImport } from './routes/shortlist'
+import { Route as SocietyDealsRouteImport } from './routes/society-deals'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as GatePassProjectIdRouteImport } from './routes/gate-pass.$projectId'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
 import { Route as HelpArticleIdRouteImport } from './routes/help.$articleId'
 import { Route as HelpContactRouteImport } from './routes/help.contact'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as ProfessionalsIndexRouteImport } from './routes/professionals.index'
 import { Route as ProfessionalsIdRouteImport } from './routes/professionals.$id'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
@@ -50,11 +56,6 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -65,6 +66,16 @@ const BecomeAProRoute = BecomeAProRouteImport.update({
   path: '/become-a-pro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HardwareLocatorRoute = HardwareLocatorRouteImport.update({
+  id: '/hardware-locator',
+  path: '/hardware-locator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomePassportRoute = HomePassportRouteImport.update({
+  id: '/home-passport',
+  path: '/home-passport',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MyProjectsRoute = MyProjectsRouteImport.update({
   id: '/my-projects',
   path: '/my-projects',
@@ -73,6 +84,11 @@ const MyProjectsRoute = MyProjectsRouteImport.update({
 const PartnerRoute = PartnerRouteImport.update({
   id: '/partner',
   path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PriceIndexRoute = PriceIndexRouteImport.update({
+  id: '/price-index',
+  path: '/price-index',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -100,6 +116,11 @@ const ProjectRoute = ProjectRouteImport.update({
   path: '/project',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReferRoute = ReferRouteImport.update({
+  id: '/refer',
+  path: '/refer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RenovationPlannerRoute = RenovationPlannerRouteImport.update({
   id: '/renovation-planner',
   path: '/renovation-planner',
@@ -113,6 +134,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ShortlistRoute = ShortlistRouteImport.update({
   id: '/shortlist',
   path: '/shortlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SocietyDealsRoute = SocietyDealsRouteImport.update({
+  id: '/society-deals',
+  path: '/society-deals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -130,6 +156,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const GatePassProjectIdRoute = GatePassProjectIdRouteImport.update({
+  id: '/gate-pass/$projectId',
+  path: '/gate-pass/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HelpIndexRoute = HelpIndexRouteImport.update({
   id: '/help/',
   path: '/help/',
@@ -143,6 +174,11 @@ const HelpArticleIdRoute = HelpArticleIdRouteImport.update({
 const HelpContactRoute = HelpContactRouteImport.update({
   id: '/help/contact',
   path: '/help/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfessionalsIndexRoute = ProfessionalsIndexRouteImport.update({
@@ -169,24 +205,30 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
+  '/hardware-locator': typeof HardwareLocatorRoute
+  '/home-passport': typeof HomePassportRoute
   '/my-projects': typeof MyProjectsRoute
   '/partner': typeof PartnerRoute
+  '/price-index': typeof PriceIndexRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/refer': typeof ReferRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/society-deals': typeof SocietyDealsRoute
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/gate-pass/$projectId': typeof GatePassProjectIdRoute
   '/help/$articleId': typeof HelpArticleIdRoute
   '/help/contact': typeof HelpContactRoute
+  '/p/$slug': typeof PSlugRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
@@ -196,23 +238,29 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
+  '/hardware-locator': typeof HardwareLocatorRoute
+  '/home-passport': typeof HomePassportRoute
   '/my-projects': typeof MyProjectsRoute
   '/partner': typeof PartnerRoute
+  '/price-index': typeof PriceIndexRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/project': typeof ProjectRoute
+  '/refer': typeof ReferRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/society-deals': typeof SocietyDealsRoute
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/gate-pass/$projectId': typeof GatePassProjectIdRoute
   '/help/$articleId': typeof HelpArticleIdRoute
   '/help/contact': typeof HelpContactRoute
+  '/p/$slug': typeof PSlugRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help': typeof HelpIndexRoute
   '/professionals': typeof ProfessionalsIndexRoute
@@ -224,24 +272,30 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/become-a-pro': typeof BecomeAProRoute
+  '/hardware-locator': typeof HardwareLocatorRoute
+  '/home-passport': typeof HomePassportRoute
   '/my-projects': typeof MyProjectsRoute
   '/partner': typeof PartnerRoute
+  '/price-index': typeof PriceIndexRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/pro-dashboard': typeof ProDashboardRoute
   '/professionals': typeof ProfessionalsRouteWithChildren
   '/project': typeof ProjectRoute
+  '/refer': typeof ReferRoute
   '/renovation-planner': typeof RenovationPlannerRoute
   '/reset-password': typeof ResetPasswordRoute
   '/shortlist': typeof ShortlistRoute
+  '/society-deals': typeof SocietyDealsRoute
   '/terms': typeof TermsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/gate-pass/$projectId': typeof GatePassProjectIdRoute
   '/help/$articleId': typeof HelpArticleIdRoute
   '/help/contact': typeof HelpContactRoute
+  '/p/$slug': typeof PSlugRoute
   '/professionals/$id': typeof ProfessionalsIdRoute
   '/help/': typeof HelpIndexRoute
   '/professionals/': typeof ProfessionalsIndexRoute
@@ -253,24 +307,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/admin'
     | '/auth'
     | '/become-a-pro'
+    | '/hardware-locator'
+    | '/home-passport'
     | '/my-projects'
     | '/partner'
+    | '/price-index'
     | '/pricing'
     | '/privacy'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
+    | '/refer'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/society-deals'
     | '/terms'
     | '/account'
     | '/dashboard'
+    | '/gate-pass/$projectId'
     | '/help/$articleId'
     | '/help/contact'
+    | '/p/$slug'
     | '/professionals/$id'
     | '/help/'
     | '/professionals/'
@@ -280,23 +340,29 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/admin'
     | '/auth'
     | '/become-a-pro'
+    | '/hardware-locator'
+    | '/home-passport'
     | '/my-projects'
     | '/partner'
+    | '/price-index'
     | '/pricing'
     | '/privacy'
     | '/pro-dashboard'
     | '/project'
+    | '/refer'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/society-deals'
     | '/terms'
     | '/account'
     | '/dashboard'
+    | '/gate-pass/$projectId'
     | '/help/$articleId'
     | '/help/contact'
+    | '/p/$slug'
     | '/professionals/$id'
     | '/help'
     | '/professionals'
@@ -307,24 +373,30 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
-    | '/admin'
     | '/auth'
     | '/become-a-pro'
+    | '/hardware-locator'
+    | '/home-passport'
     | '/my-projects'
     | '/partner'
+    | '/price-index'
     | '/pricing'
     | '/privacy'
     | '/pro-dashboard'
     | '/professionals'
     | '/project'
+    | '/refer'
     | '/renovation-planner'
     | '/reset-password'
     | '/shortlist'
+    | '/society-deals'
     | '/terms'
     | '/_authenticated/account'
     | '/_authenticated/dashboard'
+    | '/gate-pass/$projectId'
     | '/help/$articleId'
     | '/help/contact'
+    | '/p/$slug'
     | '/professionals/$id'
     | '/help/'
     | '/professionals/'
@@ -336,22 +408,28 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BecomeAProRoute: typeof BecomeAProRoute
+  HardwareLocatorRoute: typeof HardwareLocatorRoute
+  HomePassportRoute: typeof HomePassportRoute
   MyProjectsRoute: typeof MyProjectsRoute
   PartnerRoute: typeof PartnerRoute
+  PriceIndexRoute: typeof PriceIndexRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ProDashboardRoute: typeof ProDashboardRoute
   ProfessionalsRoute: typeof ProfessionalsRouteWithChildren
   ProjectRoute: typeof ProjectRoute
+  ReferRoute: typeof ReferRoute
   RenovationPlannerRoute: typeof RenovationPlannerRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShortlistRoute: typeof ShortlistRoute
+  SocietyDealsRoute: typeof SocietyDealsRoute
   TermsRoute: typeof TermsRoute
+  GatePassProjectIdRoute: typeof GatePassProjectIdRoute
   HelpArticleIdRoute: typeof HelpArticleIdRoute
   HelpContactRoute: typeof HelpContactRoute
+  PSlugRoute: typeof PSlugRoute
   HelpIndexRoute: typeof HelpIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
 }
@@ -379,13 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -400,6 +471,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BecomeAProRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hardware-locator': {
+      id: '/hardware-locator'
+      path: '/hardware-locator'
+      fullPath: '/hardware-locator'
+      preLoaderRoute: typeof HardwareLocatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home-passport': {
+      id: '/home-passport'
+      path: '/home-passport'
+      fullPath: '/home-passport'
+      preLoaderRoute: typeof HomePassportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/my-projects': {
       id: '/my-projects'
       path: '/my-projects'
@@ -412,6 +497,13 @@ declare module '@tanstack/react-router' {
       path: '/partner'
       fullPath: '/partner'
       preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/price-index': {
+      id: '/price-index'
+      path: '/price-index'
+      fullPath: '/price-index'
+      preLoaderRoute: typeof PriceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -449,6 +541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/refer': {
+      id: '/refer'
+      path: '/refer'
+      fullPath: '/refer'
+      preLoaderRoute: typeof ReferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/renovation-planner': {
       id: '/renovation-planner'
       path: '/renovation-planner'
@@ -468,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/shortlist'
       fullPath: '/shortlist'
       preLoaderRoute: typeof ShortlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/society-deals': {
+      id: '/society-deals'
+      path: '/society-deals'
+      fullPath: '/society-deals'
+      preLoaderRoute: typeof SocietyDealsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -491,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/gate-pass/$projectId': {
+      id: '/gate-pass/$projectId'
+      path: '/gate-pass/$projectId'
+      fullPath: '/gate-pass/$projectId'
+      preLoaderRoute: typeof GatePassProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/help/': {
       id: '/help/'
       path: '/help'
@@ -510,6 +623,13 @@ declare module '@tanstack/react-router' {
       path: '/help/contact'
       fullPath: '/help/contact'
       preLoaderRoute: typeof HelpContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/professionals/': {
@@ -576,22 +696,28 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BecomeAProRoute: BecomeAProRoute,
+  HardwareLocatorRoute: HardwareLocatorRoute,
+  HomePassportRoute: HomePassportRoute,
   MyProjectsRoute: MyProjectsRoute,
   PartnerRoute: PartnerRoute,
+  PriceIndexRoute: PriceIndexRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ProDashboardRoute: ProDashboardRoute,
   ProfessionalsRoute: ProfessionalsRouteWithChildren,
   ProjectRoute: ProjectRoute,
+  ReferRoute: ReferRoute,
   RenovationPlannerRoute: RenovationPlannerRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShortlistRoute: ShortlistRoute,
+  SocietyDealsRoute: SocietyDealsRoute,
   TermsRoute: TermsRoute,
+  GatePassProjectIdRoute: GatePassProjectIdRoute,
   HelpArticleIdRoute: HelpArticleIdRoute,
   HelpContactRoute: HelpContactRoute,
+  PSlugRoute: PSlugRoute,
   HelpIndexRoute: HelpIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
 }

@@ -500,6 +500,42 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   UNIVERSAL INVISIBLE SCROLLING (FOR ALL DROPDOWNS & MODALS)
+   Scrolls freely under cursor without showing bulky scrollbars
+   ═══════════════════════════════════════════════════════════ */
+.no-scrollbar,
+.scrollbar-none,
+[data-lenis-prevent],
+[data-radix-popper-content-wrapper] [role="menu"],
+[data-radix-popper-content-wrapper] [role="listbox"],
+[data-radix-menu-content],
+[data-radix-dropdown-menu-content],
+[data-radix-popover-content],
+[data-radix-select-viewport],
+[data-radix-context-menu-content],
+[data-radix-menubar-content] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overscroll-behavior: contain !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar,
+[data-lenis-prevent]::-webkit-scrollbar,
+[data-radix-popper-content-wrapper] [role="menu"]::-webkit-scrollbar,
+[data-radix-popper-content-wrapper] [role="listbox"]::-webkit-scrollbar,
+[data-radix-menu-content]::-webkit-scrollbar,
+[data-radix-dropdown-menu-content]::-webkit-scrollbar,
+[data-radix-popover-content]::-webkit-scrollbar,
+[data-radix-select-viewport]::-webkit-scrollbar,
+[data-radix-context-menu-content]::-webkit-scrollbar,
+[data-radix-menubar-content]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
    MOTION SENSITIVITY
    ══════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {

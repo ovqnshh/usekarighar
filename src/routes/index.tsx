@@ -11,9 +11,19 @@ import bathroomImage from "@/assets/bathroom-project.jpg";
 import wardrobeImage from "@/assets/wardrobe-project.jpg";
 import waterTankImage from "@/assets/water-tank-project.jpg";
 import electricalImage from "@/assets/electrical-project.jpg";
-import arjunPortrait from "@/assets/arjun-portrait.jpg";
-import meeraPortrait from "@/assets/meera-portrait.jpg";
-import rohanPortrait from "@/assets/rohan-portrait.jpg";
+import plumbingRestorationImg from "@/assets/plumbing-restoration.jpg";
+import caneWardrobeImg from "@/assets/cane-wardrobe.jpg";
+import concealedWiringImg from "@/assets/concealed-wiring.jpg";
+import tileGroutingImg from "@/assets/tile-grouting.jpg";
+import acServiceImg from "@/assets/ac-service.jpg";
+import paintingServiceImg from "@/assets/painting-service.jpg";
+import waterproofingServiceImg from "@/assets/waterproofing-service.jpg";
+import carpentryServiceImg from "@/assets/carpentry-service.jpg";
+import sanitaryFittingsImg from "@/assets/sanitary-fittings.jpg";
+import mcbPanelImg from "@/assets/mcb-panel.jpg";
+import teakWoodImg from "@/assets/teak-wood.jpg";
+import bathBeforeImg from "@/assets/bath-before.jpg";
+import wardrobeBeforeImg from "@/assets/wardrobe-before.jpg";
 
 import { PageShell, SectionHeader } from "@/components/karighar-shell";
 import { Button } from "@/components/ui/button";
@@ -54,21 +64,21 @@ const PLUMBING_SLIDES: HeroSlide[] = [
   {
     badge: "Plumbing Care",
     title: "Pressure valves & pipe restoration",
-    image: waterTankImage,
+    image: plumbingRestorationImg,
     searchQ: "plumbing",
     category: "fix",
   },
   {
     badge: "AC & Cooling",
     title: "Copper coil flush & gas leak test",
-    image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=80",
+    image: acServiceImg,
     searchQ: "ac repair",
     category: "fix",
   },
   {
     badge: "Sanitary Rigs",
     title: "Concealed leak isolation & Jaquar trim",
-    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=80",
+    image: sanitaryFittingsImg,
     searchQ: "bathroom plumbing",
     category: "fix",
   },
@@ -85,14 +95,14 @@ const ELECTRICAL_SLIDES: HeroSlide[] = [
   {
     badge: "Panel Engineering",
     title: "Phase isolators & RCCB shock prevention",
-    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=80",
+    image: mcbPanelImg,
     searchQ: "mcb panel",
     category: "fix",
   },
   {
     badge: "Concealed Power",
     title: "Zero-damage wiring & profile channels",
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80",
+    image: concealedWiringImg,
     searchQ: "lighting wiring",
     category: "fix",
   },
@@ -102,21 +112,21 @@ const CARPENTRY_SLIDES: HeroSlide[] = [
   {
     badge: "Carpentry",
     title: "Marine-ply Cane Woodwork",
-    image: wardrobeImage,
+    image: caneWardrobeImg,
     searchQ: "carpentry",
     category: "build",
   },
   {
     badge: "Custom Cabinetry",
     title: "Blum hydraulic soft-close kitchen units",
-    image: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=1000&q=80",
+    image: carpentryServiceImg,
     searchQ: "modular kitchen",
     category: "build",
   },
   {
     badge: "Solid Wood",
     title: "Termite-proof solid teak wood framing",
-    image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=80",
+    image: teakWoodImg,
     searchQ: "furniture repair",
     category: "build",
   },
@@ -126,21 +136,21 @@ const WATERPROOFING_SLIDES: HeroSlide[] = [
   {
     badge: "Waterproofing",
     title: "Joint barrier seal & acoustic test",
-    image: bathroomImage,
+    image: waterproofingServiceImg,
     searchQ: "waterproofing",
     category: "renovate",
   },
   {
     badge: "Painting & Finishes",
     title: "Anti-fungal luxury paint & skim coating",
-    image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=1000&q=80",
+    image: paintingServiceImg,
     searchQ: "painting",
     category: "renovate",
   },
   {
     badge: "Tile & Stone",
     title: "Non-porous grout & vitrified alignment",
-    image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1000&q=80",
+    image: tileGroutingImg,
     searchQ: "tiling",
     category: "renovate",
   },
@@ -644,7 +654,7 @@ function HomePage() {
                             <div className="space-y-2.5">
                               <div className="flex items-start gap-3">
                                 <img
-                                  src={pro.image}
+                                  src={(pro as any).image || (pro as any).avatar_url || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop"}
                                   alt={pro.name}
                                   className="size-12 rounded-lg object-cover border border-border shrink-0"
                                 />
@@ -668,7 +678,7 @@ function HomePage() {
                               </div>
 
                               <div className="flex flex-wrap gap-1">
-                                {pro.badges.slice(0, 2).map((b, i) => (
+                                {((pro as any).badges || ["Identity Verified", "SafePay Escrow"]).slice(0, 2).map((b: any, i: number) => (
                                   <span key={i} className="text-[10px] bg-surface-subtle px-1.5 py-0.5 rounded text-muted-foreground">
                                     ✓ {b}
                                   </span>
@@ -682,7 +692,7 @@ function HomePage() {
                                   Visit Fee
                                 </span>
                                 <span className="text-sm font-bold text-foreground">
-                                  ₹{pro.price}
+                                  ₹{(pro as any).price || (pro as any).hourly_rate || 499}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -776,7 +786,7 @@ function HomePage() {
           />
           <div className="grid md:grid-cols-2 gap-6">
             <BeforeAfterSlider
-              beforeImage={waterTankImage}
+              beforeImage={bathBeforeImg}
               afterImage={bathroomImage}
               title="Modern Bath Overhaul"
               subtitle="Full waterproofing, premium wall tiling & concealed plumbing"
@@ -784,16 +794,18 @@ function HomePage() {
               location="Bandra West, Mumbai"
               cost="₹48,000"
               duration="6 days"
+              customerConsented={true}
             />
             <BeforeAfterSlider
-              beforeImage="https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800&q=80&auto=format&fit=crop"
-              afterImage={wardrobeImage}
+              beforeImage={wardrobeBeforeImg}
+              afterImage={caneWardrobeImg}
               title="Custom Modular Wardrobe"
               subtitle="Raw marine-ply framing transformed into custom cane-fluted wardrobe"
               trade="Carpentry & Joinery"
               location="Powai, Mumbai"
               cost="₹85,000"
               duration="8 days"
+              customerConsented={true}
             />
           </div>
         </section>
@@ -811,7 +823,7 @@ function HomePage() {
               <p className="text-base font-medium text-foreground">No artisans registered yet in this area.</p>
               <p className="text-sm text-muted-foreground mt-1">Be the first verified master craftsman to list services on Karighar.</p>
               <div className="mt-4">
-                <Button onClick={() => navigate({ to: '/auth', search: { role: 'pro' } })} className="rounded-full shadow-warm">
+                <Button onClick={() => navigate({ to: '/auth', search: { redirect: '/become-a-pro' } as any })} className="rounded-full shadow-warm">
                   Join as a Verified Karighar
                 </Button>
               </div>

@@ -14,7 +14,9 @@ import {
   ArrowRight,
   X,
   AlertTriangle,
+  Camera,
 } from "lucide-react";
+import { VisualDamageEstimatorModal } from "@/components/visual-damage-estimator";
 import {
   querySearchIndex,
   SearchSuggestion,
@@ -50,6 +52,7 @@ export function AskKarigharAutocomplete({
   const [safetyHazard, setSafetyHazard] = useState<SafetyHazardRule | undefined>();
   const [isListening, setIsListening] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -266,6 +269,17 @@ export function AskKarigharAutocomplete({
           </button>
         )}
 
+        {/* AI Visual Damage Photo Button */}
+        <button
+          type="button"
+          onClick={() => setIsCameraModalOpen(true)}
+          className="grid size-9 place-items-center rounded-xl text-primary hover:bg-primary/10 transition-all mr-1"
+          aria-label="Upload damage photo for AI estimate"
+          title="AI Visual Damage Estimator (Upload photo)"
+        >
+          <Camera className="size-4" strokeWidth={1.9} />
+        </button>
+
         {/* Voice Input Button */}
         <button
           type="button"
@@ -384,6 +398,12 @@ export function AskKarigharAutocomplete({
           </div>
         </div>
       )}
+
+      {/* AI Visual Damage Photo Estimator Modal */}
+      <VisualDamageEstimatorModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+      />
     </div>
   );
 }

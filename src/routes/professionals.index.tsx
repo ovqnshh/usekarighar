@@ -163,6 +163,87 @@ function ProfessionalsPage() {
     });
   };
 
+const TRADE_KEYWORDS: Record<string, string[]> = {
+  plumbing: ["plumb", "tap", "leak", "pipe", "water", "drain", "sanitary", "tank", "basin", "faucet", "flush", "sink", "geyser"],
+  electrical: ["electr", "wiring", "mcb", "switch", "light", "power", "fan", "spark", "circuit", "short", "inverter", "fuse"],
+  appliance: ["ac", "air condition", "appliance", "cooling", "refrigerator", "washing", "microwave", "oven", "tv", "purifier", "ro"],
+  carpentry: ["carpent", "wood", "furniture", "door", "cabinet", "shelf", "hinge", "wardrobe", "drawer", "lock", "table", "chair"],
+  painting: ["paint", "wall", "polish", "primer", "putty", "distemper", "emulsion", "enamel", "whitewash"],
+  waterproofing: ["waterproof", "seepage", "damp", "grout", "leakage", "terrace", "roof"],
+  tiling: ["tile", "tiling", "flooring", "marble", "granite", "buffing", "epoxy"],
+  masonry: ["mason", "brick", "plaster", "concrete", "civil", "cement", "wall crack"],
+  pest: ["pest", "termite", "cockroach", "bed bug", "rodent", "insect", "fumigation"],
+  ceiling: ["ceiling", "pop", "false ceiling", "gypsum", "grid"],
+  automation: ["automation", "smart", "lock", "cctv", "camera", "intercom", "sensor"],
+  labour: ["labour", "labor", "helper", "worker", "unloading", "shifting", "cleaner"],
+};
+
+function matchesCategoryOrSearch(pro: any, category?: string, q?: string): boolean {
+  const pTrade = (pro.trade || "").toLowerCase();
+  const pName = (pro.name || "").toLowerCase();
+  const pBusiness = (pro.business || "").toLowerCase();
+  const pCity = (pro.city || "").toLowerCase();
+  const pBio = (pro.bio || "").toLowerCase();
+  const gigTexts = (pro.gigs || []).map((g: any) => `${g.name || ""} ${g.description || ""}`).join(" ").toLowerCase();
+  const fullText = `${pTrade} ${pName} ${pBusiness} ${pCity} ${pBio} ${gigTexts}`;
+
+  // 1. If category is specified (and not "All")
+  if (category && category !== "All") {
+    const c = category.toLowerCase();
+    let catMatched = false;
+
+    // Check CATEGORY_TRADES lookup (build, renovate, fix)
+    if (CATEGORY_TRADES[category]) {
+      const allowed = CATEGORY_TRADES[category].map(t => t.toLowerCase());
+      if (allowed.some(t => pTrade.includes(t) || t.includes(pTrade))) {
+        catMatched = true;
+      }
+    }
+
+    if (!catMatched) {
+      if (pTrade === c || pTrade.includes(c) || c.includes(pTrade)) {
+        catMatched = true;
+      }
+    }
+
+    if (!catMatched) {
+      for (const [_, roots] of Object.entries(TRADE_KEYWORDS)) {
+        const cHas = roots.some(r => c.includes(r));
+        if (cHas) {
+          const pHas = roots.some(r => fullText.includes(r));
+          if (pHas) {
+            catMatched = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!catMatched) return false;
+  }
+
+  // 2. If search query `q` is specified
+  if (q && q.trim()) {
+    const qLower = q.trim().toLowerCase();
+    const words = qLower.split(/\s+/).filter(w => w.length > 1);
+
+    if (words.some(w => fullText.includes(w))) {
+      return true;
+    }
+
+    for (const [_, roots] of Object.entries(TRADE_KEYWORDS)) {
+      const qHas = roots.some(r => qLower.includes(r));
+      if (qHas && roots.some(r => fullText.includes(r))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
   // Query matching professionals
   const { data: professionals = [], isLoading } = useQuery({
     queryKey: ["professionals", category, location, minPrice, maxPrice, rating, sort, q],
@@ -189,32 +270,23 @@ function ProfessionalsPage() {
 
         return {
           ...pro,
-          trade: pro.trade || dummy?.trade,
-          image: pro.image || (pro as any)?.avatar_url || dummy?.image,
-          portfolio: (pro.portfolio?.length ? pro.portfolio : dummy?.portfolio) || [],
-          badges: pro.badges?.length ? pro.badges : (dummy?.badges || ["Identity verified", "Skills verified"]),
-          availability: pro.availability || dummy?.availability || "Available today",
+          trade: pro.trade || "Specialist",
+          image: pro.image || (pro as any)?.avatar_url || `https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop&sig=${pro.id}`,
+          portfolio: (pro.portfolio?.length ? pro.portfolio : []) || [],
+          badges: pro.badges?.length ? pro.badges : ["Identity verified", "Skills verified"],
+          availability: pro.availability || "Available today",
           computedRating,
           lowestGigPrice,
           whyMatched,
         };
       });
 
-      // Filter by category
-      if (category && category !== "All") {
-        if (CATEGORY_TRADES[category]) {
-          filtered = filtered.filter((p: any) => CATEGORY_TRADES[category].includes(p.trade));
-        } else {
-          filtered = filtered.filter(
-            (p: any) =>
-              p.trade === category || p.trade.toLowerCase().includes(category.toLowerCase())
-          );
-        }
-      }
+      // Filter by category and search query `q`
+      filtered = filtered.filter((p: any) => matchesCategoryOrSearch(p, category, q));
 
       // Filter by location
       if (location) {
-        filtered = filtered.filter((p: any) => p.city.toLowerCase().includes(location.toLowerCase()));
+        filtered = filtered.filter((p: any) => p.city?.toLowerCase().includes(location.toLowerCase()));
       }
 
       // Filter by rating

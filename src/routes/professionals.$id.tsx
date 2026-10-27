@@ -25,13 +25,12 @@ import { format } from 'date-fns';
 import { BeforeAfterSlider } from '@/components/before-after-slider';
 import { projectImages } from '@/lib/karighar-data';
 
-import arjunPortrait from '@/assets/arjun-portrait.jpg';
-import meeraPortrait from '@/assets/meera-portrait.jpg';
-import rohanPortrait from '@/assets/rohan-portrait.jpg';
 import bathroomProject from '@/assets/bathroom-project.jpg';
 import waterTankProject from '@/assets/water-tank-project.jpg';
 import wardrobeProject from '@/assets/wardrobe-project.jpg';
 import electricalProject from '@/assets/electrical-project.jpg';
+
+const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80&auto=format&fit=crop";
 
 /* ─── Trade Catalog Helpers ────────────────────────────────────────── */
 interface ServiceGig {
@@ -326,11 +325,11 @@ const professionalQueryOptions = (slug: string) => queryOptions({
     return {
       ...pro,
       hourly_rate: Number((pro as any).price || (pro as any).hourly_rate || 350),
-      image: (pro as any).image || (data as any)?.avatar_url || dummy?.image || arjunPortrait,
+      image: (pro as any).image || (data as any)?.avatar_url || DEFAULT_AVATAR,
       portfolio: [
         ...(((data as any)?.gigs || []).flatMap((g: any) => g.photos || [])),
         ...localCustomGigs.flatMap((g: any) => g.photos || []),
-        ...((pro as any).portfolio?.length > 0 ? (pro as any).portfolio : (dummy?.portfolio || [waterTankProject, bathroomProject, electricalProject]))
+        ...((pro as any).portfolio?.length > 0 ? (pro as any).portfolio : [waterTankProject, bathroomProject, electricalProject])
       ].filter(Boolean),
       reviews: finalReviews,
       completed_projects_count: projectsCount || 0,
@@ -867,7 +866,7 @@ function ProfilePage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <div className="relative shrink-0">
                 <img
-                  src={pro.image || arjunPortrait}
+                  src={pro.image || DEFAULT_AVATAR}
                   alt={pro.name}
                   className="size-24 sm:size-28 rounded-2xl object-cover border-2 border-border shadow-warm-xs"
                 />
@@ -1378,8 +1377,8 @@ function ProfilePage() {
                       <Button
                         onClick={() => {
                           setSelectedService(displayedGigs[0] || null);
-                          setBookingStep('service');
-                          setShowBookingModal(true);
+                          const aside = document.getElementById('booking-sidebar');
+                          aside?.scrollIntoView({ behavior: 'smooth' });
                         }}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl shadow-warm px-5 py-2.5"
                       >
@@ -1920,7 +1919,7 @@ function ProfilePage() {
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-subtle border border-border">
                 <img
-                  src={pro.image || arjunPortrait}
+                  src={pro.image || DEFAULT_AVATAR}
                   alt={pro.name}
                   className="size-12 rounded-xl object-cover border border-border"
                 />
@@ -2021,7 +2020,7 @@ function ProfilePage() {
                 {/* Pro mini card */}
                 <div className="flex items-center gap-3 p-3.5 rounded-xl bg-surface-subtle border border-border">
                   <img
-                    src={pro.image || arjunPortrait}
+                    src={pro.image || DEFAULT_AVATAR}
                     alt={pro.name}
                     className="size-12 rounded-xl object-cover border border-border shrink-0"
                   />

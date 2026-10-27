@@ -292,7 +292,7 @@ export const askKarigharEngine = createServerFn({ method: "POST" })
     try {
       // Step A: Fast Classification
       const { object: classification } = await generateObject({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-3.1-flash-lite"),
         schema: StepAClassificationSchema,
         prompt: `You are Karighar's rapid intent classifier for home services in Mumbai, India.
 Classify this user request into our standard service taxonomy:
@@ -307,7 +307,7 @@ Respond strictly according to the schema. Keep primaryTrade matching one of the 
 
       // Step B: Generate Full 14-Section Honest Project Brief
       const { object: brief } = await generateObject({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-3.1-flash-lite"),
         schema: DetailedBriefSchema,
         prompt: `You are Karighar's senior home diagnostic engineer in Mumbai.
 Generate a structured, scannable, honest project brief for:
